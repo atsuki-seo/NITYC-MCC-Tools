@@ -252,6 +252,6 @@
 
 - **使用サービス**: Perplexity.ai
 - **使用モデル**: Gemini 3.1 Pro Thinking
-- **入力**: [Kosen-MCC2023-Tech.pdf](./Kosen-MCC2023-Tech.pdf)
+- **入力**: [Kosen-MCC2023-Tech.pdf](./docs/Kosen-MCC2023-Tech.pdf)
 - **出典**: https://kosen-k.go.jp/wp/wp-content/uploads/2023/12/2c383e29-7e20-4b20-af19-ca3737450665.pdf
 
