@@ -4,3 +4,6 @@
 # Editor
 *.swp
 *~
+
+# Skill output
+/output
