@@ -39,6 +39,25 @@ def write_syllabus(filepath: str, data: dict) -> dict:
         ws["A13"] = data["到達目標"]
         written.append("到達目標")
 
+    # --- ルーブリック ---
+    if "ルーブリック" in data:
+        ws = wb["ルーブリック"]
+        # 既存データをクリア（行3〜最大行、A〜D列）
+        for row in range(3, ws.max_row + 1):
+            for col in range(1, 5):
+                ws.cell(row=row, column=col, value=None)
+        for i, rubric in enumerate(data["ルーブリック"]):
+            row = 3 + i
+            if "評価観点" in rubric:
+                ws.cell(row=row, column=1, value=rubric["評価観点"])
+            if "理想的" in rubric:
+                ws.cell(row=row, column=2, value=rubric["理想的"])
+            if "標準的" in rubric:
+                ws.cell(row=row, column=3, value=rubric["標準的"])
+            if "未到達" in rubric:
+                ws.cell(row=row, column=4, value=rubric["未到達"])
+        written.append(f"ルーブリック（{len(data['ルーブリック'])}項目）")
+
     # --- 教育方法等・自由使用枠 ---
     if "教育方法等" in data:
         ws = wb["教育方法等・自由使用枠"]
@@ -61,6 +80,11 @@ def write_syllabus(filepath: str, data: dict) -> dict:
         # 開講期を判定して書き込み開始行を決定
         semester = plan.get("学期", "後期")
         start_row = 3 if semester == "前期" else 19
+
+        # 既存データをクリア（前期・後期の両方、D〜E列）
+        for row in range(3, 35):  # 行3〜34（前期3〜18、後期19〜34）
+            ws.cell(row=row, column=4, value=None)
+            ws.cell(row=row, column=5, value=None)
 
         for week in plan.get("週データ", []):
             week_num = week.get("週番号", 0)
