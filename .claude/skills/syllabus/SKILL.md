@@ -43,6 +43,7 @@ Step 2.5: 到達目標・ルーブリックの確認・生成
 Step 3: 授業構成パラメータ（回数・授業構成案・評価スタイル・試験・MCC）
 Step 4: MCC対応付け（オプション）
 Step 5: 生成（概要・授業の進め方・注意点・授業計画・評価割合・属性）
+Step 5.5: 試験範囲の確認（小テスト・定期試験がある場合）
 Step 6: プレビュー・修正ループ
 Step 7: Excel書き込み（Excel有りの場合）
 Step 8: Markdown出力
@@ -264,6 +265,14 @@ Step 3 で MCC 対応を選択した場合のみ実施。詳細手順は `refere
 
 評価割合の生成後は、全観点・全評価方法の配分値の合計が100になっていることを必ず検算すること。100でない場合は調整してからプレビューに進む。
 
+### Step 5.5: 試験範囲の確認
+
+Step 3 で小テストまたは定期試験が選択されている場合に実施する。いずれも選択されていない場合はスキップする。
+
+Step 5 で生成した授業計画をもとに、各試験の対象範囲を自動割り当てし、ユーザーに確認を取る。確定した範囲は授業計画の授業内容テキストと「授業の進め方」テキストに反映する。
+
+詳細な自動割り当てロジック・確認フロー・反映先は `references/exam-scope-guide.md` を参照。「授業の進め方」への反映フォーマットは `references/teaching-method-guide.md` を参照。
+
 ### Step 6: プレビューと修正
 
 生成した全内容を `references/preview-format.md` のフォーマットに従ってMarkdown形式でプレビュー表示する。
@@ -350,7 +359,16 @@ Markdown: output/[ファイル名].md
 
 ## リファレンス
 
-- エクセルテンプレートの構造とセル位置マッピング: `references/excel-template.md`
+- 到達目標の生成・改善ロジック: `references/objective-generation-guide.md`
 - 到達目標の作文例（実際のシラバスから抽出）: `references/objective-examples.md`
 - 概要の作文例（実際のシラバスから抽出）: `references/overview-examples.md`
 - ルーブリックの作文例（実際のシラバスから抽出）: `references/rubric-examples.md`
+- 評価方法のフォローアップ質問・重み付け方針: `references/evaluation-guide.md`
+- MCC対応付けの手順: `references/mcc-guide.md`
+- MCCカテゴリとキーワードのマッピング: `references/mcc-mapping.md`
+- 授業計画・出力項目の生成ルール: `references/course-design-guide.md`
+- 「授業の進め方」の構造化フォーマット: `references/teaching-method-guide.md`
+- 試験範囲の自動割り当て・確認フロー: `references/exam-scope-guide.md`
+- プレビュー・Markdown出力フォーマット: `references/preview-format.md`
+- 確定データJSONフォーマット（write_syllabus.py用）: `references/json-format.md`
+- エクセルテンプレートの構造とセル位置マッピング: `references/excel-template.md`
