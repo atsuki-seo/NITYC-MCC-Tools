@@ -250,7 +250,7 @@ mkdir -p "output/[開講年度]_[教科名]/tests/[テスト名]"
 3. **`[テスト名]_moodle.xml`**: Moodle問題バンクインポート用XML（`references/moodle-xml-format.md` 参照）
 
 Moodle XMLの生成時:
-- カテゴリは `$course$/[科目名]/[テスト名]` に設定する
+- カテゴリは `$course$/[テスト名]` に設定する（コース自体が科目に対応するため、科目名の階層は不要）
 - 問題文にHTMLやLaTeX数式を含む場合は `<![CDATA[...]]>` で囲む
 - エンコーディングは UTF-8、BOMなし
 - 生成後、XMLの構文妥当性を確認する（タグの開閉、必須属性の有無）

@@ -24,7 +24,7 @@ Moodle 4.x の問題バンクにインポートするためのXML形式の完全
 ```xml
 <question type="category">
   <category>
-    <text>$course$/アルゴリズム/小テスト1</text>
+    <text>$course$/小テスト1</text>
   </category>
   <info format="moodle_auto_format">
     <text></text>
@@ -32,7 +32,7 @@ Moodle 4.x の問題バンクにインポートするためのXML形式の完全
 </question>
 ```
 
-- `$course$/` はコースのトップカテゴリ
+- `$course$/` はコースのトップカテゴリ（コース自体が科目に対応するため、科目名の階層は不要）
 - `/` で区切ると階層構造になる
 - カテゴリが存在しなければ自動作成される
 
