@@ -175,8 +175,7 @@ mkdir -p "output/[開講年度]_[教科名]/slides"
 
 ファイル名: `classNN.md`（NN は2桁ゼロ埋めの回番号）。例: 2026年度コンパイラの第1回 → `output/2026_コンパイラ/slides/class01.md`
 
-既に同名ファイルが存在する場合は `AskUserQuestion` で確認する:
-- options: 「上書き」「スキップ」「別名保存（classNN_v2.md）」
+既に同名ファイルが存在する場合の挙動は `specs/file-output-policy.md` に従う。本スキルは § 1.2 のファイル単位で判定し、複数回の連続生成のため § 2.2 で許可される「スキップ」を選択肢に追加する。最終的な選択肢は「上書き」「別名で保存（`classNN_v2.md` 等、§ 3 のサフィックス規則）」「スキップ（この回を出力せず次の回へ進む）」「キャンセル（連続生成自体を中断）」。
 
 #### Step 5.5: 次回への進行確認
 
@@ -218,3 +217,4 @@ PDF/PPTXエクスポート:
 - yuge テーマのレイアウト規約（flex-layout / columns / mermaid / Tips 囲み等）: `references/yuge-theme-layout.md`
 - 標準スライド構造と情報量ルール: `references/slide-structure-guide.md`
 - 出力フォーマット契約とバリデーション: `references/output-format.md`
+- 既存ファイル検出・上書き・別名保存ポリシー: プロジェクトルートの `specs/file-output-policy.md`

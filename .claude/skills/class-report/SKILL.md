@@ -179,6 +179,8 @@ mkdir -p "output/[開講年度]_[教科名]/reports/[レポート名]/submission
 
 例: 2026年度コンパイラのレポート1 → `output/2026_コンパイラ/reports/レポート1/`
 
+**既存ディレクトリ判定**: `output/[開講年度]_[教科名]/reports/[レポート名]/` が既に存在する場合の挙動は `specs/file-output-policy.md` に従う。本スキルは § 1.1 のディレクトリ単位で判定する。配下の課題MD・ルーブリックMDのファイル名はレポート名を含むため、別名保存時はディレクトリ名に追従させる（§ 3.4、例: `レポート1_v2/レポート1_v2_課題.md`）。`submissions/` サブディレクトリの存在のみでは既存判定しない（`mkdir -p` の副産物として残ることがあるため、配下ファイルが空の場合は新規扱いとする）。
+
 出力するファイルとディレクトリ:
 1. **`[レポート名]_課題.md`**: 学生向け出題文（`specs/report-task-md-schema.md` の課題MDスキーマ参照）
 2. **`[レポート名]_ルーブリック.md`**: 採点用ルーブリックシート（同スキーマのルーブリックMDセクション参照）
@@ -212,6 +214,7 @@ mkdir -p "output/[開講年度]_[教科名]/reports/[レポート名]/submission
 - ルーブリック構造・点数換算デフォルト: プロジェクトルートの `specs/rubric-schema.md`
 - 履修者名簿・チーム構成CSVの正本: プロジェクトルートの `specs/roster-team-csv.md`
 - 対話規約・修正ループ作法: プロジェクトルートの `specs/dialog-conventions.md`
+- 既存ファイル検出・上書き・別名保存ポリシー: プロジェクトルートの `specs/file-output-policy.md`
 - 統合フロー・テーマ候補生成・課題設計のルール: `references/report-design-guide.md`
 - ルーブリック設計（シラバス観点の特殊化）のルール: `references/rubric-design-guide.md`
 - プログラミング系科目のテーマ例: `references/theme-examples/programming-examples.md`
