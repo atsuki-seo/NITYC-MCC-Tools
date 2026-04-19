@@ -25,28 +25,19 @@ math: mathjax
 class: flex-layout natural-height
 -->
 
-<div class="columns">
-<div>
-
 # <科目名> 講義資料
 
 ## 第N回 <回タイトル>
+
 - <キーコンセプト1>
 - <キーコンセプト2>
 - <キーコンセプト3>
-
-</div>
-
-<div>
 
 ### 今回の提出物（該当回のみ）
 
 - <レポート名>
 - 期限：<期限>
 - 概要：<1〜2行>
-
-</div>
-</div>
 
 ---
 
