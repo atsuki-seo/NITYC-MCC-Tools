@@ -218,4 +218,3 @@ PDF/PPTXエクスポート:
 - yuge テーマのレイアウト規約（flex-layout / columns / mermaid / Tips 囲み等）: `references/yuge-theme-layout.md`
 - 標準スライド構造と情報量ルール: `references/slide-structure-guide.md`
 - 出力フォーマット契約とバリデーション: `references/output-format.md`
-- 本スキルの設計書: プロジェクトルートの `specs/class-slides-design.md`
