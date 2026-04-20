@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # 動作検証
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/31)
+
 ---
 
 <!--
@@ -109,6 +111,8 @@ class: flex-layout natural-height
 ---
 
 # 進捗管理と共有
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/32)
 
 ---
 

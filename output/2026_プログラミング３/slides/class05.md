@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # ブランチの概念
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/15)
+
 ---
 
 <!--
@@ -95,6 +97,8 @@ git branch -d <name>    # マージ済みブランチを削除
 ---
 
 # マージとコンフリクト
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/16)
 
 ---
 

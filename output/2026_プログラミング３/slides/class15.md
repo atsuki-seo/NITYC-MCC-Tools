@@ -34,6 +34,8 @@ class: flex-layout natural-height
 
 # 試験概要
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/35)
+
 ---
 
 <!--
@@ -71,6 +73,8 @@ class: flex-layout natural-height
 ---
 
 # 準備と当日の注意
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/36)
 
 ---
 

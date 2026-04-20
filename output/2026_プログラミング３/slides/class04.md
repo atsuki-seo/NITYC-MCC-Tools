@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # バージョン管理の概念
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/13)
+
 ---
 
 <!--
@@ -92,6 +94,8 @@ class: flex-layout natural-height
 ---
 
 # git の基本コマンド
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/14)
 
 ---
 

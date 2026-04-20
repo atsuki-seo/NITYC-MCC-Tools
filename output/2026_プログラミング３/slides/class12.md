@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # PR レビューの実践
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/29)
+
 ---
 
 <!--
@@ -111,6 +113,8 @@ class: flex-layout natural-height
 ---
 
 # AI 活用プロンプト記録
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/30)
 
 ---
 

@@ -1,0 +1,184 @@
+subject: プログラミング３
+year: 2026
+repository: atsuki-seo/NITYC-MCC-Tools
+classes:
+  - class_number: 1
+    sections:
+      - section_name: 授業概要
+        issue_number: 7
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/7
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: 評価と学修単位
+        issue_number: 8
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/8
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 2
+    sections:
+      - section_name: 開発ツールの全体像
+        issue_number: 9
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/9
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: 環境構築の進め方
+        issue_number: 10
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/10
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 3
+    sections:
+      - section_name: バージョン管理とは
+        issue_number: 11
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/11
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: git の基本コマンド
+        issue_number: 12
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/12
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 4
+    sections:
+      - section_name: ブランチの考え方
+        issue_number: 13
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/13
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: merge とコンフリクト解消
+        issue_number: 14
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/14
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 5
+    sections:
+      - section_name: 履歴の見方
+        issue_number: 15
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/15
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: 履歴のやり直し
+        issue_number: 16
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/16
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 6
+    sections:
+      - section_name: GitHub 概要
+        issue_number: 17
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/17
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: リモートリポジトリ操作
+        issue_number: 18
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/18
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 7
+    sections:
+      - section_name: Issue の基本
+        issue_number: 19
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/19
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: Pull Request とレビュー
+        issue_number: 20
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/20
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 8
+    sections:
+      - section_name: Markdown 記法
+        issue_number: 21
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/21
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: AI 活用と小テスト
+        issue_number: 22
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/22
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 9
+    sections:
+      - section_name: チーム開発の枠組み
+        issue_number: 23
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/23
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: テーマ選定と要件定義
+        issue_number: 24
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/24
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 10
+    sections:
+      - section_name: 基本設計
+        issue_number: 25
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/25
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: タスク分解と Issue 化
+        issue_number: 26
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/26
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 11
+    sections:
+      - section_name: 詳細設計
+        issue_number: 27
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/27
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: Issue/PR の本格運用
+        issue_number: 28
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/28
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 12
+    sections:
+      - section_name: PR レビューの実践
+        issue_number: 29
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/29
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: AI 活用プロンプト記録
+        issue_number: 30
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/30
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 13
+    sections:
+      - section_name: 動作検証
+        issue_number: 31
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/31
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: 進捗管理と共有
+        issue_number: 32
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/32
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 14
+    sections:
+      - section_name: 成果物の最終調整
+        issue_number: 33
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/33
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: 振り返りと提出
+        issue_number: 34
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/34
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+  - class_number: 15
+    sections:
+      - section_name: 試験概要
+        issue_number: 35
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/35
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z
+      - section_name: 準備と当日の注意
+        issue_number: 36
+        issue_url: https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/36
+        created_at: 2026-04-20T04:56:25Z
+        updated_at: 2026-04-20T04:56:25Z

@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # 要件定義
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/23)
+
 ---
 
 <!--
@@ -109,6 +111,8 @@ class: flex-layout natural-height
 ---
 
 # Issue 運用と KPT
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/24)
 
 ---
 

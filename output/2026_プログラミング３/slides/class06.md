@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # GitHub 概要
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/17)
+
 ---
 
 <!--
@@ -72,6 +74,12 @@ class: flex-layout natural-height
 
 - git なしで GitHub は使えない、GitHub なしでも git は使える
 - GitHub の強みは **共同作業のための Web UI と API**
+
+---
+
+# リモートリポジトリ操作
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/18)
 
 ---
 

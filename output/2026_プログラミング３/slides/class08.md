@@ -35,6 +35,8 @@ class: flex-layout natural-height
 
 # チーム編成とテーマ設定
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/21)
+
 ---
 
 <!--
@@ -112,6 +114,8 @@ class: flex-layout natural-height
 ---
 
 # 最終レポートの要件
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/22)
 
 ---
 

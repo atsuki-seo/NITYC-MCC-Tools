@@ -35,6 +35,8 @@ class: flex-layout natural-height
 
 # 成果物の最終調整
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/33)
+
 ---
 
 <!--
@@ -113,6 +115,8 @@ class: flex-layout natural-height
 ---
 
 # 振り返りと提出
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/34)
 
 ---
 

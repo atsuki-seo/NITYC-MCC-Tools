@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # 詳細設計
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/27)
+
 ---
 
 <!--
@@ -112,6 +114,8 @@ class: flex-layout natural-height
 ---
 
 # Issue/PR の本格運用
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/28)
 
 ---
 

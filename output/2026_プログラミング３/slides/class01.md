@@ -30,6 +30,8 @@ class: flex-layout natural-height
 
 # 授業概要
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/7)
+
 ---
 
 <!--
@@ -92,6 +94,8 @@ class: flex-layout natural-height
 ---
 
 # 環境構築
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/8)
 
 ---
 

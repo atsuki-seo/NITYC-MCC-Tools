@@ -13,6 +13,7 @@
 !/output/*/
 !/output/*/*.xlsx
 !/output/*/*.md
+!/output/*/*.yml
 
 # スライド配下は丸ごと許可（学生配布物、個人情報なし）
 !/output/*/slides/
