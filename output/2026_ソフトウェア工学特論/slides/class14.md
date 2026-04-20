@@ -36,6 +36,8 @@ class: flex-layout natural-height
 
 # 最終調整と成果物の整備
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/76)
+
 ---
 
 <!--
@@ -83,6 +85,8 @@ class: flex-layout natural-height
 ---
 
 # チーム開発成果物の提出要件
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/77)
 
 ---
 
@@ -140,6 +144,8 @@ class: flex-layout natural-height
 ---
 
 # プロジェクトの振り返り
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/78)
 
 ---
 

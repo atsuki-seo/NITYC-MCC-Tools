@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # 実装の仕上げと動作検証
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/73)
+
 ---
 
 <!--
@@ -107,6 +109,8 @@ README は **仕様書に貼れる水準** で整備する。
 
 # テスト設計とCI
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/74)
+
 ---
 
 <!--
@@ -153,6 +157,8 @@ jobs:
 ---
 
 # AI活用の批判的評価
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/75)
 
 ---
 

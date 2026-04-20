@@ -36,6 +36,8 @@ class: flex-layout natural-height
 
 # プロジェクト総括とKPT整理
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/79)
+
 ---
 
 <!--
@@ -81,6 +83,8 @@ class: flex-layout natural-height
 ---
 
 # Problem-Try対応と優先度
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/80)
 
 ---
 
@@ -134,6 +138,8 @@ class: flex-layout natural-height
 ---
 
 # レポート③の提示
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/81)
 
 ---
 

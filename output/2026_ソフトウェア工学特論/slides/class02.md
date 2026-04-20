@@ -36,6 +36,8 @@ class: flex-layout natural-height
 
 # Markdownの基本記法
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/40)
+
 ---
 
 <!--
@@ -110,6 +112,8 @@ class: flex-layout natural-height
 
 # 構造化文書の設計
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/41)
+
 ---
 
 <!--
@@ -146,6 +150,8 @@ class: flex-layout natural-height
 ---
 
 # レポート①の提示
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/42)
 
 ---
 

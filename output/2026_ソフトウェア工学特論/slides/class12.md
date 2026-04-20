@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # PR駆動の実装
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/70)
+
 ---
 
 <!--
@@ -94,6 +96,8 @@ class: flex-layout natural-height
 
 # コードレビュー
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/71)
+
 ---
 
 <!--
@@ -146,6 +150,8 @@ class: flex-layout natural-height
 ---
 
 # AI活用記録
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/72)
 
 ---
 

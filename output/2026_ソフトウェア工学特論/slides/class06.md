@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # GitHubの概要
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/52)
+
 ---
 
 <!--
@@ -95,6 +97,8 @@ class: flex-layout natural-height
 
 # リモート操作の基本
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/53)
+
 ---
 
 <!--
@@ -142,6 +146,8 @@ push の前に pull で最新を取り込むのが安全。
 ---
 
 # 認証と公開設定
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/54)
 
 ---
 

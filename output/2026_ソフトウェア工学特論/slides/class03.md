@@ -36,6 +36,8 @@ class: flex-layout natural-height
 
 # 応用記法で読みやすさを高める
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/43)
+
 ---
 
 <!--
@@ -105,6 +107,8 @@ class: flex-layout natural-height
 
 # 定量的な表現
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/44)
+
 ---
 
 <!--
@@ -140,6 +144,8 @@ class: flex-layout natural-height
 ---
 
 # レポート②の提示
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/45)
 
 ---
 

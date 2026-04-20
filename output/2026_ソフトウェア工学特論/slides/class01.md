@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # 授業概要と3本柱
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/37)
+
 ---
 
 <!--
@@ -97,6 +99,8 @@ class: flex-layout natural-height
 
 # 評価方法と学修単位
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/38)
+
 ---
 
 <!--
@@ -133,6 +137,8 @@ class: flex-layout natural-height
 ---
 
 # 開発環境の構築
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/39)
 
 ---
 

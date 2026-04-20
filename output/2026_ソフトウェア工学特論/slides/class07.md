@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # Issueによるタスク管理
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/55)
+
 ---
 
 <!--
@@ -101,6 +103,8 @@ class: flex-layout natural-height
 
 # Pull Requestとコードレビュー
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/56)
+
 ---
 
 <!--
@@ -153,6 +157,8 @@ class: flex-layout natural-height
 ---
 
 # ブランチ戦略の選択
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/57)
 
 ---
 

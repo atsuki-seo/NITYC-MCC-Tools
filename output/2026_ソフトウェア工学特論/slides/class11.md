@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # 処理フロー設計
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/67)
+
 ---
 
 <!--
@@ -109,6 +111,8 @@ sequenceDiagram
 
 # モジュール設計
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/68)
+
 ---
 
 <!--
@@ -143,6 +147,8 @@ class: flex-layout natural-height
 ---
 
 # 詳細設計と実装の接続
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/69)
 
 ---
 

@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # バージョン管理とgitの概念
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/46)
+
 ---
 
 <!--
@@ -90,6 +92,8 @@ class: flex-layout natural-height
 
 # 3つの領域と基本操作
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/47)
+
 ---
 
 <!--
@@ -146,6 +150,8 @@ class: flex-layout natural-height
 ---
 
 # コミット履歴の確認
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/48)
 
 ---
 

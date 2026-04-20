@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # 画面設計
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/64)
+
 ---
 
 <!--
@@ -93,6 +95,8 @@ class: flex-layout natural-height
 
 # DB設計
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/65)
+
 ---
 
 <!--
@@ -131,6 +135,8 @@ class: flex-layout natural-height
 ---
 
 # システム構成図
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/66)
 
 ---
 

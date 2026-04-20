@@ -36,6 +36,8 @@ class: flex-layout natural-height
 
 # チーム編成と役割分担
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/58)
+
 ---
 
 <!--
@@ -101,6 +103,8 @@ class: flex-layout natural-height
 
 # テーマ設定の基準
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/59)
+
 ---
 
 <!--
@@ -135,6 +139,8 @@ class: flex-layout natural-height
 ---
 
 # リポジトリ設定とブランチ戦略
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/60)
 
 ---
 

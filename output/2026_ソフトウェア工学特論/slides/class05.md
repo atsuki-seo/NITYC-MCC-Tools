@@ -31,6 +31,8 @@ class: flex-layout natural-height
 
 # ブランチの基礎
 
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/49)
+
 ---
 
 <!--
@@ -94,6 +96,8 @@ class: flex-layout natural-height
 ---
 
 # マージとリベース
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/50)
 
 ---
 
@@ -161,6 +165,8 @@ git rebase main
 ---
 
 # コンフリクトへの対処
+
+**関連ドキュメント**: [この節の解説](https://github.com/atsuki-seo/NITYC-MCC-Tools/issues/51)
 
 ---
 
