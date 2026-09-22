@@ -16,6 +16,7 @@
 | `.claude/skills/class-syllabus/` | シラバス作成スキル |
 | `.claude/skills/class-syllabus-parse/` | シラバス解析スキル（後続スキルの共通前処理） |
 | `.claude/skills/class-test/` | テスト問題生成スキル |
+| `.claude/skills/class-material/` | 授業解説ページ（HTML）生成スキル |
 | `specs/` | スキル間の共有契約（出力レイアウト・スキーマ・対話規約） |
 | `CLAUDE.md` | Claude Code用の指示ファイル |
 
@@ -32,18 +33,21 @@
 
 ## スキルの実行順序・ユースケース
 
-正規フローは `syllabus → syllabus-parse → test`。
+正規フローは `syllabus → syllabus-parse → test / material`。
 
 **どこから始めるか**:
 
 - **新規科目を立ち上げる**: `class-syllabus` から入る（シラバス作成 → 以降の運用フローへ）
-- **既存シラバスを流用する**: `class-test` から直接入る
-  - 初回実行時に `class-syllabus-parse`（シラバス解析の共通前処理）が `class-test` から自動案内される
+- **既存シラバスを流用する**: `class-test` / `class-material` から直接入る
+  - 初回実行時に `class-syllabus-parse`（シラバス解析の共通前処理）が自動案内される
+- **授業の解説資料を作る**: `class-material` から入る（当該回より前の小テストが作成済みであることが望ましい）
 
 ```mermaid
 flowchart TD
     S[class-syllabus<br/>シラバス作成] --> P[class-syllabus-parse<br/>シラバス解析]
     P --> T[class-test<br/>テスト生成]
+    P --> M[class-material<br/>解説ページ生成]
+    T -.出題論点を参照.-> M
 ```
 
 補足:

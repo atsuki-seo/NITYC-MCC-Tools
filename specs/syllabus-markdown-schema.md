@@ -9,6 +9,7 @@
 - `class-syllabus`: Step 5・Step 5.5・Step 8 の Markdown 生成で本スキーマに従って出力する
 - `class-syllabus-parse`: Step 2〜4 の抽出で本スキーマに従って読み取る
 - `class-test`: 試験名の正規化形と試験スケジュールの解釈で本スキーマに従う
+- `class-material`: 授業計画・到達目標の読み取りと、小テスト実施週の判定で本スキーマに従う
 
 ---
 

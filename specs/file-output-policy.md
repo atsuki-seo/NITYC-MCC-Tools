@@ -26,7 +26,9 @@
 - 個別ファイルの存在を判定する
 - 別名保存時はファイル名（拡張子を除く）に `_v2`, `_v3` を付与する
 
-該当スキル: `class-syllabus`（Excel・Markdown 各1ファイル）
+該当スキル: `class-syllabus`（Excel・Markdown 各1ファイル）、`class-material`（解説ページHTML 1ファイル）
+
+`class-material` の共通アセット（`materials/assets/` 配下）は本ポリシーの対象外とする。既存の場合は上書きせず再利用し、ユーザー確認も行わない。
 
 ---
 

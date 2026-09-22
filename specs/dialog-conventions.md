@@ -9,6 +9,7 @@
 - `class-syllabus`
 - `class-syllabus-parse`
 - `class-test`
+- `class-material`
 
 ---
 
