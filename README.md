@@ -35,7 +35,7 @@ https://[owner].github.io/[repo]/[YYYY]/[教科名]/                ← 資料�
 https://[owner].github.io/[repo]/[YYYY]/[教科名]/class[週番号]_[テーマ].html
 ```
 
-各階層の一覧ページは `scripts/build_index.py` が公開時に自動生成する（リポジトリにはコミットしない）。解説ページと同じスタイルで、回次・テーマ・学科などは各ページの記述から読み取る。資料を追加して push すれば一覧に反映される。
+各階層の一覧ページは `scripts/build_index.py` が公開時に自動生成する（リポジトリにはコミットしない）。解説ページと同じスタイルで、回次・テーマ・学科などは各ページの記述から読み取る。資料を追加して push すれば一覧に反映される。解説ページの上部にも上位階層へ戻るリンクが同時に挿入される。
 
 初回のみ、リポジトリの Settings → Pages で Source を "GitHub Actions" に設定する必要がある。公開範囲の注意点は [CONTRIBUTING.md](CONTRIBUTING.md) § 4 を参照。
 
