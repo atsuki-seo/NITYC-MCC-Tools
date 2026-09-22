@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>リスト（線形・双方向・カーソル） | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>リスト（線形・双方向・カーソル）</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">配列では間に合わない場面</a></li>
+    <li><a href="#s2">線形リスト — 要素が次を指す</a></li>
+    <li><a href="#s3">挿入と削除 — ポインタの張り替え</a></li>
+    <li><a href="#s4">双方向リスト — 前にも戻る</a></li>
+    <li><a href="#s5">カーソルリスト — 添字で次を指す</a></li>
+    <li><a href="#s6">リストと配列の使い分け</a></li>
+    <li><a href="#s7">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 配列では間に合わない場面 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>配列では間に合わない場面</h2>
+
+  <p>
+    1000件の名簿が配列に格納されているとする。この名簿は氏名の五十音順に並んでおり、
+    新たに1件を正しい位置へ加えたい。挿入位置がちょうど中央であったとすると、
+    その位置を空けるために<strong>後続する約500件をすべて1つ後ろへずらす</strong>必要がある。
+    1件の追加に500回の移動を要する計算になる。
+  </p>
+
+  <p>
+    この手間は配列の弱点というより、配列が速さを得ている仕組みの裏返しである。
+    配列は要素を連続した領域に等間隔で並べるため、先頭の位置と添字から
+    目的の要素の位置を直接計算できる。その代償として、
+    <strong>要素の並び順が、メモリ上の配置そのものに固定される</strong>。
+    並び順を変えるとは、配置を変えることに他ならない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 236" role="img" aria-label="配列の添字1の位置に新しい要素を挿入すると、それ以降の要素がすべて1つ後ろへ移動することを、挿入前と挿入後の二段で比較した図">
+      <text x="24" y="26" class="svg-small" style="text-anchor:start">挿入前</text>
+      <rect x="24"  y="38" width="88" height="44" class="svg-cell"/>
+      <rect x="112" y="38" width="88" height="44" class="svg-cell"/>
+      <rect x="200" y="38" width="88" height="44" class="svg-cell"/>
+      <rect x="288" y="38" width="88" height="44" class="svg-cell"/>
+      <text x="68"  y="66" class="svg-text">井上</text>
+      <text x="156" y="66" class="svg-text">上田</text>
+      <text x="244" y="66" class="svg-text">遠藤</text>
+      <text x="332" y="66" class="svg-text">大川</text>
+      <text x="68"  y="98" class="svg-mono">[0]</text>
+      <text x="156" y="98" class="svg-mono">[1]</text>
+      <text x="244" y="98" class="svg-mono">[2]</text>
+      <text x="332" y="98" class="svg-mono">[3]</text>
+
+      <path d="M 200 116 L 200 142" class="svg-arrow" marker-end="url(#ah1)"/>
+      <text x="292" y="134" class="svg-small" style="text-anchor:start">[1] に「宇野」を挿入する</text>
+
+      <text x="24" y="172" class="svg-small" style="text-anchor:start">挿入後</text>
+      <rect x="24"  y="180" width="88" height="44" class="svg-cell"/>
+      <rect x="112" y="180" width="88" height="44" class="svg-hl"/>
+      <rect x="200" y="180" width="88" height="44" class="svg-hl"/>
+      <rect x="288" y="180" width="88" height="44" class="svg-hl"/>
+      <rect x="376" y="180" width="88" height="44" class="svg-hl"/>
+      <text x="68"  y="208" class="svg-text">井上</text>
+      <text x="156" y="208" class="svg-text">宇野</text>
+      <text x="244" y="208" class="svg-text">上田</text>
+      <text x="332" y="208" class="svg-text">遠藤</text>
+      <text x="420" y="208" class="svg-text">大川</text>
+      <text x="492" y="208" class="svg-small" style="text-anchor:start">3件が移動</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　配列の途中へ1件を挿入すると、挿入位置より後ろの要素がすべて移動する。
+      移動する件数は要素数に比例して増えるため、要素数が大きいほど挿入の負担は重くなる。
+    </figcaption>
+  </figure>
+
+  <p>
+    そこで発想を変える。<strong>要素の順序を、メモリ上の配置ではなく、
+    要素自身が持つ「次はどれか」という情報で表す</strong>ことにすれば、
+    順序の変更は配置の変更を伴わなくなる。この考え方に基づく構造を
+    <span class="term">リスト</span><span class="en">(list)</span> と呼ぶ。
+    本講では次の三つの方式を扱う。
+  </p>
+
+  <ul>
+    <li><span class="term">線形リスト</span><span class="en">(linear list)</span> — 各要素が次の要素だけを指す</li>
+    <li><span class="term">双方向リスト</span><span class="en">(doubly linked list)</span> — 各要素が次と前の両方を指す</li>
+    <li><span class="term">カーソルリスト</span><span class="en">(cursor list)</span> — 「次はどれか」を配列の添字で表す</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>線形リスト・双方向リスト・カーソルリストの構造と、要素をたどる仕組みを説明できる</li>
+      <li>挿入・削除がポインタの張り替えで実現される手順を示せる</li>
+      <li>配列とリストの適否を、行う操作に基づいて判断できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      あるプログラムでは、データの途中への挿入と途中からの削除が頻繁に発生する。
+      一方で、任意の位置の要素を添字で取り出す操作はほとんど行わない。
+      この状況における構造の選択と、その根拠の組合せとして最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>配列を選ぶ。要素が連続して並ぶため、途中へ挿入しても後続の要素を動かさずに済むから</li>
+      <li>配列を選ぶ。添字による直接アクセスが速いため、挿入・削除の位置も即座に更新できるから</li>
+      <li>リストを選ぶ。次の要素を指す情報を付け替えるだけで挿入・削除が行え、他の要素を動かさずに済むから</li>
+      <li>リストを選ぶ。先頭から順にたどる必要があるため、任意の要素へ高速に到達できるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          リストは順序を要素自身が保持するため、挿入・削除の際に動かすのは
+          「次はどれか」を示す情報だけである。他の要素の位置は変わらない。
+        </p>
+        <p>
+          (A) は配列の性質を逆に述べている。連続領域に並ぶからこそ、
+          途中への挿入では後続をずらす必要が生じる。
+          (B) は「要素へ到達する速さ」と「挿入・削除の速さ」を混同している。
+          添字計算が速いことは、ずらす作業が不要になる理由にならない。
+          (D) は前半の記述自体は正しいが、たどる必要があることは高速に到達できない理由であり、
+          リストを選ぶ根拠として成立しない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 線形リスト — 要素が次を指す ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>線形リスト — 要素が次を指す</h2>
+
+  <p>
+    線形リストでは、要素ひとつひとつを <span class="term">ノード</span><span class="en">(node)</span>
+    と呼ぶ入れ物で表す。ノードは二つの情報を持つ。
+  </p>
+
+  <ul>
+    <li>格納したい値そのもの</li>
+    <li>次のノードがどこにあるかを示す情報 — <span class="term">ポインタ</span><span class="en">(pointer)</span></li>
+  </ul>
+
+  <p>
+    リスト全体は、先頭ノードの位置を指す <span class="term">head</span> という
+    ひとつの手がかりから始まる。最後のノードは次が存在しないため、
+    そのことを表す特別な値を保持する。多くの言語では
+    <span class="term">NULL</span> と呼ばれる「どこも指していない」ことを示す値が用いられる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 156" role="img" aria-label="head から A、B、C の順にノードが矢印で連結され、最後の C が NULL を指す線形リストの構造図">
+      <path d="M 40 68 L 74 68" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 158 68 L 196 68" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 280 68 L 318 68" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 402 68 L 440 68" class="svg-arrow" marker-end="url(#ah5)"/>
+
+      <text x="24" y="48" class="svg-mono" style="text-anchor:start">head</text>
+
+      <rect x="78"  y="44" width="80" height="48" class="svg-cell"/>
+      <path d="M 126 44 L 126 92" class="svg-line"/>
+      <text x="102" y="74" class="svg-text">A</text>
+
+      <rect x="200" y="44" width="80" height="48" class="svg-cell"/>
+      <path d="M 248 44 L 248 92" class="svg-line"/>
+      <text x="224" y="74" class="svg-text">B</text>
+
+      <rect x="322" y="44" width="80" height="48" class="svg-cell"/>
+      <path d="M 370 44 L 370 92" class="svg-line"/>
+      <text x="346" y="74" class="svg-text">C</text>
+
+      <text x="448" y="74" class="svg-mono" style="text-anchor:start">NULL</text>
+
+      <text x="102" y="112" class="svg-small">値</text>
+      <text x="142" y="130" class="svg-small">次を指す</text>
+      <path d="M 142 118 L 142 96" class="svg-line"/>
+
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-1　線形リストの構造。ノードは値と次ノードへのポインタからなり、
+      head から順に矢印をたどることでのみ各ノードへ到達できる。
+      末尾のノードは次が存在しないことを NULL で表す。
+    </figcaption>
+  </figure>
+
+  <h3>要素への到達手段はたどることのみ</h3>
+
+  <p>
+    この構造では、ノードはメモリ上のどこに配置されていてもよい。
+    順序を決めているのは配置ではなくポインタだからである。
+    その結果として、<strong>k番目の要素を得るには head から k 回たどる以外に方法がない</strong>。
+    配列のような添字からの位置計算は成立しない。位置を計算する根拠となる
+    「等間隔に連続して並ぶ」という前提が、そもそも存在しないためである。
+  </p>
+
+  <p>
+    3番目のノードの値を取り出す手順は次のようになる。
+  </p>
+
+  <pre><code>1. 現在位置 ← head
+2. 繰り返しを 2 回行う
+3.   現在位置 ← 現在位置が指す次ノード
+4. 現在位置が持つ値を取り出す</code></pre>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      線形リストに対して「3番目の要素」という言い方はできるが、
+      それは<strong>3回たどった先という意味であって、添字による指定ではない</strong>。
+      先頭に近い要素ほど少ない手数で到達でき、末尾に近い要素ほど多くの手数を要する。
+      どの要素にも同じ手数で到達できる配列とは、この点が本質的に異なる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      ノードが6個つながった線形リストがある。head は先頭ノードを指している。
+      このリストにおける要素への到達について、正しい記述はどれか。
+    </p>
+    <ol class="choices">
+      <li>どのノードへも、head から1回の操作で直接到達できる</li>
+      <li>末尾のノードへ到達するには head から5回たどる必要があり、先頭ノードへは0回で到達できる</li>
+      <li>各ノードは先頭からの通し番号を保持しているため、その番号を指定すれば直接到達できる</li>
+      <li>ノードはメモリ上に連続して並ぶため、先頭のアドレスと通し番号から位置を計算して到達できる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          head が指すのが先頭ノードであるから、先頭へはたどる操作を要しない。
+          以降は1つ進むごとに1回たどるため、6個目のノードへは5回を要する。
+        </p>
+        <p>
+          (A) は head が指すのは先頭ノードのみであり、他のノードの位置を head は知らない。
+          (C) はノードが持つのは値と次ノードへのポインタであって、通し番号は保持しない。
+          仮に保持させたとしても、その番号からノードの位置を求める手段がない。
+          (D) は配列の性質をリストに当てはめた誤りである。
+          リストのノードは連続領域に並ぶことを前提としないため、位置の計算は成立しない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 挿入と削除 — ポインタの張り替え ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>挿入と削除 — ポインタの張り替え</h2>
+
+  <p>
+    リストの利点が最もよく表れるのが挿入と削除である。
+    ノード B と C の間へ新しいノード X を挿入する場合、
+    行う作業は<strong>ポインタ2本の張り替えだけ</strong>であり、
+    他のノードには一切触れない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 238" role="img" aria-label="ノードBとCの間に新しいノードXを挿入する様子。XのポインタをCへ向けてからBのポインタをXへ付け替える二段階を、挿入前と挿入後の比較で示した図">
+      <text x="24" y="22" class="svg-small" style="text-anchor:start">挿入前</text>
+      <path d="M 138 52 L 192 52" class="svg-arrow" marker-end="url(#ah6)"/>
+      <rect x="54"  y="28" width="84" height="48" class="svg-cell"/>
+      <text x="96"  y="58" class="svg-text">B</text>
+      <rect x="196" y="28" width="84" height="48" class="svg-cell"/>
+      <text x="238" y="58" class="svg-text">C</text>
+
+      <text x="24" y="122" class="svg-small" style="text-anchor:start">挿入後</text>
+      <path d="M 138 152 L 192 152" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 284 152 L 338 152" class="svg-arrow" marker-end="url(#ah8)"/>
+      <rect x="54"  y="128" width="84" height="48" class="svg-cell"/>
+      <text x="96"  y="158" class="svg-text">B</text>
+      <rect x="196" y="128" width="88" height="48" class="svg-hl"/>
+      <text x="240" y="158" class="svg-text">X</text>
+      <text x="240" y="196" class="svg-small">新しいノード</text>
+      <rect x="342" y="128" width="84" height="48" class="svg-cell"/>
+      <text x="384" y="158" class="svg-text">C</text>
+
+      <text x="54" y="228" class="svg-small" style="text-anchor:start">①  X の次を C に向ける　②  B の次を X に付け替える</text>
+
+      <defs>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　B と C の間への挿入。C 自身も、C より後ろのノードも移動しない。
+      配列の途中挿入で生じた後続要素の移動が、ポインタ2本の操作に置き換わっている。
+    </figcaption>
+  </figure>
+
+  <h3>張り替えの順序には必然性がある</h3>
+
+  <p>
+    挿入手順は次の2行で表される。この<strong>2行の順序は入れ替えられない</strong>。
+  </p>
+
+  <pre><code>1. X の次 ← B の次（すなわち C）
+2. B の次 ← X</code></pre>
+
+  <p>
+    仮に順序を逆にすると、先に B の次を X に書き換えた時点で、
+    それまで B が保持していた「次は C である」という情報が失われる。
+    C の位置を知る手段は B のポインタしかなかったのであるから、
+    この時点で<strong>C 以降のノードすべてに到達できなくなる</strong>。
+    値の上書きによって元の値が失われるという性質が、そのまま現れた形である。
+  </p>
+
+  <h3>削除と、先頭を対象とする場合の扱い</h3>
+
+  <p>
+    削除はさらに単純で、ポインタ1本の付け替えで済む。
+    B と D の間にある C を取り除くには、B の次を D に向ければよい。
+    C 自体を消す操作は必要ない。どのノードからも指されなくなった時点で、
+    そのノードはリストの一部ではなくなる。
+  </p>
+
+  <pre><code>1. B の次 ← C の次（すなわち D）</code></pre>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      先頭ノードを対象とする場合だけは扱いが異なる。
+      先頭ノードを指しているのは他のノードではなく head だからである。
+      先頭への挿入では head を新ノードへ、先頭の削除では head を2番目のノードへ
+      向け直す。<strong>対象が先頭かどうかで操作する対象が変わる</strong>点に注意を要する。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      <code>head → P → Q → R → NULL</code> という線形リストがある。
+      P と Q の間へ新しいノード N を挿入するつもりで、次の順に操作を行った。
+    </p>
+    <pre><code>1. P の次 ← N
+2. N の次 ← P の次</code></pre>
+    <p class="q-body">
+      この操作の結果として生じる状態はどれか。
+    </p>
+    <ol class="choices">
+      <li>意図どおり <code>head → P → N → Q → R → NULL</code> となる</li>
+      <li>N が自分自身を指し、Q と R へ到達できなくなる</li>
+      <li>N が挿入されず、リストは操作前と変わらない</li>
+      <li>head が N を指すようになり、P へ到達できなくなる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          操作1で P の次が N に書き換わった時点で、P が保持していた
+          「次は Q」という情報は失われている。続く操作2で参照する「P の次」は
+          もはや Q ではなく N であるから、N の次には N 自身が設定される。
+          結果として Q と R を指すものが存在しなくなり、到達不能になる。
+        </p>
+        <p>
+          (A) は操作の順序が正しい場合の結果である。
+          N の次を先に設定してから P の次を書き換えれば、この状態になる。
+          (C) は操作1が実際に P のポインタを書き換えているため、変わらないということはない。
+          (D) は head を操作していないため生じない。head が関与するのは
+          先頭ノードを挿入・削除の対象とする場合に限られる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      <code>head → A → B → C → D → NULL</code> という線形リストに対し、
+      以下の操作を順に正しく行った。すべての操作の完了後、
+      このリストに含まれるノードの個数はいくつか。
+    </p>
+    <pre><code>1. B と C の間に新しいノード X を挿入する
+2. ノード A を削除する
+3. 末尾（D の後ろ）に新しいノード Y を追加する
+4. ノード X を削除する</code></pre>
+    <ol class="choices">
+      <li>3個</li>
+      <li>4個</li>
+      <li>5個</li>
+      <li>6個</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          初期状態は A・B・C・D の4個である。操作1で X が加わり5個、
+          操作2で A が除かれ4個（head は B を指すようになる）、
+          操作3で Y が加わり5個、操作4で X が除かれ4個となる。
+          最終的なリストは <code>head → B → C → D → Y → NULL</code> である。
+        </p>
+        <p>
+          (A) は削除2回のみを数え、追加を取りこぼした場合の値である。
+          (C) は操作4の削除を反映し忘れた場合の値になる。
+          (D) は追加2回のみを数え、削除を反映しなかった場合の値である。
+          挿入と削除は個数を1ずつ増減させるだけであり、
+          操作する位置が先頭・中間・末尾のいずれであっても個数への影響は変わらない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 双方向リスト — 前にも戻る ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>双方向リスト — 前にも戻る</h2>
+
+  <p>
+    線形リストには不便な場面がある。あるノード C を削除したいとき、
+    実際に書き換える必要があるのは<strong>C の直前のノードが持つポインタ</strong>である。
+    ところが C は自分の次しか知らず、直前が誰であるかを知る手段を持たない。
+    結局 head から順にたどり直して直前のノードを探すことになる。
+  </p>
+
+  <p>
+    この無駄を解消するのが双方向リストである。各ノードに、
+    次を指すポインタに加えて<strong>前のノードを指すポインタを持たせる</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 168" role="img" aria-label="三つのノードが次方向と前方向の二本ずつのポインタで相互に連結された双方向リストの構造図。両端はNULLを指す">
+      <path d="M 122 58 L 184 58" class="svg-arrow" marker-end="url(#ah9)"/>
+      <path d="M 262 58 L 324 58" class="svg-arrow" marker-end="url(#ah10)"/>
+      <path d="M 184 92 L 122 92" class="svg-arrow" marker-end="url(#ah11)"/>
+      <path d="M 324 92 L 262 92" class="svg-arrow" marker-end="url(#ah12)"/>
+      <path d="M 62 58 L 34 58" class="svg-arrow" marker-end="url(#ah13)"/>
+      <path d="M 384 92 L 412 92" class="svg-arrow" marker-end="url(#ah14)"/>
+
+      <rect x="62"  y="42" width="60" height="66" class="svg-cell"/>
+      <text x="92"  y="82" class="svg-text">A</text>
+      <rect x="184" y="42" width="78" height="66" class="svg-hl"/>
+      <text x="223" y="82" class="svg-text">B</text>
+      <rect x="324" y="42" width="60" height="66" class="svg-cell"/>
+      <text x="354" y="82" class="svg-text">C</text>
+
+      <text x="153" y="40" class="svg-small">次</text>
+      <text x="293" y="40" class="svg-small">次</text>
+      <text x="153" y="122" class="svg-small">前</text>
+      <text x="293" y="122" class="svg-small">前</text>
+      <text x="20"  y="82" class="svg-mono" style="text-anchor:start">NULL</text>
+      <text x="420" y="82" class="svg-mono" style="text-anchor:start">NULL</text>
+
+      <text x="223" y="146" class="svg-small">B は前後どちらへも1回の操作で移動できる</text>
+
+      <defs>
+        <marker id="ah9" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah10" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah11" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah12" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah13" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah14" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　双方向リストの構造。各ノードが次と前の二本のポインタを持つため、
+      任意のノードから両方向へ移動できる。先頭ノードの前、末尾ノードの次は
+      いずれも指す先が存在せず NULL となる。
+    </figcaption>
+  </figure>
+
+  <h3>得られるものと支払う代償</h3>
+
+  <p>
+    削除したいノードを手にしている状態であれば、そのノードの前と次は
+    ノード自身から直ちに分かる。たどり直しは不要になる。
+    ノード C を削除する手順は次のとおりである。
+  </p>
+
+  <pre><code>1. C の前が持つ「次」 ← C の次
+2. C の次が持つ「前」 ← C の前</code></pre>
+
+  <p>
+    一方で代償もある。主たるものは<strong>整合を保つべき箇所が増える</strong>ことである。
+    中間への挿入では、新ノードの前後2本と、前後のノードがそれぞれ持つ1本ずつで
+    計4本を扱うことになる。どれか1本でも張り替えを誤れば、
+    前からたどった並びと後ろからたどった並びが食い違う。
+    単方向であれば起こりえなかった種類の不整合である。
+  </p>
+
+  <p>
+    ノードあたりの記憶域も増えるが、これが選択を左右するのは
+    <strong>ノードが小さく大量にある場合や、使える記憶域の総量が限られる環境</strong>に限られる。
+    ノードが相応の大きさのデータを持つなら、ポインタ1本分の増加は全体のごく一部である。
+  </p>
+
+  <h3>単方向で足りる場合</h3>
+
+  <p>
+    前へ戻れることは、それが必要な場合にのみ利点となる。
+    <strong>扱う操作の側に、前へ戻る動作が存在しない構造がある。</strong>
+    スタックは先頭への追加と先頭からの取り出しだけを行い、
+    キューは末尾への追加と先頭からの取り出しだけを行う。
+    いずれも途中のノードから前へ戻る場面がないため、
+    前のポインタを持たせても一度も使われない。
+  </p>
+
+  <p>
+    記憶域の比率が効いてくるのもこの場合である。
+    値が整数1つであるノードを考えると、おおよそ値8バイトにポインタ8バイトで16バイト、
+    双方向にすれば24バイトとなり、<strong>1.5倍に増える</strong>。
+  </p>
+
+  <div class="note">
+    <span class="label">選択の向き</span>
+    <p>
+      双方向リストは単方向リストの上位版ではない。
+      判断は「双方向のほうが多くのことができるから双方向にする」ではなく、
+      <strong>前へ戻る操作が必要かどうか</strong>で行う。
+      必要がなければ、使われないポインタと張り替えの手間を抱え込まずに済む。
+    </p>
+  </div>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      双方向リストで前へ戻れるようになっても、<strong>添字による直接アクセスが
+      できるようになるわけではない</strong>。増えたのは移動できる向きであって、
+      到達の手段は依然としてたどることのみである。
+      k番目の要素を得るには、やはり端から k 回たどる必要がある。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      単方向の線形リストを双方向リストに変更した。この変更によって
+      改善される操作として、最も適切なものはどれか。
+      いずれのリストでも、対象ノードは既に手元にあるものとする。
+    </p>
+    <ol class="choices">
+      <li>先頭から数えて k 番目のノードへ到達する操作</li>
+      <li>手元にあるノード自身をリストから削除する操作</li>
+      <li>末尾のノードの値を読み取る操作</li>
+      <li>リスト全体のノード数を数える操作</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          自分自身の削除には直前ノードのポインタの書き換えが要る。
+          単方向では直前を知る手段がなく先頭からたどり直すことになるが、
+          双方向では前へのポインタから直ちに得られる。
+        </p>
+        <p>
+          (A) は向きが増えても到達手段がたどることである点は変わらないため、
+          要する手数は改善されない。
+          (C) は末尾へ到達するまでに全ノードをたどる点が単方向と同じである。
+          末尾を指す情報を別に保持すれば改善するが、それは双方向化とは別の工夫である。
+          (D) は結局すべてのノードをたどる必要があり、向きが増えても数える手間は変わらない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. カーソルリスト — 添字で次を指す ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>カーソルリスト — 添字で次を指す</h2>
+
+  <p>
+    ここまでの方式は、ノードを必要に応じて確保し、
+    その位置をポインタで指すことを前提としてきた。
+    しかしポインタを扱えない言語や、実行中の領域確保を避けたい環境では
+    この前提が成り立たない。
+  </p>
+
+  <p>
+    カーソルリストは、<strong>あらかじめ確保した配列を記憶域として用い、
+    「次はどれか」を配列の添字で表す</strong>方式である。
+    ポインタの役割を添字が代行する。この添字を
+    <span class="term">カーソル</span><span class="en">(cursor)</span> と呼ぶ。
+    次が存在しないことは、添字として有効でない値（ここでは <code>-1</code>）で表す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 246" role="img" aria-label="配列の各要素が値と次の添字を保持する表と、それが表す論理的な並びを対応させた図。格納順と並び順が一致しないことを示す">
+      <text x="24" y="26" class="svg-small" style="text-anchor:start">配列上の格納（head は 2）</text>
+
+      <rect x="24"  y="38" width="92" height="40" class="svg-cell-plain"/>
+      <rect x="116" y="38" width="92" height="40" class="svg-cell-plain"/>
+      <rect x="208" y="38" width="92" height="40" class="svg-cell-plain"/>
+      <rect x="300" y="38" width="92" height="40" class="svg-cell-plain"/>
+      <text x="70"  y="63" class="svg-mono">[0]</text>
+      <text x="162" y="63" class="svg-mono">[1]</text>
+      <text x="254" y="63" class="svg-mono">[2]</text>
+      <text x="346" y="63" class="svg-mono">[3]</text>
+
+      <rect x="24"  y="120" width="92" height="40" class="svg-cell-plain"/>
+      <rect x="116" y="120" width="92" height="40" class="svg-cell-plain"/>
+      <rect x="208" y="120" width="92" height="40" class="svg-cell-plain"/>
+      <rect x="300" y="120" width="92" height="40" class="svg-cell-plain"/>
+      <text x="70"  y="146" class="svg-mono">3</text>
+      <text x="162" y="146" class="svg-mono">0</text>
+      <text x="254" y="146" class="svg-mono">1</text>
+      <text x="346" y="146" class="svg-mono">-1</text>
+
+      <rect x="24"  y="78" width="92" height="42" class="svg-cell"/>
+      <rect x="116" y="78" width="92" height="42" class="svg-cell"/>
+      <rect x="208" y="78" width="92" height="42" class="svg-cell"/>
+      <rect x="300" y="78" width="92" height="42" class="svg-cell"/>
+      <text x="70"  y="105" class="svg-text">C</text>
+      <text x="162" y="105" class="svg-text">B</text>
+      <text x="254" y="105" class="svg-text">A</text>
+      <text x="346" y="105" class="svg-text">D</text>
+
+      <text x="400" y="105" class="svg-small" style="text-anchor:start">値</text>
+      <text x="400" y="146" class="svg-small" style="text-anchor:start">次の添字</text>
+
+      <text x="24" y="196" class="svg-small" style="text-anchor:start">これが表す並び</text>
+      <text x="24" y="224" class="svg-mono" style="text-anchor:start">[2] A  →  [1] B  →  [0] C  →  [3] D  →  終端 (-1)</text>
+    </svg>
+    <figcaption>
+      図 5-1　カーソルリストの表現。配列に格納された順序と、
+      カーソルがたどる論理的な並び順は一致しない。
+      並び順を定めているのは格納位置ではなく、各要素が保持する次の添字である。
+    </figcaption>
+  </figure>
+
+  <h3>空き領域の管理という追加の仕事</h3>
+
+  <p>
+    ポインタを用いる方式では、新しいノードが必要になったときに
+    その都度、処理系に領域を要求すればよかった。
+    カーソルリストにはその仕組みがないため、
+    <strong>配列のどの位置が未使用であるかを自分で管理する</strong>必要がある。
+  </p>
+
+  <p>
+    一般的な方法は、未使用の位置どうしを同じ仕組みで連結し、
+    空き位置の並びとして保持することである。挿入時はその先頭から1つ取り出して使い、
+    削除時は空いた位置をその並びへ戻す。
+    <strong>使用中の並びと未使用の並びが、ひとつの配列の中に共存する</strong>形になる。
+    この空き位置の並びを<span class="term">自由リスト</span><span class="en">(free list)</span> と呼ぶ。
+  </p>
+
+  <h3>添字で指すことが要件になる場面</h3>
+
+  <p>
+    カーソルリストは、ポインタを持たない言語で連結リストを実現する技法として生まれた。
+    その意味では、ポインタと動的な領域確保を備えた言語を使える場面で
+    あえて選ぶ理由は乏しい。空き領域の管理を自分で背負う負担に見合わないためである。
+  </p>
+
+  <p>
+    一方で、<strong>ポインタを使えない、あるいは使うべきでない場面</strong>では今も選ばれる。
+    いずれも「次の在りかを添字で表す」という性質そのものが要件になっている。
+  </p>
+
+  <ul>
+    <li>
+      <strong>処理系やランタイムの内部</strong> —
+      動的な領域確保の仕組みを提供する側は、その仕組みを使えない。
+      空き領域を自由リストで管理する実装は、カーソルリストの考え方そのものである
+    </li>
+    <li>
+      <strong>動的確保が禁じられる領域</strong> —
+      組込みやリアルタイム制御では、実行中の確保失敗や所要時間の変動を避けるため、
+      記憶域をあらかじめ静的に確保する規約を採ることがある。
+      この制約下で連結構造を作る手段が添字による連結である
+    </li>
+    <li>
+      <strong>ファイルやデータベースへの保存</strong> —
+      ポインタが指すのは実行中の記憶域上の位置であり、
+      プログラムの外へ持ち出しても意味を成さない。
+      構造を保存する際は、参照を添字やファイル内の位置として表す必要がある
+    </li>
+    <li>
+      <strong>走査の速さが要る場面</strong> —
+      ポインタで連結したノードは記憶域上に散らばりうるのに対し、
+      カーソルリストの要素は配列の中にまとまって並ぶ。
+      この配置の差が、連続した領域をまとめて読む計算機の仕組みの上では速度差として現れる
+    </li>
+  </ul>
+
+  <p>
+    つまりカーソルリストは、ポインタ方式に取って代わられた古い技法ではなく、
+    <strong>ポインタが使えない条件下での定石</strong>として位置づけられる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      カーソルリストで行う挿入・削除は、ポインタ方式と同様に添字の付け替えで済み、
+      要素の移動は生じない。しかし<strong>記憶域は最初に確保した配列の範囲に限られる</strong>。
+      空き位置を使い切れば、それ以上の追加はできない。
+      挿入・削除が軽いことと、格納できる件数に上限がないこととは別の事柄である。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      線形リスト・双方向リスト・カーソルリストに関する記述のうち、
+      正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>双方向リストは各ノードが次ノードへのポインタのみを持つため、前のノードへは戻れない</li>
+      <li>線形リストは配列と同様に、添字を指定して任意の要素へ直接アクセスできる</li>
+      <li>カーソルリストは配列の添字で次の要素を指し示すため、格納できる要素数に上限はない</li>
+      <li>いずれの方式でも、途中への挿入で他の要素を移動させる必要はない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          3つのリストに共通する利点が、挿入・削除が参照の付け替えのみで完結する点である。
+          ポインタであれ添字であれ、順序を表しているのは要素自身が持つ情報であり、
+          それを書き換えれば順序は変わる。他の要素の位置は影響を受けない。
+        </p>
+        <p>
+          (A) は単方向の線形リストの説明である。双方向リストは前後2本のポインタを持つため、
+          前のノードへ戻れる。
+          (B) は線形リストに配列の性質を当てはめた誤りで、到達手段は先頭からたどることのみである。
+          (C) は前半の「配列の添字で次を指す」までは正しいが、結論が誤っている。
+          記憶域はあらかじめ確保した配列であるから、その範囲を超えて格納することはできない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. リストと配列の使い分け ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>リストと配列の使い分け</h2>
+
+  <p>
+    ここまでに、線形リスト・双方向リスト・カーソルリストの3つを見てきた。
+    いずれも<strong>要素自身が次の在りかを持つ</strong>という点で共通し、
+    違いは前にも戻れるか、次の在りかをポインタで表すか添字で表すかにある。
+    配列と対比するうえでは、この3つはひとまとまりに扱える。
+  </p>
+
+  <p>
+    構造の選択は、優劣ではなく<strong>そのプログラムが頻繁に行う操作が何か</strong>で決まる。
+    判断の基準となる観点を整理する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　配列と3つのリストの対比。到達の速さと挿入・削除の軽さは両立しにくく、
+      一方を得るために他方を手放す関係にある。
+      このような関係を<span class="term">トレードオフ</span><span class="en">(trade-off)</span> と呼ぶ。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>観点</th>
+          <th>配列</th>
+          <th>線形リスト</th>
+          <th>双方向リスト</th>
+          <th>カーソルリスト</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>k番目への到達</td>
+          <td>添字から直接計算できる</td>
+          <td>先頭から k 回たどる</td>
+          <td>いずれかの端から k 回たどる</td>
+          <td>先頭から k 回たどる</td>
+        </tr>
+        <tr>
+          <td>途中への挿入・削除</td>
+          <td>後続要素をすべて移動する</td>
+          <td>ポインタを付け替える</td>
+          <td>ポインタを付け替える</td>
+          <td>添字を付け替える</td>
+        </tr>
+        <tr>
+          <td>直前の要素を知る</td>
+          <td>添字を1減らす</td>
+          <td>先頭からたどり直す</td>
+          <td>前のポインタから直ちに分かる</td>
+          <td>先頭からたどり直す</td>
+        </tr>
+        <tr>
+          <td>要素あたりの記憶域</td>
+          <td>値のみ</td>
+          <td>値 ＋ ポインタ1本</td>
+          <td>値 ＋ ポインタ2本</td>
+          <td>値 ＋ 添字1つ</td>
+        </tr>
+        <tr>
+          <td>格納できる件数</td>
+          <td>確保した範囲まで</td>
+          <td>領域が確保できる限り</td>
+          <td>領域が確保できる限り</td>
+          <td>確保した配列の範囲まで</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>二つの速さを混同しない</h3>
+
+  <p>
+    選択を誤る最も多い原因が、<strong>「要素へ到達する速さ」と
+    「挿入・削除の軽さ」を同じものとして扱う</strong>ことである。
+    この二つは配列とリストで逆の関係にある。
+  </p>
+
+  <p>
+    配列が到達に強いのは、要素が連続領域に等間隔で並ぶからである。
+    そしてまさにその並びを保つために、途中への挿入では後続をずらす必要が生じる。
+    リストが挿入・削除に強いのは、順序を配置から切り離したからである。
+    そしてまさにそのために、位置の計算による到達ができない。
+    <strong>一方の強みの根拠が、そのまま他方の弱みの原因になっている</strong>。
+  </p>
+
+  <p>
+    したがって選択の手順は、まず<em>そのプログラムで何が頻繁に起きるか</em>を見定めることになる。
+    要素をなぞって順に処理することが主であり、途中の出し入れが多いならリストが適する。
+    位置を指定した読み書きが主で、要素数がほぼ変わらないなら配列が適する。
+    ポインタを扱えない、あるいは実行中の領域確保を避けたい制約があるなら、
+    リストの利点をカーソルリストで得る。
+    前の要素へ戻る操作が繰り返し現れるなら、記憶域の増加を受け入れて双方向リストを選ぶ。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      要素数100の配列と、100要素の線形リストがそれぞれある。
+      次の操作のうち、<strong>要素の移動やたどり直しが最も少なく済む</strong>ものはどれか。
+    </p>
+    <ol class="choices">
+      <li>配列の先頭（添字0）に新しい要素を挿入する</li>
+      <li>配列の添字50の要素の値を読み取る</li>
+      <li>線形リストの50番目のノードの直後に新しいノードを挿入する</li>
+      <li>線形リストの末尾に新しいノードを追加する</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          配列の添字を指定した読み取りは、先頭アドレスと添字から位置を計算して
+          直接行える。要素の移動もたどり直しも生じない。
+        </p>
+        <p>
+          (A) は先頭に場所を空けるため、既存の100要素すべてを後ろへずらす必要がある。
+          (C) はポインタの付け替え自体は軽いものの、50番目のノードへ到達するまでに
+          先頭から50回たどることになる。
+          (D) も末尾に到達するまで全ノードをたどるため、99回の移動を要する。
+          リストの挿入が軽いのは<em>位置が既に分かっている場合</em>であり、
+          位置を探す手間は別に生じる点に注意を要する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 総括 ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>総括</h2>
+
+  <ul>
+    <li>配列は順序をメモリ上の配置で表すため、途中への挿入で後続要素の移動を伴う</li>
+    <li>リストは順序を要素自身が持つ参照で表すことで、配置から順序を切り離す</li>
+    <li>線形リストのノードは値と次への参照を持ち、要素への到達は head からたどることのみで行う</li>
+    <li>挿入・削除はポインタの張り替えで完結する。張り替えの順序を誤ると以降のノードへ到達できなくなる</li>
+    <li>先頭を対象とする挿入・削除では、ノードではなく head を書き換える</li>
+    <li>双方向リストは前への参照を加えることで直前のノードを直ちに得るが、記憶域と張り替え本数が増える</li>
+    <li>カーソルリストはポインタの役割を配列の添字で代行し、空き位置の管理を自ら担う。格納件数は確保した配列の範囲に限られる</li>
+    <li>構造の選択は、到達の速さと挿入・削除の軽さのどちらを必要とするかで決まる</li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／リスト（線形・双方向・カーソル）<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
