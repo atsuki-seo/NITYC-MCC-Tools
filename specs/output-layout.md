@@ -73,6 +73,14 @@ output/
 
 試験問題は `tests/` に出力され、そちらは丸ごと追跡対象外となる（§ 1 のツリー参照）。
 
+**Web 配信**: 追跡対象となった `materials/` 配下は、`main` への push で GitHub Pages に自動デプロイされる（`.github/workflows/pages.yml`）。公開 URL は科目フォルダ名をそのまま使う。
+
+```
+https://[owner].github.io/[repo]/[YYYY]_[教科名]/class[週番号]_[テーマ].html
+```
+
+日本語のパスは percent-encoding されて配信される。解説ページ内のアセット参照は `assets/...` の相対パスであること — サブパス配信でそのまま解決されるため、絶対パス（`/assets/...`）にしてはならない。
+
 ---
 
 ## 2. ファイル一覧表（誰が書いて誰が読むか）

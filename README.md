@@ -18,7 +18,18 @@
 | `.claude/skills/class-test/` | テスト問題生成スキル |
 | `.claude/skills/class-material/` | 授業解説ページ（HTML）生成スキル |
 | `specs/` | スキル間の共有契約（出力レイアウト・スキーマ・対話規約） |
+| `.github/workflows/pages.yml` | 授業資料の GitHub Pages 公開ワークフロー |
 | `CLAUDE.md` | Claude Code用の指示ファイル |
+
+## 授業資料の公開
+
+`output/*/materials/` 配下の資料は、`main` への push で GitHub Pages に自動公開される。公開されるのは materials 配下のみで、シラバス本体・`docs/`・`tests/` はサイトに含まれない。
+
+```
+https://[owner].github.io/[repo]/[YYYY]_[教科名]/class[週番号]_[テーマ].html
+```
+
+初回のみ、リポジトリの Settings → Pages で Source を "GitHub Actions" に設定する必要がある。公開範囲の注意点は [CONTRIBUTING.md](CONTRIBUTING.md) § 4 を参照。
 
 ## セットアップ
 

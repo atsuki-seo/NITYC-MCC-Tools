@@ -127,7 +127,17 @@ specs: materials/ の追跡範囲を定義
 
 詳細は [specs/output-layout.md](specs/output-layout.md) § 1.4 を参照。
 
-### 4.4 push する前に
+### 4.4 materials/ は Web にも配信される
+
+`output/*/materials/` 配下は git に入るだけでなく、`main` への push をトリガーに GitHub Pages へ自動デプロイされ、URL を知っていれば誰でも閲覧できる状態になる（[.github/workflows/pages.yml](.github/workflows/pages.yml)）。
+
+- 配信されるのは `materials/` 配下のみ。シラバス（`*.xlsx` / `*.md`）・`docs/`・`.claude/` はサイトに含まれない
+- `tests/` は git 追跡対象外のため、そもそもデプロイ対象に入らない
+- 一覧ページは生成しないが、URL が非公開になるわけではない。検索エンジンにも拾われうる
+
+fork したリポジトリを private にした場合、Pages の公開可否は GitHub のプラン設定に従う。公開したくない場合はリポジトリ設定で Pages を無効化すること。
+
+### 4.5 push する前に
 
 ```bash
 git status          # 意図しないファイルが入っていないか
