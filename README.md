@@ -23,6 +23,8 @@
 
 `./bootstrap.sh` を実行すると依存チェックと Python パッケージ導入を行う。`--help` で使い方表示。
 
+各教員が fork して自分の授業ワークスペースとして使う運用を想定している。fork 手順・upstream の同期（`./sync.sh`）・改善の還元方法は [CONTRIBUTING.md](CONTRIBUTING.md) を参照。
+
 手動で入れるもの:
 
 - [Python 3](https://www.python.org/) — ランタイム
