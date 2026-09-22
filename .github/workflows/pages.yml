@@ -1,0 +1,74 @@
+# Publish class materials to GitHub Pages.
+#
+# Only `output/*/materials/**` is deployed. Everything else in the repository
+# (syllabus workbooks, `docs/`, skill definitions) stays out of the published
+# site: the staging step copies materials directories explicitly rather than
+# excluding unwanted paths, so a newly added directory is never published by
+# accident.
+#
+# Published URL layout mirrors the repository:
+#   https://<owner>.github.io/<repo>/<YYYY>_<subject>/<page>.html
+# Subject and page names stay in Japanese and are percent-encoded by the
+# browser. Asset links inside the pages are relative (`assets/...`), so they
+# resolve unchanged under the project subpath.
+
+name: Deploy materials to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'output/*/materials/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let an in-flight deployment finish; queue at most one follow-up.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage materials
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          shopt -s nullglob
+          found=0
+          for dir in output/*/materials/; do
+            subject="$(basename "$(dirname "$dir")")"
+            mkdir -p "_site/$subject"
+            cp -R "$dir." "_site/$subject/"
+            found=1
+            echo "staged: $subject"
+          done
+          if [ "$found" -eq 0 ]; then
+            echo "no materials directory found under output/" >&2
+            exit 1
+          fi
+          # Skip Jekyll so that files and directories starting with `_` or `.`
+          # are served as-is.
+          touch _site/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
