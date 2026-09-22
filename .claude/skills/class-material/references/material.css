@@ -244,6 +244,18 @@ pre code { background: none; padding: 0; font-size: 1em; }
 
 /* ---------- Tables ---------- */
 
+.table-block { margin: 1.1rem 0; }
+
+.table-block .table-caption {
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  margin-bottom: 0.5rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.table-block .table-scroll { margin: 0; }
+
 .table-scroll { overflow-x: auto; margin: 1.1rem 0; }
 
 table {

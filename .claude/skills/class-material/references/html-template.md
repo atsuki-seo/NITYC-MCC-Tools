@@ -114,24 +114,33 @@
 
 ### 2.4 表
 
-`.table-scroll` で必ず囲む。囲まないとスマートフォンで横にはみ出す。
+`.table-block` でキャプションと表をまとめ、表本体は `.table-scroll` で必ず囲む。囲まないとスマートフォンで横にはみ出す。
 
 ```html
-<div class="table-scroll">
-<table>
-  <thead>
-    <tr><th>分類</th><th>保持する値</th><th>代表的な操作</th></tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td>整数型</td>
-      <td>小数部を持たない数</td>
-      <td>四則演算、剰余、大小比較</td>
-    </tr>
-  </tbody>
-</table>
+<div class="table-block">
+  <p class="table-caption">
+    表 [節番号]-[連番]　[説明文]
+  </p>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>分類</th><th>保持する値</th><th>代表的な操作</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>整数型</td>
+        <td>小数部を持たない数</td>
+        <td>四則演算、剰余、大小比較</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
 </div>
 ```
+
+- キャプションは**表の上**に置く。表は見出し行が上端にあるため、下に置くと表題と見出し行が離れて対応が取りにくい（図版は逆に下に置く）
+- 番号は図版と独立した系列とする（`図 4-1` と `表 4-1` は併存してよい）
+- 説明文の書き方は `writing-style-guide.md` § 7 を参照する
 
 数値列には `<td class="num-cell">` を用いる（中央揃え・等幅数字）。
 
@@ -213,9 +222,12 @@
 - [ ] 目次のリンク数と `section` 数が一致するか
 - [ ] `href="#sN"` と `id="sN"` が全て対応するか
 - [ ] `h2 .num` の番号が `id` の連番と一致するか
-- [ ] 全ての表が `.table-scroll` で囲まれているか
+- [ ] 全ての表が `.table-block` + `.table-scroll` で囲まれているか
+- [ ] 全ての表に `.table-caption` があり、番号が節番号と一致するか
+- [ ] 全ての図版に `figcaption` があり、番号が節番号と一致するか
 - [ ] 全ての `.quiz` に `details.answer` があるか
 - [ ] SVG の `marker id` がページ内で重複していないか
 - [ ] SVG内に色値の直書きがないか
+- [ ] 全ての SVG が四辺とも viewBox に収まるか（`figure-guide.md` § 6）
 - [ ] 予告・次回言及がないか
 - [ ] 敬体が混入していないか
