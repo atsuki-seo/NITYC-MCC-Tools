@@ -7,12 +7,14 @@
 
 # Skill output
 # output/ 配下は原則無視した上で、個人情報を含まない成果物のみ明示的に許可する。
-# - 許可: シラバス
+# - 許可: シラバス、materials/ 配下の授業資料
 # - 無視: テスト問題一式
 /output/**
 !/output/*/
 !/output/*/*.xlsx
 !/output/*/*.md
+!/output/*/materials/
+!/output/*/materials/**
 
 # tests/ 配下は丸ごと無視（問題・解答・採点結果すべて個人/試験情報）
 # 上位の /output/** で既に無視されるため追加ルールは不要
