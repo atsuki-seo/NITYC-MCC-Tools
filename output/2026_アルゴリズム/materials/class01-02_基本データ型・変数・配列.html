@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>基本データ型・変数・配列 | アルゴリズム</title>
+<style>
+:root {
+  --fs-base: 20pt;
+  --c-bg: #fbfbfa;
+  --c-surface: #ffffff;
+  --c-text: #1c1c1a;
+  --c-muted: #55554e;
+  --c-line: #d8d8d2;
+  --c-accent: #1f5f8b;
+  --c-accent-soft: #e8f1f7;
+  --c-warn: #8a5300;
+  --c-warn-soft: #fdf3e2;
+  --c-quiz: #2f6b4f;
+  --c-quiz-soft: #eaf4ee;
+  --c-code-bg: #f2f2ee;
+  --sp: 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --c-bg: #16171a;
+    --c-surface: #1e2024;
+    --c-text: #e9e9e5;
+    --c-muted: #a8a8a0;
+    --c-line: #3a3d43;
+    --c-accent: #7ab5da;
+    --c-accent-soft: #1d2b36;
+    --c-warn: #e0b060;
+    --c-warn-soft: #2e2618;
+    --c-quiz: #8fc9a8;
+    --c-quiz-soft: #1b2822;
+    --c-code-bg: #25272c;
+  }
+}
+
+:root[data-theme="dark"] {
+  --c-bg: #16171a;
+  --c-surface: #1e2024;
+  --c-text: #e9e9e5;
+  --c-muted: #a8a8a0;
+  --c-line: #3a3d43;
+  --c-accent: #7ab5da;
+  --c-accent-soft: #1d2b36;
+  --c-warn: #e0b060;
+  --c-warn-soft: #2e2618;
+  --c-quiz: #8fc9a8;
+  --c-quiz-soft: #1b2822;
+  --c-code-bg: #25272c;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: var(--fs-base);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--c-bg);
+  color: var(--c-text);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+               "Yu Gothic Medium", "Yu Gothic", Meiryo, system-ui, sans-serif;
+  line-height: 1.8;
+  font-feature-settings: "palt" 1;
+}
+
+.wrap {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 0.8rem 4rem;
+}
+
+/* ---------- ヘッダ ---------- */
+
+header.doc-head {
+  padding: 2rem 0 1.2rem;
+  border-bottom: 3px solid var(--c-accent);
+  margin-bottom: 1.2rem;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  letter-spacing: 0.08em;
+  margin: 0 0 0.3rem;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.35;
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.01em;
+}
+
+.doc-meta {
+  font-size: 0.8rem;
+  color: var(--c-muted);
+  margin: 0;
+}
+
+/* ---------- 目次 ---------- */
+
+nav.toc {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0.4rem;
+  margin: 0 0 2rem;
+  overflow: hidden;
+}
+
+nav.toc > summary {
+  cursor: pointer;
+  padding: 0.7rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-accent);
+  list-style: none;
+  user-select: none;
+}
+
+nav.toc > summary::-webkit-details-marker { display: none; }
+
+nav.toc > summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+nav.toc[open] > summary::before { content: "▾ "; }
+
+nav.toc ol {
+  margin: 0;
+  padding: 0 1rem 0.9rem 2.4rem;
+  font-size: 0.8rem;
+}
+
+nav.toc li { margin: 0.3rem 0; }
+
+nav.toc a {
+  color: var(--c-text);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+}
+
+nav.toc a:hover { border-bottom-color: var(--c-accent); }
+
+/* ---------- セクション ---------- */
+
+section {
+  background: var(--c-surface);
+  border: 1px solid var(--c-line);
+  border-radius: 0.5rem;
+  padding: 1.6rem 1.4rem;
+  margin: 0 0 1.6rem;
+  scroll-margin-top: 1rem;
+}
+
+h2 {
+  font-size: 1.3rem;
+  line-height: 1.4;
+  margin: 0 0 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--c-accent);
+  letter-spacing: 0.01em;
+}
+
+h2 .num {
+  display: inline-block;
+  min-width: 2.2rem;
+  color: var(--c-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin: 1.8rem 0 0.7rem;
+  padding-left: 0.6rem;
+  border-left: 5px solid var(--c-accent);
+  line-height: 1.5;
+}
+
+p { margin: 0.8rem 0; }
+
+ul, ol { margin: 0.8rem 0; padding-left: 1.6rem; }
+li { margin: 0.45rem 0; }
+
+strong {
+  font-weight: 700;
+  background: linear-gradient(transparent 62%, var(--c-accent-soft) 62%);
+  padding: 0 0.1em;
+}
+
+.term {
+  font-weight: 700;
+  color: var(--c-accent);
+}
+
+.en {
+  font-size: 0.82em;
+  color: var(--c-muted);
+  font-style: italic;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Roboto Mono", Menlo, monospace;
+  background: var(--c-code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 0.2rem;
+  font-size: 0.86em;
+}
+
+pre {
+  background: var(--c-code-bg);
+  border: 1px solid var(--c-line);
+  border-radius: 0.35rem;
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  margin: 1rem 0;
+}
+
+pre code { background: none; padding: 0; font-size: 1em; }
+
+/* ---------- 表 ---------- */
+
+.table-scroll { overflow-x: auto; margin: 1.1rem 0; }
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.8rem;
+  min-width: 22rem;
+}
+
+th, td {
+  border: 1px solid var(--c-line);
+  padding: 0.55rem 0.7rem;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.6;
+}
+
+th {
+  background: var(--c-accent-soft);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+td.num-cell {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---------- 注記ボックス ---------- */
+
+.note {
+  border-left: 6px solid var(--c-accent);
+  background: var(--c-accent-soft);
+  padding: 0.9rem 1.1rem;
+  margin: 1.2rem 0;
+  border-radius: 0 0.3rem 0.3rem 0;
+  font-size: 0.9rem;
+}
+
+.note.caution {
+  border-left-color: var(--c-warn);
+  background: var(--c-warn-soft);
+}
+
+.note .label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.82rem;
+  margin-bottom: 0.3rem;
+  letter-spacing: 0.04em;
+}
+
+.note.caution .label { color: var(--c-warn); }
+.note:not(.caution) .label { color: var(--c-accent); }
+
+.note p:first-of-type { margin-top: 0; }
+.note p:last-child { margin-bottom: 0; }
+.note > ul:first-child, .note > ol:first-child { margin-top: 0; }
+.note > ul:last-child, .note > ol:last-child { margin-bottom: 0; }
+.note ul, .note ol { padding-left: 1.3rem; }
+
+/* ---------- 図版 ---------- */
+
+figure {
+  margin: 1.4rem 0;
+  text-align: center;
+}
+
+figure svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+figcaption {
+  font-size: 0.78rem;
+  color: var(--c-muted);
+  margin-top: 0.6rem;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.svg-bg    { fill: var(--c-surface); }
+.svg-cell  { fill: var(--c-accent-soft); stroke: var(--c-accent); stroke-width: 2; }
+.svg-cell-plain { fill: none; stroke: var(--c-line); stroke-width: 2; }
+.svg-hl    { fill: var(--c-warn-soft); stroke: var(--c-warn); stroke-width: 3; }
+.svg-text  { fill: var(--c-text); font-size: 15px; font-family: inherit; text-anchor: middle; }
+.svg-small { fill: var(--c-muted); font-size: 12px; font-family: inherit; text-anchor: middle; }
+.svg-mono  { fill: var(--c-text); font-size: 13px; font-family: monospace; text-anchor: middle; }
+.svg-line  { stroke: var(--c-muted); stroke-width: 2; fill: none; }
+.svg-arrow { stroke: var(--c-accent); stroke-width: 2.5; fill: none; }
+
+/* ---------- 確認問題 ---------- */
+
+.quiz {
+  border: 2px solid var(--c-quiz);
+  border-radius: 0.45rem;
+  background: var(--c-quiz-soft);
+  padding: 1.1rem 1.2rem;
+  margin: 1.8rem 0 0;
+}
+
+.quiz + .quiz { margin-top: 1rem; }
+
+.quiz-label {
+  display: inline-block;
+  background: var(--c-quiz);
+  color: var(--c-surface);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.7rem;
+  border-radius: 1rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.7rem;
+}
+
+.quiz .q-body { margin: 0 0 0.9rem; font-size: 0.95rem; }
+
+.quiz ol.choices {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.8rem 0;
+  font-size: 0.92rem;
+  counter-reset: ch;
+}
+
+.quiz ol.choices li {
+  counter-increment: ch;
+  padding-left: 2.4rem;
+  position: relative;
+  margin: 0.5rem 0;
+}
+
+.quiz ol.choices li::before {
+  content: "(" counter(ch, upper-alpha) ")";
+  position: absolute;
+  left: 0;
+  font-weight: 700;
+  color: var(--c-quiz);
+  font-variant-numeric: tabular-nums;
+}
+
+details.answer {
+  border-top: 1px dashed var(--c-quiz);
+  margin-top: 0.9rem;
+  padding-top: 0.7rem;
+}
+
+details.answer > summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--c-quiz);
+  list-style: none;
+  user-select: none;
+  padding: 0.35rem 0.2rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+}
+
+details.answer > summary::-webkit-details-marker { display: none; }
+
+details.answer > summary::before {
+  content: "＋ 解答を確認する";
+}
+
+details.answer[open] > summary::before {
+  content: "− 解答を閉じる";
+}
+
+details.answer > summary > span { display: none; }
+
+details.answer > summary:hover { background: var(--c-accent-soft); }
+
+details.answer > summary:focus-visible {
+  outline: 3px solid var(--c-accent);
+  outline-offset: 2px;
+}
+
+.answer-body {
+  font-size: 0.88rem;
+  padding: 0.6rem 0 0.2rem;
+  animation: fade 0.18s ease-out;
+}
+
+@keyframes fade {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.answer-body .verdict {
+  font-weight: 700;
+  color: var(--c-quiz);
+  font-size: 0.95rem;
+  margin: 0 0 0.5rem;
+}
+
+.answer-body p { margin: 0.5rem 0; }
+
+/* ---------- フッタ ---------- */
+
+footer.doc-foot {
+  margin-top: 2.5rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--c-line);
+  font-size: 0.75rem;
+  color: var(--c-muted);
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* ---------- 画面幅対応 ---------- */
+
+@media (max-width: 600px) {
+  :root { --fs-base: 20pt; }
+  .wrap { padding: 0 0.6rem 3rem; }
+  section { padding: 1.2rem 0.9rem; }
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.15rem; }
+}
+
+@media (min-width: 1200px) {
+  :root { --fs-base: 22pt; }
+  .wrap { max-width: 50rem; }
+}
+
+@media print {
+  body { background: #fff; }
+  section { break-inside: avoid; border-color: #999; }
+  details.answer[open] > summary::before { content: "解答"; }
+  nav.toc { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow">アルゴリズム（弓削商船高等専門学校 情報工学科 3年・後期）</p>
+  <h1>基本データ型・変数・配列</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s0">データの持ち方が効率を決める</a></li>
+    <li><a href="#s1">データ型とは何か</a></li>
+    <li><a href="#s2">基本データ型の分類</a></li>
+    <li><a href="#s3">変数 — 値を保持する仕組み</a></li>
+    <li><a href="#s4">配列 — 連続領域に要素を並べる</a></li>
+    <li><a href="#s5">添字の扱いと要素数の計算</a></li>
+    <li><a href="#s6">配列の得意・不得意</a></li>
+    <li><a href="#s7">総括</a></li>
+    <li><a href="#s8">確認問題</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 導入 ============ -->
+<section id="s0">
+  <h2><span class="num">1</span>データの持ち方が効率を決める</h2>
+
+  <p>
+    同一の処理内容であっても、データをどのような形式で保持するかによって、
+    処理に要する手間は大きく変化する。たとえば「1000 件のデータから
+    特定の 1 件を取り出す」という操作を考えたとき、データが整然と並べられているか、
+    あるいは散在しているかによって、必要な作業量には決定的な差が生じる。
+  </p>
+
+  <p>
+    本講では、プログラムがデータを扱うための最も基礎的な枠組みとして、
+    次の三つを取り上げる。
+  </p>
+
+  <ul>
+    <li><span class="term">データ型</span><span class="en">(data type)</span> — 値の範囲と操作を定める規約</li>
+    <li><span class="term">変数</span><span class="en">(variable)</span> — 値を保持するための名前付きの領域</li>
+    <li><span class="term">配列</span><span class="en">(array)</span> — 同種の要素を連続領域に並べる構造</li>
+  </ul>
+
+  <p>
+    これらは、以降に学ぶあらゆるデータ構造の土台を成すものである。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>データ型が何を規定し、何を規定しないのかを弁別できること</li>
+      <li>配列が任意の要素へ直接到達できる理由を、メモリ上の配置に基づいて説明できること</li>
+      <li>添字に関する計算を誤りなく遂行できること</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ 1. データ型 ============ -->
+<section id="s1">
+  <h2><span class="num">2</span>データ型とは何か</h2>
+
+  <p>
+    <span class="term">データ型</span>とは、ある値について
+    次の二つを定める規約である。
+  </p>
+
+  <ul>
+    <li><strong>取りうる値の範囲（値域）</strong></li>
+    <li><strong>その値に対して適用可能な操作</strong></li>
+  </ul>
+
+  <p>
+    たとえば「整数型」という型が与えられたとき、そこに格納しうる値は
+    整数に限定され、加算・減算・乗算・剰余といった演算が許容される。
+    一方で「文字列型」に対して剰余演算を適用することは、一般に意味を成さない。
+    型とは、このように<strong>値と操作の対応関係を規定する枠組み</strong>なのである。
+  </p>
+
+  <h3>データ型が規定しないもの</h3>
+
+  <p>
+    型の役割を正確に理解するためには、型が規定「しない」事柄を併せて把握することが有効である。
+    以下に、しばしば混同される三つの事項を挙げる。
+  </p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>事項</th><th>実際に決定する主体</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>値をメモリのどの番地に配置するか</td>
+        <td>処理系（コンパイラ・実行環境）が決定する。型は「何バイト必要か」を示唆するに留まり、番地そのものを指定しない</td>
+      </tr>
+      <tr>
+        <td>変数の名前の付け方</td>
+        <td>言語の命名規則および開発者の裁量による。型とは独立した事項である</td>
+      </tr>
+      <tr>
+        <td>プログラムの実行速度</td>
+        <td>アルゴリズムおよび処理系の最適化による。型の選択が速度に影響を及ぼす場合はあるが、型が速度を指定するわけではない</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note caution">
+    <span class="label">留意点</span>
+    <p>
+      「型はメモリ上の場所を決めるもの」という理解は誤りである。
+      型が定めるのはあくまで<strong>値域と操作</strong>であり、
+      配置は処理系の責務に属する。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      ある変数に「整数型」を指定した。この指定によって定まる事柄として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>その変数が配置されるメモリの番地</li>
+      <li>その変数が保持しうる値の範囲と、適用可能な演算</li>
+      <li>その変数を参照した際の処理速度</li>
+      <li>その変数に付与すべき名前の形式</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          データ型が定めるのは、値域と許容される操作の二点である。
+          (A) の番地は処理系が決定する事項であり、型の役割ではない。
+          (C) の処理速度はアルゴリズムと処理系の最適化に依存する。
+          (D) の命名は言語の規則および開発者の判断に属し、型とは独立である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 基本データ型 ============ -->
+<section id="s2">
+  <h2><span class="num">3</span>基本データ型の分類</h2>
+
+  <p>
+    多くのプログラミング言語には、言語自体が標準で備える
+    <span class="term">基本データ型</span><span class="en">(primitive data type)</span>
+    が用意されている。名称や詳細は言語によって異なるが、
+    概ね以下の四種に分類できる。
+  </p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>分類</th><th>保持する値</th><th>代表的な操作</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>整数型</td>
+        <td>小数部を持たない数（… −2, −1, 0, 1, 2 …）</td>
+        <td>四則演算、剰余、大小比較</td>
+      </tr>
+      <tr>
+        <td>実数型</td>
+        <td>小数部を伴う数（3.14 など）</td>
+        <td>四則演算、大小比較</td>
+      </tr>
+      <tr>
+        <td>文字型</td>
+        <td>1 個の文字（'A'、'あ' など）</td>
+        <td>比較、文字コードとの相互変換</td>
+      </tr>
+      <tr>
+        <td>論理型</td>
+        <td>真 (true) または偽 (false) の二値</td>
+        <td>論理積・論理和・否定</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>値域は有限である</h3>
+
+  <p>
+    計算機が値を保持するために用いるメモリ領域は有限であり、
+    したがって各型が表現しうる値の範囲もまた有限である。
+    たとえば 8 ビットで符号なし整数を表現する場合、
+    表現可能な値は 0 から 255 までの 256 通りに限られる。
+  </p>
+
+  <p>
+    この範囲を超える値を格納しようとした場合、
+    <span class="term">オーバーフロー</span><span class="en">(overflow)</span>
+    と呼ばれる現象が生じ、意図しない値が得られることがある。
+    扱う数値の大きさを見積もり、適切な値域を持つ型を選択することが求められる。
+  </p>
+
+  <h3>実数型には誤差が伴う</h3>
+
+  <p>
+    実数型は、有限桁の二進数によって数を近似的に表現する。
+    このため、十進法では簡潔に表せる値であっても、
+    二進法では循環小数となり、厳密には表現できない場合がある。
+  </p>
+
+  <div class="note caution">
+    <span class="label">留意点</span>
+    <p>
+      0.1 を三回加算した結果が 0.3 と厳密には一致しない、という現象は
+      この近似表現に起因する。実数型の値を等値比較する際には、
+      許容誤差を設けるなどの配慮を要する。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      8 ビットで符号なし整数を表現する型がある。この型が保持しうる値の個数、
+      および表現可能な最大値の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>個数は 128 通り、最大値は 127</li>
+      <li>個数は 255 通り、最大値は 255</li>
+      <li>個数は 256 通り、最大値は 255</li>
+      <li>個数は 256 通り、最大値は 256</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          8 ビットで表現しうる状態は 2<sup>8</sup> = 256 通りである。
+          符号なし整数として 0 から割り当てるため、
+          値は 0, 1, …, 255 となり、最大値は 255 である。
+          「個数 256」と「最大値 255」が 1 だけ異なる点に留意されたい。
+          これは 0 を含めて数えるか否かに起因する差であり、
+          次節で扱う添字の計算と同種の論点である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 変数 ============ -->
+<section id="s3">
+  <h2><span class="num">4</span>変数 — 値を保持する仕組み</h2>
+
+  <p>
+    <span class="term">変数</span>とは、値を保持するための領域に名前を与えたものである。
+    変数は次の四つの要素によって特徴づけられる。
+  </p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>要素</th><th>内容</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>名前</td><td>プログラム中でその領域を参照するための識別子</td></tr>
+      <tr><td>型</td><td>保持しうる値の範囲と適用可能な操作</td></tr>
+      <tr><td>値</td><td>現時点で保持している内容</td></tr>
+      <tr><td>格納場所</td><td>メモリ上の位置。処理系が決定する</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>宣言と代入の区別</h3>
+
+  <p>
+    変数に対する基本的な操作は、次の二つに区別される。
+    両者は別個の操作であり、混同してはならない。
+  </p>
+
+  <ul>
+    <li>
+      <span class="term">宣言</span><span class="en">(declaration)</span>
+      — 変数の名前と型を定め、値を保持するための領域を確保する
+    </li>
+    <li>
+      <span class="term">代入</span><span class="en">(assignment)</span>
+      — 確保済みの領域に、具体的な値を書き込む
+    </li>
+  </ul>
+
+  <pre><code>宣言:  整数型の変数 x を用意する
+代入:  x ← 10       （x の内容が 10 になる）
+代入:  x ← 25       （x の内容が 25 に置き換わる。10 は失われる）</code></pre>
+
+  <h3>代入は破壊的である</h3>
+
+  <p>
+    変数への代入は、既に保持されていた値を新たな値で<strong>上書き</strong>する。
+    上書き前の値はどこにも保存されないため、以後それを参照することはできない。
+    この性質を<span class="term">破壊的代入</span>と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 560 170" role="img" aria-label="変数 x への連続した代入により、保持される値が 10 から 25 へ置き換わる様子">
+      <rect x="30" y="45" width="120" height="60" rx="5" class="svg-cell"/>
+      <text x="90" y="82" class="svg-text">10</text>
+      <text x="90" y="128" class="svg-small">代入直後の x</text>
+
+      <path d="M 170 75 L 235 75" class="svg-arrow" marker-end="url(#ah3)"/>
+      <text x="202" y="60" class="svg-small">x ← 25</text>
+
+      <rect x="255" y="45" width="120" height="60" rx="5" class="svg-hl"/>
+      <text x="315" y="82" class="svg-text">25</text>
+      <text x="315" y="128" class="svg-small">上書き後の x</text>
+
+      <rect x="420" y="45" width="110" height="60" rx="5" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="475" y="78" class="svg-small">10 は</text>
+      <text x="475" y="96" class="svg-small">失われる</text>
+
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　代入は既存の値を上書きする。過去の値を保持したい場合は、
+      別の変数に退避させるなど、明示的な手当てを要する。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      変数 a と b がある。次の操作を上から順に実行したとき、
+      最終的に a と b が保持する値の組合せとして正しいものはどれか。
+    </p>
+    <pre><code>1. a ← 3
+2. b ← 8
+3. a ← b
+4. b ← 5</code></pre>
+    <ol class="choices">
+      <li>a は 3、b は 5</li>
+      <li>a は 8、b は 5</li>
+      <li>a は 5、b は 5</li>
+      <li>a は 8、b は 8</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          操作 3 では、b が保持する値 8 が a に複写される。
+          この時点で a は 8、b は 8 である。
+          続く操作 4 で b に 5 を代入するが、
+          これは b の領域のみを書き換える操作であり、
+          a には影響しない。したがって a は 8、b は 5 となる。
+        </p>
+        <p>
+          <strong>a ← b</strong> は「a と b を連動させる」操作ではなく、
+          「その時点の b の値を a に複写する」操作である点に留意されたい。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 配列 ============ -->
+<section id="s4">
+  <h2><span class="num">5</span>配列 — 連続領域に要素を並べる</h2>
+
+  <p>
+    同種のデータを多数扱う場合、個々に変数を用意することは現実的でない。
+    <span class="term">配列</span>は、<strong>同一の型の要素を、メモリ上の連続した領域に、
+    等間隔で並べて格納する</strong>データ構造である。
+    個々の要素は<span class="term">添字</span><span class="en">(index)</span>
+    と呼ばれる番号によって指定する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 215" role="img" aria-label="配列の各要素が連続したメモリ領域に等間隔で配置される様子と、先頭アドレスからの位置計算">
+      <text x="290" y="20" class="svg-small">配列 A（要素数 6・1 要素あたり 4 バイト）</text>
+
+      <text x="327" y="48" class="svg-mono">100 + 3 × 4 = 112</text>
+      <path d="M 327 56 L 327 84" class="svg-arrow" marker-end="url(#ah4)"/>
+
+      <rect x="40" y="90" width="82" height="52" class="svg-cell"/>
+      <rect x="122" y="90" width="82" height="52" class="svg-cell"/>
+      <rect x="204" y="90" width="82" height="52" class="svg-cell"/>
+      <rect x="286" y="90" width="82" height="52" class="svg-hl"/>
+      <rect x="368" y="90" width="82" height="52" class="svg-cell"/>
+      <rect x="450" y="90" width="82" height="52" class="svg-cell"/>
+
+      <text x="81"  y="123" class="svg-text">15</text>
+      <text x="163" y="123" class="svg-text">42</text>
+      <text x="245" y="123" class="svg-text">7</text>
+      <text x="327" y="123" class="svg-text">30</text>
+      <text x="409" y="123" class="svg-text">88</text>
+      <text x="491" y="123" class="svg-text">61</text>
+
+      <text x="81"  y="162" class="svg-mono">[0]</text>
+      <text x="163" y="162" class="svg-mono">[1]</text>
+      <text x="245" y="162" class="svg-mono">[2]</text>
+      <text x="327" y="162" class="svg-mono">[3]</text>
+      <text x="409" y="162" class="svg-mono">[4]</text>
+      <text x="491" y="162" class="svg-mono">[5]</text>
+
+      <text x="81"  y="182" class="svg-small">100</text>
+      <text x="163" y="182" class="svg-small">104</text>
+      <text x="245" y="182" class="svg-small">108</text>
+      <text x="327" y="182" class="svg-small">112</text>
+      <text x="409" y="182" class="svg-small">116</text>
+      <text x="491" y="182" class="svg-small">120</text>
+      <text x="290" y="205" class="svg-small">↑ 各要素の先頭アドレス（等間隔）</text>
+
+      <defs>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　要素が連続領域に等間隔で並ぶため、
+      添字 3 の要素の位置は計算のみで直ちに求まる。
+    </figcaption>
+  </figure>
+
+  <h3>直接アクセスが可能である根拠</h3>
+
+  <p>
+    配列の最も重要な性質は、<strong>任意の要素へ直接到達できる</strong>ことである。
+    この性質が成立する根拠は、要素が連続領域に等間隔で並ぶという配置そのものにある。
+    すなわち、目的の要素の位置は次式によって算出できる。
+  </p>
+
+  <pre><code>要素の位置 ＝ 先頭アドレス ＋ （添字 × 1 要素分の大きさ）</code></pre>
+
+  <p>
+    この計算は添字の値によらず一定の手間で完了する。
+    添字 0 の要素を求める場合も、添字 999 の要素を求める場合も、
+    要する作業は乗算一回と加算一回であり、変わりがない。
+    先頭から順にたどる必要がないのは、このためである。
+  </p>
+
+  <div class="note">
+    <span class="label">混同しやすい性質</span>
+    <p>次の三つは、いずれも配列の性質ではない。</p>
+    <ul>
+      <li>先頭から順にたどらなければ、途中の要素を読めない</li>
+      <li>各要素が、次の要素の位置を記録している</li>
+      <li>要素がメモリ上に分散して配置される</li>
+    </ul>
+    <p>
+      配列の直接アクセスは、<strong>連続配置</strong>という前提の上に成り立っている。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      配列が任意の要素へ直接アクセスできる理由として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>各要素が、次の要素の位置を記録した情報を保持しているため</li>
+      <li>要素が連続領域に等間隔で並び、先頭アドレスと添字から位置を計算できるため</li>
+      <li>要素がメモリ上に分散配置され、処理系が位置の一覧表を保持しているため</li>
+      <li>添字の小さい要素から順に走査する経路が、あらかじめ用意されているため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          直接アクセスの根拠は、連続領域への等間隔配置である。
+          「先頭アドレス ＋ 添字 × 要素の大きさ」により、
+          目的の位置が一定の手間で求まる。
+        </p>
+        <p>
+          (A) は各要素が次の位置を保持する方式の説明であり、配列の性質ではない。
+          (C) は分散配置を前提としており、位置計算が成立しない。
+          (D) は順に走査する方式であり、直接アクセスの説明になっていない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      1 要素あたり 8 バイトを占める配列があり、その先頭アドレスは 2000 である。
+      添字 5 の要素の先頭アドレスとして正しいものはどれか。なお添字は 0 から始まるものとする。
+    </p>
+    <ol class="choices">
+      <li>2005</li>
+      <li>2032</li>
+      <li>2040</li>
+      <li>2048</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          2000 ＋ (5 × 8) ＝ 2040 である。
+        </p>
+        <p>
+          (A) は添字をそのまま加算した誤りであり、要素の大きさを考慮していない。
+          (B) は添字を 4 として計算した場合の値に相当する。
+          (D) は添字を 6、すなわち「5 番目」を添字 6 と解した場合の値であり、
+          添字が 0 から始まる点の理解に誤りがある。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 添字 ============ -->
+<section id="s5">
+  <h2><span class="num">6</span>添字の扱いと要素数の計算</h2>
+
+  <p>
+    添字に関する計算は単純に見えるが、実務において誤りの生じやすい箇所である。
+    ここでは二つの規則を明確に定めておく。
+  </p>
+
+  <h3>規則 1 — 区間に含まれる要素の個数</h3>
+
+  <p>
+    添字 <code>a</code> から添字 <code>b</code> まで（<strong>両端を含む</strong>）の
+    範囲に属する要素の個数は、次式で与えられる。
+  </p>
+
+  <pre><code>個数 ＝ b − a ＋ 1</code></pre>
+
+  <p>
+    末尾の <code>＋ 1</code> を失念すると、個数が 1 だけ不足する。
+    この種の誤りは<span class="term">off-by-one エラー</span>
+    と呼ばれ、頻出の不具合要因である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 150" role="img" aria-label="添字 2 から 5 までの区間に 4 個の要素が含まれることを示す図">
+      <rect x="40" y="40" width="70" height="50" class="svg-cell-plain"/>
+      <rect x="110" y="40" width="70" height="50" class="svg-cell-plain"/>
+      <rect x="180" y="40" width="70" height="50" class="svg-hl"/>
+      <rect x="250" y="40" width="70" height="50" class="svg-hl"/>
+      <rect x="320" y="40" width="70" height="50" class="svg-hl"/>
+      <rect x="390" y="40" width="70" height="50" class="svg-hl"/>
+      <rect x="460" y="40" width="70" height="50" class="svg-cell-plain"/>
+
+      <text x="75"  y="71" class="svg-mono">[0]</text>
+      <text x="145" y="71" class="svg-mono">[1]</text>
+      <text x="215" y="71" class="svg-mono">[2]</text>
+      <text x="285" y="71" class="svg-mono">[3]</text>
+      <text x="355" y="71" class="svg-mono">[4]</text>
+      <text x="425" y="71" class="svg-mono">[5]</text>
+      <text x="495" y="71" class="svg-mono">[6]</text>
+
+      <path d="M 185 106 L 455 106" class="svg-line"/>
+      <path d="M 185 100 L 185 112" class="svg-line"/>
+      <path d="M 455 100 L 455 112" class="svg-line"/>
+      <text x="320" y="132" class="svg-text">5 − 2 ＋ 1 ＝ 4 個</text>
+    </svg>
+    <figcaption>
+      図 5-1　添字 2 から 5 までの区間には、添字 2, 3, 4, 5 の計 4 個の要素が属する。
+      5 − 2 ＝ 3 と算出するのは誤りである。
+    </figcaption>
+  </figure>
+
+  <h3>規則 2 — 必要な配列の大きさ</h3>
+
+  <p>
+    添字が 0 から始まる配列において、添字 <code>b</code> が有効であるためには、
+    添字 0 から <code>b</code> までがすべて存在していなければならない。
+    したがって、配列に必要な要素数は最小で次のとおりとなる。
+  </p>
+
+  <pre><code>必要な要素数 ＝ b ＋ 1</code></pre>
+
+  <p>
+    換言すれば、要素数 <code>n</code> の配列において有効な添字は
+    <code>0</code> から <code>n − 1</code> までであり、
+    添字 <code>n</code> は範囲外である。
+  </p>
+
+  <div class="note caution">
+    <span class="label">留意点</span>
+    <p>
+      「個数」と「最大の添字」は常に 1 だけ異なる。
+      要素数 10 の配列の末尾要素は添字 9 である。
+      この 1 の差を意識的に扱うことが、添字に関する誤りを防ぐ要諦である。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      添字が 0 から始まる配列がある。添字 4 から添字 9 までの範囲（両端を含む）の
+      要素すべてに値を代入したい。代入される要素の個数と、
+      この操作が成立するために配列に必要な最小の要素数の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>個数は 5 個、必要な最小要素数は 9</li>
+      <li>個数は 6 個、必要な最小要素数は 9</li>
+      <li>個数は 5 個、必要な最小要素数は 10</li>
+      <li>個数は 6 個、必要な最小要素数は 10</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          両端を含む個数は 9 − 4 ＋ 1 ＝ 6 個である（添字 4, 5, 6, 7, 8, 9）。
+          9 − 4 ＝ 5 と算出すると 1 個不足する。
+        </p>
+        <p>
+          また、添字 9 が有効であるためには添字 0 から 9 までが存在する必要があり、
+          要素数は最小で 10 となる。
+          「個数 6」と「要素数 10」は別個の計算に基づく値であり、
+          それぞれ規則 1・規則 2 を適用して求める。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      要素数 12 の配列がある（添字は 0 から始まる）。
+      この配列について正しい記述はどれか。
+    </p>
+    <ol class="choices">
+      <li>有効な添字は 1 から 12 までであり、末尾要素の添字は 12 である</li>
+      <li>有効な添字は 0 から 12 までであり、末尾要素の添字は 12 である</li>
+      <li>有効な添字は 0 から 11 までであり、末尾要素の添字は 11 である</li>
+      <li>有効な添字は 0 から 11 までであるが、末尾要素の添字は 12 である</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          要素数 n の配列において有効な添字は 0 から n − 1 までである。
+          n ＝ 12 であるから、添字は 0 から 11 まで、末尾要素の添字は 11 となる。
+        </p>
+        <p>
+          添字 12 を指定する操作は範囲外へのアクセスに該当し、
+          処理系によっては他の領域を破壊する重大な不具合につながる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 得意・不得意 ============ -->
+<section id="s6">
+  <h2><span class="num">7</span>配列の得意・不得意</h2>
+
+  <p>
+    配列の性質は、連続領域への等間隔配置という一点から導かれる。
+    この配置は直接アクセスを可能にする一方で、
+    要素の増減に際しては制約として作用する。
+  </p>
+
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>操作</th><th>配列における手間</th><th>理由</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>添字を指定して要素を読む</td>
+        <td class="num-cell">小</td>
+        <td>位置計算のみで到達できる。添字の値に依存しない</td>
+      </tr>
+      <tr>
+        <td>末尾への追加</td>
+        <td class="num-cell">小</td>
+        <td>後続する要素が存在しないため、移動が生じない</td>
+      </tr>
+      <tr>
+        <td>途中への挿入</td>
+        <td class="num-cell">大</td>
+        <td>挿入位置以降のすべての要素を、1 つ後ろへ移動させる必要がある</td>
+      </tr>
+      <tr>
+        <td>途中からの削除</td>
+        <td class="num-cell">大</td>
+        <td>削除位置以降のすべての要素を、1 つ前へ移動させる必要がある</td>
+      </tr>
+      <tr>
+        <td>先頭への挿入</td>
+        <td class="num-cell">最大</td>
+        <td>全要素が移動対象となる</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 580 230" role="img" aria-label="配列の添字1に要素を挿入する際、添字1以降の3要素が後方へ移動する様子">
+      <text x="290" y="22" class="svg-small">挿入前（要素数 4）</text>
+      <rect x="120" y="34" width="72" height="46" class="svg-cell"/>
+      <rect x="192" y="34" width="72" height="46" class="svg-cell"/>
+      <rect x="264" y="34" width="72" height="46" class="svg-cell"/>
+      <rect x="336" y="34" width="72" height="46" class="svg-cell"/>
+      <text x="156" y="63" class="svg-text">A</text>
+      <text x="228" y="63" class="svg-text">B</text>
+      <text x="300" y="63" class="svg-text">C</text>
+      <text x="372" y="63" class="svg-text">D</text>
+      <text x="156" y="96" class="svg-mono">[0]</text>
+      <text x="228" y="96" class="svg-mono">[1]</text>
+      <text x="300" y="96" class="svg-mono">[2]</text>
+      <text x="372" y="96" class="svg-mono">[3]</text>
+
+      <path d="M 228 108 L 300 140" class="svg-line" stroke-dasharray="5 4" marker-end="url(#ah6)"/>
+      <path d="M 300 108 L 372 140" class="svg-line" stroke-dasharray="5 4" marker-end="url(#ah6)"/>
+      <path d="M 372 108 L 444 140" class="svg-line" stroke-dasharray="5 4" marker-end="url(#ah6)"/>
+      <text x="480" y="120" class="svg-small">3 要素が移動</text>
+
+      <text x="290" y="168" class="svg-small">添字 1 に X を挿入した後（要素数 5）</text>
+      <rect x="120" y="176" width="72" height="46" class="svg-cell"/>
+      <rect x="192" y="176" width="72" height="46" class="svg-hl"/>
+      <rect x="264" y="176" width="72" height="46" class="svg-cell"/>
+      <rect x="336" y="176" width="72" height="46" class="svg-cell"/>
+      <rect x="408" y="176" width="72" height="46" class="svg-cell"/>
+      <text x="156" y="205" class="svg-text">A</text>
+      <text x="228" y="205" class="svg-text">X</text>
+      <text x="300" y="205" class="svg-text">B</text>
+      <text x="372" y="205" class="svg-text">C</text>
+      <text x="444" y="205" class="svg-text">D</text>
+
+      <defs>
+        <marker id="ah6" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M 0 0 L 8 4 L 0 8 z" fill="var(--c-muted)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-1　要素数 4 の配列の添字 1 に挿入する場合、
+      添字 1 以降の 3 要素を後方へ移動させる必要がある。
+      移動対象は「挿入位置以降の要素数」に等しい。
+    </figcaption>
+  </figure>
+
+  <h3>移動が生じる要素の個数</h3>
+
+  <p>
+    要素数 <code>n</code> の配列の添字 <code>k</code> に挿入する場合、
+    移動の対象となるのは添字 <code>k</code> 以降の要素であるから、その個数は
+    <code>n − k</code> となる。ここから、次の二つの帰結が導かれる。
+  </p>
+
+  <ul>
+    <li>先頭（<code>k = 0</code>）への挿入では、<code>n</code> 個すべてが移動対象となる</li>
+    <li>末尾（<code>k = n</code>）への追加では、移動が生じない</li>
+  </ul>
+
+  <h3>「アクセスが速い」ことと「挿入が速い」ことは別である</h3>
+
+  <p>
+    配列に関して最も混同されやすいのが、この二点の区別である。
+    直接アクセスが可能であることは、目的の位置を<strong>特定する</strong>
+    手間が小さいことを意味するに過ぎない。
+    挿入・削除に要する手間は、特定した位置の前後で
+    <strong>要素をどれだけ動かすか</strong>によって決まるのであり、
+    両者は独立した論点である。
+  </p>
+
+  <div class="note">
+    <span class="label">対比の視点</span>
+    <p>
+      要素どうしを「次の要素がどこにあるか」という情報で連結する方式を考えると、
+      その特徴は配列とちょうど逆になる。
+    </p>
+    <ul>
+      <li>挿入・削除は連結情報の書き換えのみで完了し、他の要素の移動を要しない</li>
+      <li>要素の位置を計算で求められず、目的の要素へは先頭から順にたどることになる</li>
+    </ul>
+    <p>
+      すなわち<strong>直接アクセスの容易さと、挿入・削除の容易さは
+      互いに相反する関係にある</strong>。
+      どちらを重視すべきかは、そのプログラムでどの操作が高頻度に発生するかによって決まる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      要素数 200 の配列があり、現在 200 個すべてに要素が格納されている。
+      次の操作のうち、<strong>要素の移動が最も多く発生する</strong>ものはどれか。
+    </p>
+    <ol class="choices">
+      <li>添字 199 の要素の値を読み取る</li>
+      <li>添字 0 の位置に新たな要素を挿入する</li>
+      <li>添字 150 の位置に新たな要素を挿入する</li>
+      <li>添字 199 の要素の値を書き換える</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          先頭への挿入では、添字 0 以降のすべての要素、すなわち 200 個が
+          後方へ移動する必要がある（200 − 0 ＝ 200）。
+        </p>
+        <p>
+          (C) は添字 150 以降の 50 個が移動対象であり（200 − 150 ＝ 50）、
+          (B) より少ない。
+          (A) および (D) は既存要素の読み書きであって、
+          位置計算のみで完了し、要素の移動を伴わない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-2</span>
+    <p class="q-body">
+      あるプログラムでは、データの途中への挿入・途中からの削除が頻繁に発生する一方、
+      任意の位置の要素を添字で取り出す操作はほとんど行われない。
+      この状況において、連続領域に要素を並べる配列が不利となる理由として、
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>添字による位置計算に、要素数に比例した手間を要するため</li>
+      <li>要素がメモリ上に分散配置されるため、位置の特定に時間を要するため</li>
+      <li>挿入・削除のたびに、その位置以降の要素をすべて移動させる必要があるため</li>
+      <li>配列は同一の型の要素しか格納できず、データの種類が限定されるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          連続領域に等間隔で並べるという配置を維持するため、
+          途中への挿入・削除では後続要素の移動が不可避である。
+          これが挿入・削除が高頻度である状況で配列が不利となる直接の理由である。
+        </p>
+        <p>
+          (A) は誤り。位置計算は添字の値によらず一定の手間で完了する。
+          (B) も誤りで、配列は分散配置ではなく連続配置である。
+          (D) の記述自体は配列の性質として正しいが、
+          本問で問われている挿入・削除の頻度とは無関係であり、
+          不利の理由として成立しない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 総括 ============ -->
+<section id="s7">
+  <h2><span class="num">8</span>総括</h2>
+
+  <p>本講で扱った事項を整理する。</p>
+
+  <ol>
+    <li>
+      <strong>データ型</strong>は、値域と適用可能な操作を定める規約である。
+      メモリ上の番地・命名規則・実行速度は、型が定める事柄ではない。
+    </li>
+    <li>
+      <strong>基本データ型</strong>の値域は有限であり、
+      整数型にはオーバーフロー、実数型には近似に伴う誤差が存在する。
+    </li>
+    <li>
+      <strong>変数</strong>は名前・型・値・格納場所によって特徴づけられる。
+      代入は破壊的であり、従前の値は失われる。
+    </li>
+    <li>
+      <strong>配列</strong>は同種の要素を連続領域に等間隔で配置する。
+      この配置ゆえに「先頭アドレス ＋ 添字 × 要素の大きさ」による
+      直接アクセスが成立する。
+    </li>
+    <li>
+      <strong>添字</strong>の計算では、区間の個数は <code>b − a ＋ 1</code>、
+      添字 <code>b</code> に必要な要素数は <code>b ＋ 1</code> である。
+      個数と最大添字は常に 1 だけ異なる。
+    </li>
+    <li>
+      配列は直接アクセスに優れる一方、<strong>途中への挿入・削除では
+      後続要素の移動</strong>を要する。
+      アクセスの容易さと挿入・削除の容易さは、独立した評価軸である。
+    </li>
+  </ol>
+
+  <div class="note">
+    <span class="label">本講の要諦</span>
+    <p>
+      データ構造に優劣の絶対的序列は存在しない。
+      あるプログラムにおいて<strong>どの操作が高頻度に発生するか</strong>を見極め、
+      その操作を得意とする構造を選択すること——これがデータ構造を学ぶ目的である。
+    </p>
+  </div>
+</section>
+
+<!-- ============ 9. 確認問題 ============ -->
+<section id="s8">
+  <h2><span class="num">9</span>確認問題</h2>
+
+  <p>
+    本講全体を横断する問題である。復習の際に取り組まれたい。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-1</span>
+    <p class="q-body">
+      次の記述のうち、<strong>誤っている</strong>ものはどれか。
+    </p>
+    <ol class="choices">
+      <li>データ型は、値が取りうる範囲とその値に適用できる操作を定める</li>
+      <li>要素数 n の配列において、有効な添字は 0 から n − 1 までである</li>
+      <li>配列の末尾に要素を追加する操作では、既存要素の移動が生じない</li>
+      <li>配列の添字 0 の要素へのアクセスは、添字 n − 1 の要素へのアクセスより手間が小さい</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          (D) が誤りである。配列へのアクセスは
+          「先頭アドレス ＋ 添字 × 要素の大きさ」という計算によって行われ、
+          この手間は添字の値に依存しない。
+          添字 0 であっても添字 n − 1 であっても、
+          乗算一回と加算一回で位置が求まる点は同一である。
+        </p>
+        <p>
+          (A)(B)(C) はいずれも正しい記述である。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-2</span>
+    <p class="q-body">
+      要素数 20 の配列 B がある（添字は 0 から始まり、20 個すべてに要素が格納されている）。
+      この配列に対し、添字 6 から添字 15 まで（両端を含む）の要素の値をすべて 0 に書き換えた。
+      その後、添字 3 の位置に新たな要素を 1 個挿入した。
+    </p>
+    <p class="q-body">
+      値を 0 に書き換えた要素の個数と、挿入に際して移動が生じた要素の個数の組合せとして
+      正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>書き換えは 9 個、移動は 17 個</li>
+      <li>書き換えは 10 個、移動は 17 個</li>
+      <li>書き換えは 9 個、移動は 16 個</li>
+      <li>書き換えは 10 個、移動は 16 個</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          <strong>書き換えの個数</strong>: 両端を含む区間の個数は
+          15 − 6 ＋ 1 ＝ 10 個である（添字 6 から 15）。
+          15 − 6 ＝ 9 とするのは規則 1 の <code>＋ 1</code> を失念した誤りである。
+        </p>
+        <p>
+          <strong>移動の個数</strong>: 添字 3 に挿入する場合、
+          移動対象は添字 3 以降の要素である。
+          要素数 20 であるから 20 − 3 ＝ 17 個が後方へ移動する。
+          なお、値を 0 に書き換える操作は要素の個数を変えないため、
+          挿入時点の要素数は 20 のままである点に留意されたい。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-3</span>
+    <p class="q-body">
+      あるシステムでは、センサから送られる計測値を保持する。
+      計測値の総数はあらかじめ判明しており、変動しない。
+      また、処理においては「k 番目の計測値を取り出す」という操作が
+      きわめて高頻度に発生する一方、データの途中への挿入・削除は一切行われない。
+    </p>
+    <p class="q-body">
+      この用途において配列が適している理由として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>要素数が固定されているため、挿入・削除に伴う要素の移動が発生せず、
+          かつ添字による直接アクセスを一定の手間で行えるため</li>
+      <li>要素がメモリ上に分散配置されるため、任意の位置へ柔軟に到達できるため</li>
+      <li>各要素が次の要素の位置を保持しているため、
+          先頭から順にたどることで高速に到達できるため</li>
+      <li>配列は型の異なる要素を混在させられるため、
+          多様な計測値を一括して扱えるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          本問の用途では、配列の不得意とする挿入・削除がそもそも発生せず、
+          得意とする直接アクセスのみが高頻度に行われる。
+          操作の頻度分布と構造の特性が合致しており、配列が適する。
+        </p>
+        <p>
+          (B) は誤りで、配列は連続配置である。
+          (C) は各要素が次の位置を保持する方式の説明であり、配列の性質ではない。
+          また「先頭から順にたどる」ことは高速到達の根拠にならない。
+          (D) も誤りで、配列は同一の型の要素を格納する構造である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／基本データ型・変数・配列<br>
+  弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
