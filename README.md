@@ -51,3 +51,14 @@ flowchart TD
 ## 出典
 
 - [高専機構 モデルコアカリキュラム（令和5年度版）](https://kosen-k.go.jp/wp/wp-content/uploads/2023/12/2c383e29-7e20-4b20-af19-ca3737450665.pdf)
+
+## ライセンス
+
+本リポジトリは [MIT License](LICENSE) で提供する。
+
+ただし以下は MIT の対象外で、著作権は各権利者に帰属する。詳細は [LICENSE](LICENSE) の「Third-party materials」節を参照すること。
+
+- `docs/Kosen-MCC2023-Tech.pdf` — 高専機構のモデルコアカリキュラム原本（オフライン参照用に同梱）
+- `output/*/materials/assets/kousho.svg` — 弓削商船高等専門学校の校章
+
+fork して再配布する場合は、これらの扱いを事前に確認すること。
