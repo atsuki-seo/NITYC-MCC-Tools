@@ -273,13 +273,12 @@ def root_index(subjects: list[Subject]) -> str:
 <header class="doc-head">
   <p class="eyebrow">{crest('')}弓削商船高等専門学校</p>
   <h1>授業資料</h1>
-  <p class="doc-meta">担当: 瀬尾 敦生</p>
 </header>
 
 {chr(10).join(blocks) if blocks else empty}
 
 <footer class="doc-foot">
-  <p>本サイトは授業で使用する解説資料を公開しています。</p>
+  <p>{crest('')}弓削商船高等専門学校</p>
 </footer>
 """
     return page("授業資料 | 弓削商船高等専門学校", "", body)
