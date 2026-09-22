@@ -1,6 +1,6 @@
 # 出力ディレクトリ・ファイル命名規約
 
-`output/` 配下のディレクトリ構造とファイル命名の**共有契約**。複数スキル（`class-syllabus` / `class-test`）が読み書きするファイルパスの正本である。
+`output/` 配下のディレクトリ構造とファイル命名の**共有契約**。複数スキル（`class-syllabus` / `class-test` / `class-material`）が読み書きするファイルパスの正本である。
 
 このファイルは「誰が書いて誰が読むか」の契約を一元管理する。各スキルのリファレンスに同じパス規約を二重記述せず、必ず本ファイルを参照すること。
 
@@ -9,6 +9,7 @@
 - `class-syllabus`: シラバス本体（Excel + Markdown）の出力先
 - `class-syllabus-parse`: ファイル出力なし。`output/` 配下の glob 探索のみ
 - `class-test`: テスト関連ファイルの出力先
+- `class-material`: 解説ページ（HTML）と共通アセットの出力先。`tests/` 配下を読み取り参照する
 
 ---
 
@@ -21,15 +22,17 @@ output/
 └── [YYYY]_[教科名]/                       ← 科目フォルダ（例: 2026_アルゴリズム）
     ├── [シラバスファイル名].md            ← class-syllabus 出力
     ├── [シラバスファイル名].xlsx          ← class-syllabus 出力（Excel併用時）
-    ├── materials/                         ← 授業資料（§ 1.4）
-    │   ├── assets/                        ← 資料が参照する素材（校章 SVG 等）
-    │   └── [資料ファイル]
-    └── tests/
-        └── [テスト名]/                    ← class-test 出力
-            ├── [テスト名]_確認用.md
-            ├── [テスト名]_解説.md
-            ├── [テスト名]_moodle.xml
-            └── [テスト名]_事前通知.md     ← オプション
+    ├── tests/
+    │   └── [テスト名]/                    ← class-test 出力
+    │       ├── [テスト名]_確認用.md
+    │       ├── [テスト名]_解説.md
+    │       ├── [テスト名]_moodle.xml
+    │       └── [テスト名]_事前通知.md     ← オプション
+    └── materials/                          ← class-material 出力（§ 1.4）
+        ├── assets/
+        │   ├── material.css                ← 共通CSS（全回で共有）
+        │   └── kousho.svg                  ← 校章
+        └── class[週番号]_[テーマ].html
 ```
 
 ### 1.1 科目フォルダ名
@@ -52,10 +55,9 @@ output/
 
 ### 1.4 materials/（授業資料）
 
-授業で配布・提示する資料を置く。スライド・解説ページ・配布プリント等が該当する。
+授業で配布・提示する資料を置く。`class-material` の出力先であり、教員が手動で追加した資料も同じ場所で扱う。
 
-- `materials/assets/`: 資料が参照する素材（校章 SVG、図版など）。複数資料で共有する
-- サブディレクトリは自由に切ってよい（回ごと・単元ごと等）
+- `materials/assets/`: 資料が参照する素材（共通CSS、校章 SVG、図版など）。複数資料で共有する
 
 **git 追跡範囲**: `materials/` 配下は `.gitignore` で許可した拡張子のみ追跡する。
 
@@ -91,6 +93,16 @@ output/
 | `tests/[テスト名]/[テスト名]_moodle.xml` | Moodle問題バンクXML | class-test | （Moodleにインポート） |
 | `tests/[テスト名]/[テスト名]_事前通知.md` | 学生向け事前通知 | class-test（オプション） | （教員が学生に展開） |
 
+### 2.3 class-material
+
+| ファイル | 役割 | 生成者 | 参照者 |
+|---------|------|--------|--------|
+| `materials/class[週番号]_[テーマ].html` | 授業解説ページ | class-material | （教員が投影・学生が閲覧） |
+| `materials/assets/material.css` | 解説ページ共通CSS | class-material（初回のみ） | 全解説ページ |
+| `materials/assets/kousho.svg` | 校章 | class-material（初回のみ） | 全解説ページ |
+
+`class-material` は `tests/[テスト名]/[テスト名]_確認用.md` と `_解説.md` を**読み取り**、直近の小テストの出題論点を解説ページに織り込む。
+
 ---
 
 ## 3. ファイル名サフィックス規約
@@ -103,6 +115,15 @@ output/
 | `_解説.md` | 詳細解説 | class-test |
 | `_moodle.xml` | Moodle XML | class-test |
 | `_事前通知.md` | 学生向け事前通知 | class-test |
+
+解説ページはサフィックスではなくプレフィックスで回次を表す。
+
+| 形式 | 用途 | 生成スキル |
+|------|------|-----------|
+| `class[週番号]_[テーマ].html` | 授業解説ページ | class-material |
+| `class[開始]-[終了]_[テーマ].html` | 複数週にまたがる解説ページ | class-material |
+
+週番号はゼロ埋め2桁とする（`class01`, `class03`, `class01-02`）。
 
 ---
 
@@ -121,5 +142,6 @@ output/
 
 - **科目フォルダ `output/[YYYY]_[教科名]/`**: 最初に書き込むスキル（通常 class-syllabus）が `mkdir -p` で作成
 - **`tests/[テスト名]/`**: class-test が作成
+- **`materials/` および `materials/assets/`**: class-material が作成
 
 各スキルは出力前に `mkdir -p` で必要な親ディレクトリを作成する。

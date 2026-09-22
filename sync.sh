@@ -81,7 +81,16 @@ ok "未コミットの変更なし"
 
 CURRENT_BRANCH="$(git rev-parse --abbrev-ref HEAD)"
 if [ "$CURRENT_BRANCH" != "$UPSTREAM_BRANCH" ]; then
-  warn "現在のブランチは '$CURRENT_BRANCH' です（通常は '$UPSTREAM_BRANCH' で実行します）"
+  err "現在のブランチは '$CURRENT_BRANCH' です"
+  echo ""
+  echo "同期は '$UPSTREAM_BRANCH' で行ってください。作業ブランチに upstream を"
+  echo "マージすると、PR に無関係な差分が混入します。"
+  echo ""
+  echo "  git switch $UPSTREAM_BRANCH && ./sync.sh"
+  echo ""
+  echo "同期後、作業ブランチに取り込む場合:"
+  echo "  git switch $CURRENT_BRANCH && git merge $UPSTREAM_BRANCH"
+  exit 1
 fi
 
 # 2. upstream remote の確認
