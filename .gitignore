@@ -6,15 +6,29 @@
 *~
 
 # Skill output
-# output/ 配下は原則無視した上で、個人情報を含まない成果物のみ明示的に許可する。
-# - 許可: シラバス、materials/ 配下の授業資料
-# - 無視: テスト問題一式
+# output/ 配下は原則無視した上で、公開可能な成果物のみ拡張子単位で許可する。
+# レイアウトと各ディレクトリの意味は specs/output-layout.md を参照。
 /output/**
 !/output/*/
+
+# シラバス本体（学校公式に公開される情報のため追跡する）
 !/output/*/*.xlsx
 !/output/*/*.md
+
+# materials/ 配下の授業資料。
+# 許可した拡張子は「置けば必ずコミット対象になる」。このリポジトリは public であり、
+# 一度 push すると履歴から消せない。学生の氏名・成績・提出物、および未公開の
+# 試験問題は、拡張子が許可対象でも置かないこと。
 !/output/*/materials/
-!/output/*/materials/**
+!/output/*/materials/**/
+!/output/*/materials/**/*.html
+!/output/*/materials/**/*.css
+!/output/*/materials/**/*.js
+!/output/*/materials/**/*.pdf
+!/output/*/materials/**/*.svg
+!/output/*/materials/**/*.png
+!/output/*/materials/**/*.jpg
+!/output/*/materials/**/*.jpeg
 
 # tests/ 配下は丸ごと無視（問題・解答・採点結果すべて個人/試験情報）
 # 上位の /output/** で既に無視されるため追加ルールは不要
