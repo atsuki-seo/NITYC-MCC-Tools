@@ -209,14 +209,14 @@ def crumbs(trail: list[tuple[str, str]]) -> str:
     return f'<nav class="idx-crumbs">{" ／ ".join(parts)}</nav>'
 
 
-def material_items(materials: list[Material], prefix: str, indent: str) -> str:
+def material_items(materials: list[Material]) -> str:
     items = []
     for material in materials:
         weeks = (
             f'<span class="idx-week">{e(material.weeks)}</span>' if material.weeks else ""
         )
         items.append(
-            f'{indent}<li><a class="idx-link" href="{e(prefix + material.href)}">{weeks}'
+            f'    <li><a class="idx-link" href="{e(material.href)}">{weeks}'
             f'<span class="idx-title">{e(material.theme)}</span></a></li>'
         )
     return "\n".join(items)
@@ -238,7 +238,7 @@ def subject_index(year: Year, subject: Subject) -> str:
 <section>
   <h2><span class="num">◆</span>資料一覧</h2>
   <ul class="idx-list">
-{material_items(subject.materials, "", "    ")}
+{material_items(subject.materials)}
   </ul>
 </section>
 
@@ -250,23 +250,17 @@ def subject_index(year: Year, subject: Subject) -> str:
 
 
 def year_index(year: Year) -> str:
-    blocks = []
+    items = []
     for subject in year.subjects:
-        heading = e(subject.name)
         affiliation = (
-            f'  <p class="idx-affil">{e(subject.affiliation)}</p>'
+            f'<span class="idx-sub">{e(subject.affiliation)}</span>'
             if subject.affiliation
             else ""
         )
-        blocks.append(
-            f"""<section>
-  <h2><span class="num">◆</span>{heading}</h2>
-{affiliation}
-  <ul class="idx-list">
-{material_items(subject.materials, f"{subject.dir_name}/", "    ")}
-  </ul>
-  <p class="idx-more"><a href="{e(subject.dir_name)}/">{heading}の一覧ページ</a></p>
-</section>"""
+        items.append(
+            f'    <li><a class="idx-link" href="{e(subject.dir_name)}/">'
+            f'<span class="idx-title">{e(subject.name)}{affiliation}</span>'
+            f'<span class="idx-count">{len(subject.materials)}件</span></a></li>'
         )
 
     body = f"""
@@ -278,7 +272,12 @@ def year_index(year: Year) -> str:
   <p class="doc-meta">全{len(year.subjects)}科目</p>
 </header>
 
-{chr(10).join(blocks)}
+<section>
+  <h2><span class="num">◆</span>科目一覧</h2>
+  <ul class="idx-list">
+{chr(10).join(items)}
+  </ul>
+</section>
 
 <footer class="doc-foot">
   <p><a href="../">年度一覧へ戻る</a></p>
@@ -288,35 +287,32 @@ def year_index(year: Year) -> str:
 
 
 def root_index(years: list[Year]) -> str:
-    blocks = []
+    items = []
     for year in years:
-        items = []
-        for subject in year.subjects:
-            href = f"{year.dir_name}/{subject.dir_name}/"
-            count = len(subject.materials)
-            items.append(
-                f'    <li><a class="idx-link" href="{e(href)}">'
-                f'<span class="idx-title">{e(subject.name)}</span>'
-                f'<span class="idx-count">{count}件</span></a></li>'
-            )
-        blocks.append(
-            f"""<section>
-  <h2><span class="num">◆</span>{e(year.dir_name)}年度</h2>
+        items.append(
+            f'    <li><a class="idx-link" href="{e(year.dir_name)}/">'
+            f'<span class="idx-title">{e(year.dir_name)}年度</span>'
+            f'<span class="idx-count">{len(year.subjects)}科目</span></a></li>'
+        )
+
+    listing = (
+        f"""<section>
+  <h2><span class="num">◆</span>年度一覧</h2>
   <ul class="idx-list">
 {chr(10).join(items)}
   </ul>
-  <p class="idx-more"><a href="{e(year.dir_name)}/">{e(year.dir_name)}年度の一覧ページ</a></p>
 </section>"""
-        )
+        if items
+        else "<section><p>公開中の資料はありません。</p></section>"
+    )
 
-    empty = "<section><p>公開中の資料はありません。</p></section>"
     body = f"""
 <header class="doc-head">
   <p class="eyebrow">{crest('')}{SCHOOL}</p>
   <h1>授業資料</h1>
 </header>
 
-{chr(10).join(blocks) if blocks else empty}
+{listing}
 
 <footer class="doc-foot">
   <p>{crest('')}{SCHOOL}</p>
@@ -384,15 +380,14 @@ INDEX_CSS = """
   font-variant-numeric: tabular-nums;
 }
 
-.idx-affil {
-  font-size: 0.78rem;
+.idx-sub {
+  display: block;
+  font-size: 0.74rem;
   color: var(--c-muted);
-  margin: 0;
+  line-height: 1.5;
 }
 
-.idx-more { margin: 0.9rem 0 0; font-size: 0.8rem; }
-
-.idx-more a, footer.doc-foot a { color: var(--c-accent); }
+footer.doc-foot a { color: var(--c-accent); }
 
 @media (max-width: 600px) {
   .idx-link { flex-direction: column; gap: 0.15rem; }
