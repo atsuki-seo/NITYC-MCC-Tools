@@ -19,6 +19,7 @@
 | `.claude/skills/class-material/` | 授業解説ページ（HTML）生成スキル |
 | `specs/` | スキル間の共有契約（出力レイアウト・スキーマ・対話規約） |
 | `.github/workflows/pages.yml` | 授業資料の GitHub Pages 公開ワークフロー |
+| `scripts/build_index.py` | 公開サイトの資料一覧ページ生成（Pages デプロイ時に実行） |
 | `CLAUDE.md` | Claude Code用の指示ファイル |
 
 ## 授業資料の公開
@@ -26,8 +27,12 @@
 `output/*/materials/` 配下の資料は、`main` への push で GitHub Pages に自動公開される。公開されるのは materials 配下のみで、シラバス本体・`docs/`・`tests/` はサイトに含まれない。
 
 ```
+https://[owner].github.io/[repo]/                                    ← 全科目の一覧
+https://[owner].github.io/[repo]/[YYYY]_[教科名]/                    ← 科目内の資料一覧
 https://[owner].github.io/[repo]/[YYYY]_[教科名]/class[週番号]_[テーマ].html
 ```
+
+一覧ページは `scripts/build_index.py` が公開時に自動生成する（リポジトリにはコミットしない）。解説ページと同じスタイルで、回次・テーマ・学科などは各ページの記述から読み取る。資料を追加して push すれば一覧に反映される。
 
 初回のみ、リポジトリの Settings → Pages で Source を "GitHub Actions" に設定する必要がある。公開範囲の注意点は [CONTRIBUTING.md](CONTRIBUTING.md) § 4 を参照。
 
