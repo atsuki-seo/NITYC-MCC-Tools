@@ -244,6 +244,7 @@ def subject_index(year: Year, subject: Subject) -> str:
 
 <footer class="doc-foot">
   <p><a href="../">{e(year.dir_name)}年度の科目一覧へ戻る</a></p>
+  <p>{crest('assets/')}{SCHOOL}</p>
 </footer>
 """
     return page(f"{subject.name} 授業資料一覧", "assets/", body)
@@ -281,6 +282,7 @@ def year_index(year: Year) -> str:
 
 <footer class="doc-foot">
   <p><a href="../">年度一覧へ戻る</a></p>
+  <p>{crest('')}{SCHOOL}</p>
 </footer>
 """
     return page(f"{year.dir_name}年度 授業資料 | {SCHOOL}", "", body)
@@ -388,6 +390,8 @@ INDEX_CSS = """
 }
 
 footer.doc-foot a { color: var(--c-accent); }
+
+footer.doc-foot p { margin: 0.35rem 0; }
 
 @media (max-width: 600px) {
   .idx-link { flex-direction: column; gap: 0.15rem; }
