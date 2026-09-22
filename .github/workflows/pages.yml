@@ -11,6 +11,10 @@
 # Subject and page names stay in Japanese and are percent-encoded by the
 # browser. Asset links inside the pages are relative (`assets/...`), so they
 # resolve unchanged under the project subpath.
+#
+# Index pages (site root and one per subject) are generated here rather than
+# committed, so adding a material page publishes it to the listings with no
+# further edit.
 
 name: Deploy materials to Pages
 
@@ -19,6 +23,7 @@ on:
     branches: [main]
     paths:
       - 'output/*/materials/**'
+      - 'scripts/build_index.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -58,6 +63,9 @@ jobs:
           # Skip Jekyll so that files and directories starting with `_` or `.`
           # are served as-is.
           touch _site/.nojekyll
+
+      - name: Build index pages
+        run: python3 scripts/build_index.py _site
 
       - uses: actions/upload-pages-artifact@v3
         with:
