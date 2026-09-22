@@ -73,17 +73,22 @@ output/
 
 試験問題は `tests/` に出力され、そちらは丸ごと追跡対象外となる（§ 1 のツリー参照）。
 
-**Web 配信**: 追跡対象となった `materials/` 配下は、`main` への push で GitHub Pages に自動デプロイされる（`.github/workflows/pages.yml`）。公開 URL は科目フォルダ名をそのまま使う。
+**Web 配信**: 追跡対象となった `materials/` 配下は、`main` への push で GitHub Pages に自動デプロイされる（`.github/workflows/pages.yml`）。
+
+公開サイトでは**年度と教科名を別の階層に分割する**。リポジトリ上は `[YYYY]_[教科名]` という単一のディレクトリ名だが、デプロイ時に最初の `_` で分割し、年度 → 科目 → 資料とたどれる構造にする。
 
 ```
-https://[owner].github.io/[repo]/                                    ← 全科目の一覧（自動生成）
-https://[owner].github.io/[repo]/[YYYY]_[教科名]/                    ← 科目内の資料一覧（自動生成）
-https://[owner].github.io/[repo]/[YYYY]_[教科名]/class[週番号]_[テーマ].html
+https://[owner].github.io/[repo]/                                ← 年度の一覧（自動生成）
+https://[owner].github.io/[repo]/[YYYY]/                         ← 科目の一覧（自動生成）
+https://[owner].github.io/[repo]/[YYYY]/[教科名]/                ← 資料の一覧（自動生成）
+https://[owner].github.io/[repo]/[YYYY]/[教科名]/class[週番号]_[テーマ].html
 ```
 
-日本語のパスは percent-encoding されて配信される。解説ページ内のアセット参照は `assets/...` の相対パスであること — サブパス配信でそのまま解決されるため、絶対パス（`/assets/...`）にしてはならない。
+分割は**最初の `_` のみ**で行う。教科名自体に `_` を含んでも科目名側に残るため、階層は壊れない。
 
-**一覧ページ**: サイトルートと各科目フォルダの `index.html` は `scripts/build_index.py` がデプロイ時に生成する。リポジトリにはコミットしない — 資料を追加して push すれば一覧に載る。
+日本語のパスは percent-encoding されて配信される。解説ページ内のアセット参照は `assets/...` の相対パスであること — 解説ページと `assets/` は階層化後も同じディレクトリに置かれるため、この相対参照はそのまま解決される。絶対パス（`/assets/...`）や `../` を含む参照にしてはならない。**階層が深くなっても解説ページ側の書き換えは不要**という性質は、この規約に依存している。
+
+**一覧ページ**: 各階層の `index.html` は `scripts/build_index.py` がデプロイ時に生成する。リポジトリにはコミットしない — 資料を追加して push すれば一覧に載る。
 
 一覧の各項目は解説ページ自体の記述から組み立てる。回次はファイル名の `class[週番号]` から、テーマは `<h1>`（無ければ `<title>` の `|` より前）から、学科・学年・学期は `<p class="eyebrow">` の 1 行目から読む。したがって解説ページは § 3 の命名規約と `class-material` の HTML 構造に従っていれば、別途メタデータを書かなくても一覧に反映される。手動で追加した `.html` も同様に扱われ、`class[週番号]_` 形式でないものは回次表示なしで番号付きの後に並ぶ。
 
@@ -115,7 +120,7 @@ https://[owner].github.io/[repo]/[YYYY]_[教科名]/class[週番号]_[テーマ]
 | `materials/assets/material.css` | 解説ページ共通CSS | class-material（初回のみ） | 全解説ページ |
 | `materials/assets/kousho.svg` | 校章 | class-material（初回のみ） | 全解説ページ |
 
-一覧ページ（サイトルート・科目別の `index.html`）はリポジトリ上には存在しない。`scripts/build_index.py` が Pages デプロイ時にのみ生成する（§ 1.4）。
+一覧ページ（年度・科目・資料の各階層の `index.html`）はリポジトリ上には存在しない。`scripts/build_index.py` が Pages デプロイ時にのみ生成する（§ 1.4）。
 
 `class-material` は `tests/[テスト名]/[テスト名]_確認用.md` と `_解説.md` を**読み取り**、直近の小テストの出題論点を解説ページに織り込む。
 

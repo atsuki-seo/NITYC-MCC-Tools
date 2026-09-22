@@ -26,13 +26,16 @@
 
 `output/*/materials/` 配下の資料は、`main` への push で GitHub Pages に自動公開される。公開されるのは materials 配下のみで、シラバス本体・`docs/`・`tests/` はサイトに含まれない。
 
+公開サイトは年度 → 科目 → 資料の階層でたどれる。リポジトリ上の `[YYYY]_[教科名]` は、公開時に年度と教科名へ分割される。
+
 ```
-https://[owner].github.io/[repo]/                                    ← 全科目の一覧
-https://[owner].github.io/[repo]/[YYYY]_[教科名]/                    ← 科目内の資料一覧
-https://[owner].github.io/[repo]/[YYYY]_[教科名]/class[週番号]_[テーマ].html
+https://[owner].github.io/[repo]/                                ← 年度の一覧
+https://[owner].github.io/[repo]/[YYYY]/                         ← 科目の一覧
+https://[owner].github.io/[repo]/[YYYY]/[教科名]/                ← 資料の一覧
+https://[owner].github.io/[repo]/[YYYY]/[教科名]/class[週番号]_[テーマ].html
 ```
 
-一覧ページは `scripts/build_index.py` が公開時に自動生成する（リポジトリにはコミットしない）。解説ページと同じスタイルで、回次・テーマ・学科などは各ページの記述から読み取る。資料を追加して push すれば一覧に反映される。
+各階層の一覧ページは `scripts/build_index.py` が公開時に自動生成する（リポジトリにはコミットしない）。解説ページと同じスタイルで、回次・テーマ・学科などは各ページの記述から読み取る。資料を追加して push すれば一覧に反映される。
 
 初回のみ、リポジトリの Settings → Pages で Source を "GitHub Actions" に設定する必要がある。公開範囲の注意点は [CONTRIBUTING.md](CONTRIBUTING.md) § 4 を参照。
 
