@@ -175,7 +175,9 @@ Step 1.5 で作成済みと確認された小テストのうち、実施週が�
 - [ ] 全ての `.quiz` に対応する `details.answer` があるか
 - [ ] 全ての図版・表にキャプションがあるか（`writing-style-guide.md` § 7）
 - [ ] SVG内に色値の直書きが無いか
-- [ ] 全ての SVG が四辺とも viewBox に収まるか（`figure-guide.md` § 6）
+- [ ] 全ての SVG が四辺とも viewBox に収まるか（`figure-guide.md` § 6.1）
+- [ ] SVG の要素同士に重なりが無いか（`figure-guide.md` § 6.2）
+- [ ] SVG の描画結果を HTTP 経由・両モードで目視確認したか（`figure-guide.md` § 6.3）
 - [ ] 目次の `href` と `section` の `id` が対応しているか
 - [ ] CSSへの `<link>` パスが `assets/material.css` になっているか
 

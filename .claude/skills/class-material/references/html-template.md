@@ -230,6 +230,9 @@
 - [ ] 全ての `.quiz` に `details.answer` があるか
 - [ ] SVG の `marker id` がページ内で重複していないか
 - [ ] SVG内に色値の直書きがないか
-- [ ] 全ての SVG が四辺とも viewBox に収まるか（`figure-guide.md` § 6）
+- [ ] 全ての SVG が四辺とも viewBox に収まるか（`figure-guide.md` § 6.1）
+- [ ] 補助線・矢印がセルより前に書かれているか（`figure-guide.md` § 1.6）
+- [ ] 背後に要素が通る `.svg-cell-plain` に `.svg-bg` を敷いているか（`figure-guide.md` § 1.7）
+- [ ] 要素同士の重なりがないか（`figure-guide.md` § 6.2）
 - [ ] 予告・次回言及がないか
 - [ ] 敬体が混入していないか
