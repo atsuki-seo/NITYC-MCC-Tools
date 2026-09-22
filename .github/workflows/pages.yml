@@ -6,15 +6,15 @@
 # excluding unwanted paths, so a newly added directory is never published by
 # accident.
 #
-# Published URL layout mirrors the repository:
-#   https://<owner>.github.io/<repo>/<YYYY>_<subject>/<page>.html
+# The repository fuses year and subject into one directory name; the site
+# splits them so a reader can walk year -> subject -> page:
+#   https://<owner>.github.io/<repo>/<YYYY>/<subject>/<page>.html
 # Subject and page names stay in Japanese and are percent-encoded by the
-# browser. Asset links inside the pages are relative (`assets/...`), so they
-# resolve unchanged under the project subpath.
+# browser. A page keeps its own `assets/` as a sibling, so the relative links
+# inside it resolve at any depth and the pages need no rewriting.
 #
-# Index pages (site root and one per subject) are generated here rather than
-# committed, so adding a material page publishes it to the listings with no
-# further edit.
+# Index pages (one per level) are generated here rather than committed, so
+# adding a material page publishes it to the listings with no further edit.
 
 name: Deploy materials to Pages
 
@@ -50,11 +50,15 @@ jobs:
           shopt -s nullglob
           found=0
           for dir in output/*/materials/; do
-            subject="$(basename "$(dirname "$dir")")"
-            mkdir -p "_site/$subject"
-            cp -R "$dir." "_site/$subject/"
+            folder="$(basename "$(dirname "$dir")")"
+            # `output/` fuses year and subject into one directory name; the
+            # site splits them so the URL can be walked year by year.
+            year="${folder%%_*}"
+            subject="${folder#*_}"
+            mkdir -p "_site/$year/$subject"
+            cp -R "$dir." "_site/$year/$subject/"
             found=1
-            echo "staged: $subject"
+            echo "staged: $year/$subject"
           done
           if [ "$found" -eq 0 ]; then
             echo "no materials directory found under output/" >&2
