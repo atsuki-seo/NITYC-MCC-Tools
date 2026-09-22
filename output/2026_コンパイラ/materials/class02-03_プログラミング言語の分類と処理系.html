@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>プログラミング言語の分類と処理系 | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>プログラミング言語の分類と処理系</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">言語が複数ある理由</a></li>
+    <li><a href="#s2">型付け方式 — 型をいつ決めるか</a></li>
+    <li><a href="#s3">パラダイム — 何を中心に記述するか</a></li>
+    <li><a href="#s4">処理系 — 変換をいつ行うか</a></li>
+    <li><a href="#s5">性質の対比 — どの軸がどの帰結を生むか</a></li>
+    <li><a href="#s6">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 言語が複数ある理由 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>言語が複数ある理由</h2>
+
+  <p>
+    現在広く使われているプログラミング言語は数十を下らない。いずれも「計算機に処理を指示する」という同じ目的を持つ以上、
+    素朴には最も優れた一つが残り、他は淘汰されてもよいはずである。しかし実際にはそうなっていない。
+  </p>
+
+  <p>
+    この事実は、言語に対する要求が一様でないことを示している。たとえば次の二つの要求を考える。
+  </p>
+
+  <ul>
+    <li>長期間運用する大規模なシステムで、実行してしまう前に可能な限り誤りを潰しておきたい</li>
+    <li>手元のデータを試しに集計したいだけなので、書いたらすぐ動かして結果を見たい</li>
+  </ul>
+
+  <p>
+    前者は、実行前に多くの検査を行うことを求める。後者は、検査や準備の工程が挟まらないことを求める。
+    この二つは<strong>同時に最大化できない</strong>。一方を強めれば他方が弱まる関係にあり、
+    どちらを優先するかによって言語の設計は分かれる。言語が複数存在するのは、優劣の決着がついていないからではなく、
+    <strong>互いに相反する要求のどこに重心を置くかという選択の結果</strong>である。
+  </p>
+
+  <p>
+    したがって言語を理解するとは、その言語が何を優先したかを把握することに等しい。
+    本講ではそのための三つの観点を扱う。
+  </p>
+
+  <ul>
+    <li><span class="term">型付け方式</span><span class="en">(typing discipline)</span> — 値の種類をいつ確定させるか</li>
+    <li><span class="term">パラダイム</span><span class="en">(paradigm)</span> — プログラムを何の集まりとして記述するか</li>
+    <li><span class="term">処理系</span><span class="en">(language processor)</span> — ソースコードの変換をいつ行うか</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>静的型付けと動的型付けの違いを、型が確定する時期に基づいて説明できる</li>
+      <li>命令型と関数型の違いを、記述の中心に置くものに基づいて説明できる</li>
+      <li>インタプリタとコンパイラの違いを、変換を行う時期に基づいて説明できる</li>
+      <li>代表的な処理系が、上記三つの観点でどこに位置づくかを説明できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      プログラミング言語が多数存在している理由の説明として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>どの言語も未完成であり、すべての要求を満たす言語が今後登場すれば一つに収束するため</li>
+      <li>言語に対する要求には相反するものがあり、どれを優先するかによって設計が分かれるため</li>
+      <li>計算機の機種ごとに専用の言語が必要であり、機種の数だけ言語が存在するため</li>
+      <li>言語ごとに実行できる処理の種類が異なり、扱える計算が言語によって制限されるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          実行前の誤り検出を厚くすることと、準備工程なしにすぐ実行できることは同時に最大化できない。
+          言語の多様性は、こうした相反する要求のどこに重心を置くかという設計上の選択に由来する。
+        </p>
+        <p>
+          (A) は多様性を過渡的な未完成状態と見なす点が誤りである。要求そのものが相反する以上、
+          すべてを満たす言語は原理的に想定しにくい。
+          (C) は言語と機種を対応づけているが、多くの言語は複数の機種で利用でき、
+          機種差を吸収するのはむしろ処理系の役割である。
+          (D) は言語ごとに計算能力が異なるという前提が誤りである。
+          一般的なプログラミング言語は記述できる計算の範囲において同等であり、
+          差は書きやすさ・検査の厚さ・実行効率に現れる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 型付け方式 — 型をいつ決めるか ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>型付け方式 — 型をいつ決めるか</h2>
+
+  <p>
+    <span class="term">データ型</span><span class="en">(data type)</span> とは、値が取りうる範囲と、
+    その値に適用できる操作を定める規約である。整数型であれば小数部を持たない数を保持し、
+    四則演算や大小比較が適用できる。文字列型であれば文字の並びを保持し、連結や長さの取得が適用できる。
+  </p>
+
+  <p>
+    重要なのは、型が<strong>何を許すかだけでなく、何を許さないかを定める</strong>点である。
+    文字列と整数の加算のように、規約上意味をなさない操作が存在する。
+    これを誤りとして扱えるのは、値に型という規約が結びついているからである。
+  </p>
+
+  <h3>型が確定する時期による分類</h3>
+
+  <p>
+    型付け方式の違いは、しばしば「型があるか、ないか」と誤解される。そうではない。
+    いずれの方式でも値は型を持つ。違いは、<strong>変数に結びつく型がいつ確定するか</strong>にある。
+  </p>
+
+  <ul>
+    <li><span class="term">静的型付け</span><span class="en">(static typing)</span> —
+      変数の型がソースコードの変換時点で確定する。変換工程で型の整合性を検査できるため、
+      規約に反する操作を実行前に検出できる</li>
+    <li><span class="term">動的型付け</span><span class="en">(dynamic typing)</span> —
+      変数の型は実行時に、実際に代入された値によって定まる。
+      型の整合性は操作が実行される時点で検査されるため、検出は実行時となる</li>
+  </ul>
+
+  <p>
+    次の擬似コードを考える。3行目は、整数を保持する変数と文字列の加算であり、規約上意味をなさない。
+  </p>
+
+  <pre><code>1. x ← 10
+2. y ← "abc"
+3. z ← x + y</code></pre>
+
+  <p>
+    静的型付けでは、変換の時点で <code>x</code> が整数型、<code>y</code> が文字列型と確定しているため、
+    3行目は変換工程で拒否される。プログラムは実行に至らない。
+    動的型付けでは、3行目に制御が到達して初めて型の不整合が判明する。
+    <strong>3行目に到達しない入力でプログラムを動かした場合、この誤りは表面化しない</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 210" role="img" aria-label="静的型付けと動的型付けで、型検査が行われる時点が時間軸上のどこに位置するかを対比した図。静的型付けでは変換工程の中で検査が行われ実行前に誤りが判明する。動的型付けでは実行中に検査が行われる。">
+      <text x="10" y="18" class="svg-small" style="text-anchor:start">静的型付け</text>
+      <rect x="10" y="28" width="120" height="46" class="svg-cell"/>
+      <text x="70" y="56" class="svg-text">ソース</text>
+      <path d="M 134 51 L 172 51" class="svg-arrow" marker-end="url(#ah1)"/>
+      <rect x="176" y="28" width="150" height="46" class="svg-hl"/>
+      <text x="251" y="50" class="svg-text">変換</text>
+      <text x="251" y="67" class="svg-small">ここで型検査</text>
+      <path d="M 330 51 L 368 51" class="svg-arrow" marker-end="url(#ah2)"/>
+      <rect x="372" y="28" width="120" height="46" class="svg-cell"/>
+      <text x="432" y="56" class="svg-text">実行</text>
+      <text x="176" y="92" class="svg-small">誤りはここで判明 — 実行に至らない</text>
+
+      <line x1="10" y1="110" x2="570" y2="110" class="svg-line"/>
+
+      <text x="10" y="136" class="svg-small" style="text-anchor:start">動的型付け</text>
+      <rect x="10" y="146" width="120" height="46" class="svg-cell"/>
+      <text x="70" y="174" class="svg-text">ソース</text>
+      <path d="M 134 169 L 172 169" class="svg-arrow" marker-end="url(#ah3)"/>
+      <rect x="176" y="146" width="150" height="46" class="svg-cell-plain"/>
+      <text x="251" y="168" class="svg-text">変換</text>
+      <text x="251" y="185" class="svg-small">型検査なし</text>
+      <path d="M 330 169 L 368 169" class="svg-arrow" marker-end="url(#ah4)"/>
+      <rect x="372" y="146" width="120" height="46" class="svg-hl"/>
+      <text x="432" y="168" class="svg-text">実行</text>
+      <text x="432" y="185" class="svg-small">ここで型検査</text>
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-1　型検査が行われる位置は、型が確定する時期によって決まる。
+      静的型付けで実行前に誤りを検出できるのは、変換の時点で全変数の型が定まっており、
+      その場で整合性を確かめられるためである。
+    </figcaption>
+  </figure>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      動的型付けは「型がない」方式ではない。実行時には値が明確な型を持ち、
+      規約に反する操作はその時点で誤りとして扱われる。両者の違いは型の有無ではなく、
+      <strong>型が確定し検査される時期</strong>である。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      「プログラムの実行前に型の誤りを検出できる」という性質について、
+      それを実現する分類と、その性質が成立する理由の組合せとして最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>動的型付け — 実行時に値が型情報を保持しており、操作のたびに型を検査するため</li>
+      <li>静的型付け — 変換の時点で変数の型が確定しており、変換工程で整合性を検査できるため</li>
+      <li>動的型付け — 逐次解釈により1行ずつ検査が進むため、誤りのある行に到達する前に検査が完了するため</li>
+      <li>静的型付け — 変換後の機械語には型の概念が存在せず、型を保持する必要がないため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          実行前の検出は、型が変換時点で確定していることと、
+          その時点で検査を行えることの両方に支えられている。分類と理由の双方が揃って初めて成立する。
+        </p>
+        <p>
+          (A) は分類が誤りである。動的型付けでも型検査は行われるが、
+          それは操作が実行される時点であり、実行前ではない。
+          (C) は分類が誤りである上、理由も成立しない。逐次解釈では未到達の行は検査されないため、
+          「到達する前に完了する」という関係は成り立たない。
+          (D) は分類は正しいが、理由が成立しない。
+          変換後に型情報が残らないことは、変換前に検査できることの根拠にはならない。
+          分類だけで判断すると選んでしまう選択肢である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. パラダイム — 何を中心に記述するか ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>パラダイム — 何を中心に記述するか</h2>
+
+  <p>
+    パラダイムとは、プログラムを何の集まりとして捉えるかという記述の様式である。
+    型付け方式が「値の扱い方」に関する分類であったのに対し、
+    こちらは「処理の書き表し方」に関する分類である。
+  </p>
+
+  <ul>
+    <li><span class="term">命令型</span><span class="en">(imperative)</span> —
+      プログラムを、状態を書き換える手続きの列として記述する。
+      変数という記憶場所を用意し、それを順次更新していくことで目的の状態に到達させる</li>
+    <li><span class="term">関数型</span><span class="en">(functional)</span> —
+      プログラムを、関数の適用と式の評価として記述する。
+      入力に関数を適用した結果が値として得られ、その値にさらに関数を適用していく</li>
+  </ul>
+
+  <h3>同じ処理を両様式で記述する</h3>
+
+  <p>
+    1 から n までの総和を求める処理を考える。命令型では、合計を保持する変数を用意し、
+    繰り返しのたびにその内容を更新する。
+  </p>
+
+  <pre><code>1. 合計 ← 0
+2. i ← 1
+3. i が n 以下の間、4〜5 を繰り返す
+4.   合計 ← 合計 + i
+5.   i ← i + 1
+6. 合計 を結果とする</code></pre>
+
+  <p>
+    ここでの中心は <code>合計</code> と <code>i</code> という二つの記憶場所であり、
+    処理はその内容を段階的に書き換えていく操作の列として表されている。
+  </p>
+
+  <p>
+    関数型では、記憶場所の更新ではなく、関数の定義と適用によって記述する。
+  </p>
+
+  <pre><code>1. 総和(n) を次のように定める
+2.   n が 0 ならば 0
+3.   そうでなければ n + 総和(n - 1)
+4. 総和(n) の評価結果を結果とする</code></pre>
+
+  <p>
+    こちらには更新される変数が現れない。<code>総和(n)</code> は
+    <code>n + 総和(n - 1)</code> という式と等価であると定義されており、
+    処理は<strong>式を値へと簡約していく評価の過程</strong>として表されている。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      パラダイムと型付け方式は<strong>独立した分類軸</strong>である。
+      関数型だから静的型付けである、命令型だから動的型付けである、といった対応関係は存在しない。
+      静的型付けの命令型言語も、動的型付けの関数型言語も、四つの組合せすべてが実在する。
+      一方の軸から他方の軸を推測してはならない。
+    </p>
+  </div>
+
+  <p>
+    多くの実用的な言語は、いずれかの様式を専一に採るわけではない。
+    命令型を基礎としながら関数型の記述手段を備える言語は珍しくない。
+    パラダイムは言語を排他的に区分するラベルではなく、
+    <strong>その言語がどの記述様式を中心に据えているかを表す観点</strong>として理解するのが適切である。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      ある言語 Y について「関数型の記述様式を中心に据えている」ことが分かっている。
+      この事実のみから確実に導ける結論はどれか。
+    </p>
+    <ol class="choices">
+      <li>言語 Y は静的型付けであり、実行前に型の誤りを検出できる</li>
+      <li>言語 Y は、処理を関数の適用と式の評価として記述することを中心に据えている</li>
+      <li>言語 Y はインタプリタ方式で実行され、事前の変換工程を必要としない</li>
+      <li>言語 Y は変数を一切持たず、記憶場所という概念が存在しない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          パラダイムが定めるのは記述の様式のみである。与えられた事実から導けるのは、
+          その様式に関する記述に限られる。
+        </p>
+        <p>
+          (A) はパラダイムから型付け方式を推測しており、二つの軸が独立であることに反する。
+          関数型で動的型付けの言語は実在する。
+          (C) はパラダイムから処理系の方式を推測しており、同じく誤りである。
+          パラダイムと変換の時期の間に対応関係はない。
+          (D) は「状態の更新を中心に据えない」ことを「変数が存在しない」と読み替えている点が誤りである。
+          中心に据えるかどうかと、その機能を持つかどうかは別の事柄である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 処理系 — 変換をいつ行うか ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>処理系 — 変換をいつ行うか</h2>
+
+  <p>
+    CPU が直接実行できるのは<span class="term">機械語</span><span class="en">(machine code)</span>のみである。
+    人間が記述したソースコードは、そのままでは実行できない。
+    したがって<strong>いかなる言語であっても、実行に先立って何らかの変換が必要である</strong>。
+    ソースコードを受け取り、この変換と実行を担うソフトウェアが処理系である。
+  </p>
+
+  <p>
+    処理系の方式の違いは、変換が不要か必要かではない。<strong>変換をいつ行うか</strong>である。
+  </p>
+
+  <h3>三つの方式</h3>
+
+  <ul>
+    <li><span class="term">コンパイラ</span><span class="en">(compiler)</span> —
+      実行に先立ってソースコード全体を機械語へ変換し、実行可能ファイルを生成する。
+      実行時にはそのファイルを CPU が直接実行する</li>
+    <li><span class="term">インタプリタ</span><span class="en">(interpreter)</span> —
+      実行可能ファイルを生成せず、ソースコードを解釈しながら対応する処理を順次実行する</li>
+    <li><span class="term">中間表現</span><span class="en">(intermediate representation)</span>を経由する方式 —
+      ソースコードを機械語ではなく処理系独自の中間的な形式へ変換し、
+      それを<span class="term">仮想マシン</span><span class="en">(virtual machine)</span>が解釈・実行する</li>
+  </ul>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      インタプリタは、ソースコードを解析せずに実行するのではない。
+      文字の並びを意味のある単位へ分割し、その構造を認識する工程は、インタプリタでも必ず行われる。
+      <strong>解析工程の有無ではなく、機械語ファイルを生成するか否かが両者を分ける</strong>。
+    </p>
+  </div>
+
+  <h3>中間表現を経由する構成</h3>
+
+  <p>
+    中間表現を用いる方式は、ソースコードから実行までを二段階に分ける。
+    第一段階でソースコードを中間表現へ変換し、第二段階で仮想マシンがそれを解釈・実行する。
+  </p>
+
+  <p>
+    この構成の要点は、<strong>機種や環境に依存する部分を仮想マシンに閉じ込められる</strong>ことである。
+    中間表現は特定の CPU の機械語ではないため、環境が変わっても同じものを配布できる。
+    環境ごとに用意するのは、その中間表現を解釈できる仮想マシンだけでよい。
+  </p>
+
+  <p>
+    この二段階構成は、変換を行う時期によってさらに二つの使われ方をする。
+    第一段階を利用者が明示的に実行してから配布・実行する構成もあれば、
+    実行のたびに第一段階が自動的に行われ、利用者からは逐次実行しているように見える構成もある。
+    後者の場合、中間表現への変換は行われているが、それが表面に現れない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="三つの処理系方式の変換経路を対比した図。コンパイラ方式はソースを事前に機械語へ変換してCPUが実行する。インタプリタ方式はソースを解析しながら順次実行する。中間表現方式はソースを中間表現へ変換し仮想マシンが解釈実行する。">
+      <text x="10" y="18" class="svg-small" style="text-anchor:start">コンパイラ方式</text>
+      <rect x="10" y="26" width="104" height="42" class="svg-cell"/>
+      <text x="62" y="52" class="svg-text">ソース</text>
+      <path d="M 118 47 L 152 47" class="svg-arrow" marker-end="url(#ah5)"/>
+      <text x="135" y="38" class="svg-small">事前</text>
+      <rect x="156" y="26" width="104" height="42" class="svg-hl"/>
+      <text x="208" y="52" class="svg-text">機械語</text>
+      <path d="M 264 47 L 298 47" class="svg-arrow" marker-end="url(#ah6)"/>
+      <rect x="302" y="26" width="104" height="42" class="svg-cell"/>
+      <text x="354" y="52" class="svg-text">CPU が実行</text>
+
+      <line x1="10" y1="86" x2="570" y2="86" class="svg-line"/>
+
+      <text x="10" y="110" class="svg-small" style="text-anchor:start">インタプリタ方式</text>
+      <rect x="10" y="118" width="104" height="42" class="svg-cell"/>
+      <text x="62" y="144" class="svg-text">ソース</text>
+      <path d="M 118 139 L 152 139" class="svg-arrow" marker-end="url(#ah7)"/>
+      <rect x="156" y="118" width="150" height="42" class="svg-hl"/>
+      <text x="231" y="138" class="svg-text">解釈しながら実行</text>
+      <text x="231" y="154" class="svg-small">機械語ファイルを残さない</text>
+
+      <line x1="10" y1="178" x2="570" y2="178" class="svg-line"/>
+
+      <text x="10" y="202" class="svg-small" style="text-anchor:start">中間表現を経由する方式</text>
+      <rect x="10" y="210" width="94" height="42" class="svg-cell"/>
+      <text x="57" y="236" class="svg-text">ソース</text>
+      <path d="M 108 231 L 140 231" class="svg-arrow" marker-end="url(#ah8)"/>
+      <rect x="144" y="210" width="116" height="42" class="svg-hl"/>
+      <text x="202" y="236" class="svg-text">中間表現</text>
+      <path d="M 264 231 L 296 231" class="svg-arrow" marker-end="url(#ah9)"/>
+      <rect x="300" y="210" width="150" height="42" class="svg-cell"/>
+      <text x="375" y="230" class="svg-text">仮想マシンが</text>
+      <text x="375" y="246" class="svg-text">解釈・実行</text>
+      <defs>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah9" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　いずれの方式でも変換は行われており、違いはその時期と生成物にある。
+      機械語を事前に生成するか、生成せず解釈するか、中間表現を挟んで仮想マシンに委ねるかが分岐点である。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      中間表現を経由する方式で、ソースコードが実行されるまでの経路として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>ソース → 機械語 → 仮想マシンが機械語を解釈・実行</li>
+      <li>ソース → 中間表現 → 仮想マシンが中間表現を解釈・実行</li>
+      <li>ソース → 仮想マシンがソースを直接解釈 → 中間表現を出力</li>
+      <li>ソース → 中間表現 → CPU が中間表現を直接実行</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          ソースコードは特定の CPU に依存しない中間表現へ変換され、
+          その中間表現を解釈する仮想マシンが実行を担う。
+          環境依存を仮想マシンに閉じ込められるのは、この経路をとるためである。
+        </p>
+        <p>
+          (A) は変換先が誤りである。機械語へ変換したのであれば CPU が直接実行できるため、
+          それを仮想マシンが解釈する構成には意味がない。
+          (C) は中間表現を実行の結果として出力しており、変換と実行の順序が逆である。
+          中間表現は実行の入力であって出力ではない。
+          (D) は中間表現を CPU が直接実行するとしている点が誤りである。
+          中間表現は機械語ではないため CPU は解釈できず、仮想マシンを介する必要がある。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 性質の対比 — どの軸がどの帰結を生むか ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>性質の対比 — どの軸がどの帰結を生むか</h2>
+
+  <p>
+    ここまでに三つの観点を扱った。実務上重要なのは、
+    <strong>観測される性質がどの観点に由来するかを正しく帰属させる</strong>ことである。
+    帰属を誤ると、言語の選定や不具合の原因究明で誤った判断に至る。
+  </p>
+
+  <div class="table-block">
+  <p class="table-caption">
+    表 5-1　観測される性質と、それが由来する観点の対応。
+    速度・起動の待ち時間・環境間の可搬性はいずれも処理系の方式に帰属し、
+    型付け方式やパラダイムに帰属させるのは誤りである。
+  </p>
+  <div class="table-scroll">
+  <table>
+    <thead>
+      <tr><th>観測される性質</th><th>由来する観点</th><th>関係の内容</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>型の誤りが実行前に判明する</td>
+        <td>型付け方式</td>
+        <td>変換時に型が確定していれば、その時点で検査できる</td>
+      </tr>
+      <tr>
+        <td>実行までに待ち時間がない</td>
+        <td>処理系の方式</td>
+        <td>事前の変換工程を持たない方式では、準備に要する時間が生じない</td>
+      </tr>
+      <tr>
+        <td>実行速度が速い</td>
+        <td>処理系の方式</td>
+        <td>事前に機械語を得ていれば、実行時に解釈の処理が加わらない</td>
+      </tr>
+      <tr>
+        <td>異なる環境で同じものを実行できる</td>
+        <td>処理系の方式</td>
+        <td>中間表現は特定の CPU に依存しないため、そのまま配布できる</td>
+      </tr>
+      <tr>
+        <td>状態の更新を軸に処理を組み立てる</td>
+        <td>パラダイム</td>
+        <td>記述の様式であり、速度や検査時期とは独立である</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+
+  <h3>速度差の帰属</h3>
+
+  <p>
+    同じ処理を記述しても、言語によって実行速度に差が生じることがある。
+    この差の主たる要因は<strong>変換のタイミング</strong>である。
+    事前に機械語へ変換してある場合、実行時に行うのは CPU による機械語の実行のみである。
+    一方、実行時に解釈を伴う方式では、各命令について
+    「これは何をする命令か」を判定し、対応する処理を呼び出す工程が実行中に加わる。
+    この工程の分が処理時間として上乗せされる。
+  </p>
+
+  <p>
+    速度差をパラダイムに帰属させたり、型付け方式そのものに帰属させたりするのは誤りである。
+    型付け方式は、間接的には影響しうる。実行時に値の型を判定する必要がなければ、
+    その判定処理を省けるためである。しかしこれは変換の時期という要因を介した影響であり、
+    <strong>型付け方式が単独で速度を決めるわけではない</strong>。
+  </p>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      ここで述べた関係は一般的な傾向であり、絶対的なものではない。
+      実行時に得られる情報を利用して、実行中に機械語を生成する方式も存在する。
+      速度は処理系の実装の質にも大きく左右されるため、
+      方式の分類のみから特定の処理系の速度を断定することはできない。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      同じ処理を記述した二つのプログラムについて、一方が他方より実行速度が速いという現象が観測された。
+      速い方は事前に機械語へ変換する方式、遅い方は実行時に解釈を伴う方式である。
+      この速度差の主たる理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>速い方が関数型パラダイムを採っており、関数型は命令型より高速に実行できるため</li>
+      <li>速い方は実行時に機械語を実行するのみであるのに対し、遅い方は実行中に各命令を解釈する処理が加わるため</li>
+      <li>速い方が動的型付けであり、実行時に型を判定できる分だけ処理を省略できるため</li>
+      <li>遅い方は変換を一切行わずソースコードのまま実行するため、変換の手間が実行時間に上乗せされるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          速度差は変換のタイミングに帰属する。事前変換では実行時の処理が機械語の実行に限られるのに対し、
+          実行時解釈では命令の判定と処理の呼び出しが実行中に加わる。
+        </p>
+        <p>
+          (A) はパラダイムに帰属させている点が誤りである。パラダイムは記述の様式であり、
+          速度を直接決める要因ではない。
+          (C) は型付け方式の記述が逆である。実行時の型判定を省けるのは型が事前に確定している場合であり、
+          動的型付けではむしろ判定処理が必要になる。
+          (D) は「変換を一切行わない」という前提が誤りである。
+          解釈を伴う方式でもソースコードの解析は行われており、
+          変換が皆無なのではなく機械語ファイルを生成しないだけである。
+          結論は正しく見えても前提が成立しない選択肢である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 総括 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>総括</h2>
+
+  <p>
+    本講では、プログラミング言語を位置づけるための三つの観点を扱った。
+    いずれも<strong>「いつ」「何を」という問いに答える形で整理できる</strong>。
+  </p>
+
+  <ul>
+    <li><strong>型付け方式</strong> — 変数の型がいつ確定するか。
+      変換時に確定すれば静的型付けであり、実行前に型の誤りを検出できる。
+      実行時に定まれば動的型付けであり、検査は実行時となる</li>
+    <li><strong>パラダイム</strong> — プログラムを何の集まりとして記述するか。
+      状態を書き換える手続きの列として記述するのが命令型、
+      関数の適用と式の評価として記述するのが関数型である</li>
+    <li><strong>処理系</strong> — 変換をいつ行うか。
+      事前に機械語を生成するのがコンパイラ、生成せず解釈しながら実行するのがインタプリタ、
+      中間表現を挟んで仮想マシンに委ねる構成もある</li>
+  </ul>
+
+  <p>
+    三つの観点は<strong>互いに独立である</strong>。一つの軸における位置から、
+    他の軸における位置を推測することはできない。ある言語を理解するとは、
+    この三軸それぞれについて位置を確かめることである。
+  </p>
+
+  <p>
+    また、観測される性質を正しい観点に帰属させることが重要である。
+    実行前の誤り検出は型付け方式に、実行速度と移植性は処理系の方式に由来する。
+    いずれも<span class="term">変換</span>という工程を軸として理解できる。
+    この変換の内部で何が行われているのかが、コンパイラという主題の中心をなす。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      ある言語 Z について、次の三つの事実が観測された。
+    </p>
+    <pre><code>1. 変数に型を宣言せずに記述でき、同じ変数に数値を入れた後で
+   文字列を代入しても、その時点では誤りとならない
+2. ソースコードを保存した直後に実行を指示すると、
+   別途ビルド作業をせずに実行が始まる
+3. 処理は変数の内容を順次書き換える手続きの列として記述される</code></pre>
+    <p class="q-body">
+      言語 Z の位置づけの組合せとして最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>静的型付け ／ 命令型 ／ 事前に機械語へ変換する方式</li>
+      <li>動的型付け ／ 関数型 ／ 実行時に解釈を伴う方式</li>
+      <li>動的型付け ／ 命令型 ／ 実行時に解釈を伴う方式</li>
+      <li>静的型付け ／ 関数型 ／ 中間表現を経由する方式</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          三つの事実はそれぞれ別の軸に対応しており、独立に判断する必要がある。
+          事実1は型が実行時に定まることを示すため動的型付け、
+          事実2は事前の変換工程を要しないことを示すため実行時に解釈を伴う方式、
+          事実3は状態の更新を中心に据えていることを示すため命令型である。
+        </p>
+        <p>
+          (A) は事実1と事実2の双方に反する。型を宣言せず誤りにならないことは静的型付けと両立せず、
+          ビルド作業を要しないことは事前変換方式と両立しない。
+          (B) は事実3の読み取りを誤っている。変数の内容を順次書き換える記述は命令型の特徴であり、
+          関数型の特徴ではない。
+          (D) は事実1と事実3の双方に反する。
+          一つの事実だけを見て他の軸を推測すると、こうした組合せを選んでしまう。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／プログラミング言語の分類と処理系<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
