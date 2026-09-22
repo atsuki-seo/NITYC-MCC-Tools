@@ -172,11 +172,13 @@ Step 1.5 で作成済みと確認された小テストのうち、実施週が�
 - [ ] 予告・次回言及を含んでいないか
 - [ ] 特定言語の構文に依存していないか（概念図・擬似コード中心か）
 - [ ] 敬体が混入していないか
+- [ ] 数だけで対象を指した箇所が無いか。説明した概念に用語を与えているか（`writing-style-guide.md` § 3）
+- [ ] 利点・欠点を、それが効く条件とともに示しているか（`writing-style-guide.md` § 5.2）
 - [ ] 全ての `.quiz` に対応する `details.answer` があるか
-- [ ] 全ての図版・表にキャプションがあるか（`writing-style-guide.md` § 7）
+- [ ] 全ての図版・表にキャプションがあるか（`writing-style-guide.md` § 8）
 - [ ] SVG内に色値の直書きが無いか
 - [ ] 全ての SVG が四辺とも viewBox に収まるか（`figure-guide.md` § 6.1）
-- [ ] SVG の要素同士に重なりが無いか（`figure-guide.md` § 6.2）
+- [ ] SVG の要素同士に重なりが無いか。辺を共有するセルの描画順を含む（`figure-guide.md` § 6.2）
 - [ ] SVG の描画結果を HTTP 経由・両モードで目視確認したか（`figure-guide.md` § 6.3）
 - [ ] 目次の `href` と `section` の `id` が対応しているか
 - [ ] CSSへの `<link>` パスが `assets/material.css` になっているか
