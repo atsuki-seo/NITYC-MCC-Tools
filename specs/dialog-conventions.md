@@ -9,10 +9,6 @@
 - `class-syllabus`
 - `class-syllabus-parse`
 - `class-test`
-- `class-report`
-- `class-report-check`
-- `class-load`
-- `class-slides`
 
 ---
 
