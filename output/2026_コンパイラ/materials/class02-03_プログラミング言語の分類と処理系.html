@@ -562,6 +562,60 @@
     この工程の分が処理時間として上乗せされる。
   </p>
 
+  <figure>
+    <svg viewBox="0 0 580 248" role="img" aria-label="事前に機械語へ変換する方式と実行時に解釈を伴う方式で、実行時に行われる処理の内訳を対比した図。事前変換の方式では各命令について機械語の実行のみが行われる。実行時に解釈を伴う方式では、各命令について解釈の工程が加わり、命令の個数だけ繰り返し上乗せされる。">
+      <text x="10" y="18" class="svg-small" style="text-anchor:start">事前に機械語へ変換する方式 — 実行時の処理</text>
+
+      <rect x="10"  y="30" width="110" height="40" class="svg-cell"/>
+      <text x="65"  y="55" class="svg-small">機械語の実行</text>
+      <rect x="130" y="30" width="110" height="40" class="svg-cell"/>
+      <text x="185" y="55" class="svg-small">機械語の実行</text>
+      <rect x="250" y="30" width="110" height="40" class="svg-cell"/>
+      <text x="305" y="55" class="svg-small">機械語の実行</text>
+
+      <text x="375" y="55" class="svg-small" style="text-anchor:start">命令1つにつき1工程</text>
+
+      <path d="M 10 88 L 360 88" class="svg-line"/>
+
+      <text x="10" y="114" class="svg-small" style="text-anchor:start">実行時に解釈を伴う方式 — 実行時の処理</text>
+
+      <rect x="10"  y="126" width="110" height="40" class="svg-hl"/>
+      <text x="65"  y="151" class="svg-small">解釈</text>
+      <rect x="10"  y="166" width="110" height="40" class="svg-cell"/>
+      <text x="65"  y="191" class="svg-small">処理の呼び出し</text>
+
+      <rect x="130" y="126" width="110" height="40" class="svg-hl"/>
+      <text x="185" y="151" class="svg-small">解釈</text>
+      <rect x="130" y="166" width="110" height="40" class="svg-cell"/>
+      <text x="185" y="191" class="svg-small">処理の呼び出し</text>
+
+      <rect x="250" y="126" width="110" height="40" class="svg-hl"/>
+      <text x="305" y="151" class="svg-small">解釈</text>
+      <rect x="250" y="166" width="110" height="40" class="svg-cell"/>
+      <text x="305" y="191" class="svg-small">処理の呼び出し</text>
+
+      <text x="375" y="145" class="svg-small" style="text-anchor:start">命令1つにつき</text>
+      <text x="375" y="163" class="svg-small" style="text-anchor:start">解釈の工程が加わる</text>
+
+      <path d="M 10 228 L 360 228" class="svg-arrow" marker-end="url(#ah10)"/>
+      <text x="10" y="222" class="svg-small" style="text-anchor:start">命令1</text>
+      <text x="130" y="222" class="svg-small" style="text-anchor:start">命令2</text>
+      <text x="250" y="222" class="svg-small" style="text-anchor:start">命令3</text>
+      <text x="375" y="233" class="svg-small" style="text-anchor:start">命令の並び</text>
+
+      <defs>
+        <marker id="ah10" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　実行時に行われる処理の内訳。解釈の工程は命令ごとに繰り返されるため、
+      命令の個数に比例して上乗せされる。速度差が生じるのは、
+      この工程が実行前に済んでいるか、実行中に行われるかの違いによる。
+    </figcaption>
+  </figure>
+
   <p>
     速度差をパラダイムに帰属させたり、型付け方式そのものに帰属させたりするのは誤りである。
     型付け方式は、間接的には影響しうる。実行時に値の型を判定する必要がなければ、
