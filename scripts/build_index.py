@@ -10,6 +10,9 @@ Metadata is recovered from each page's existing markup (`<title>`, the
 `.eyebrow` affiliation line, `<h1>`) rather than from a separate manifest, so
 pages written by hand are listed on equal terms with generated ones.
 
+The lecture pages are also edited in place to carry the same ancestor trail
+the index pages show.
+
 Usage:
     build_index.py SITE_DIR
 
@@ -38,6 +41,8 @@ EYEBROW_RE = re.compile(
 TAG_RE = re.compile(r"<[^>]+>")
 
 SCHOOL = "弓削商船高等専門学校"
+
+CRUMBS_ANCHOR = '<header class="doc-head">'
 
 
 def text_of(markup: str) -> str:
@@ -440,6 +445,39 @@ def write_index_css(site_dir: Path, years: list[Year]) -> None:
         target.write_text(current.rstrip() + "\n" + INDEX_CSS, encoding="utf-8")
 
 
+def add_material_crumbs(site_dir: Path, years: list[Year]) -> int:
+    """Insert the ancestor trail into each lecture page of the staged site.
+
+    The trail is added here rather than written by `class-material` because
+    its `../` targets only exist once the year and subject become separate
+    directories: in the repository a page sits directly under `materials/`,
+    so the same links would lead nowhere when the file is opened locally.
+    """
+    added = 0
+    for year in years:
+        for subject in year.subjects:
+            trail = crumbs(
+                [
+                    ("授業資料", "../../"),
+                    (f"{year.dir_name}年度", "../"),
+                    (subject.name, "./"),
+                ]
+            )
+            for material in subject.materials:
+                target = (
+                    site_dir / year.dir_name / subject.dir_name / material.href
+                )
+                markup = target.read_text(encoding="utf-8")
+                if CRUMBS_ANCHOR not in markup or "idx-crumbs" in markup:
+                    continue
+                target.write_text(
+                    markup.replace(CRUMBS_ANCHOR, f"{trail}\n\n{CRUMBS_ANCHOR}", 1),
+                    encoding="utf-8",
+                )
+                added += 1
+    return added
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print(f"usage: {Path(argv[0]).name} SITE_DIR", file=sys.stderr)
@@ -454,6 +492,8 @@ def main(argv: list[str]) -> int:
 
     place_shared_assets(site_dir, years)
     write_index_css(site_dir, years)
+
+    print(f"added crumbs to {add_material_crumbs(site_dir, years)} pages")
 
     (site_dir / "index.html").write_text(root_index(years), encoding="utf-8")
     print(f"wrote: index.html ({len(years)} years)")
