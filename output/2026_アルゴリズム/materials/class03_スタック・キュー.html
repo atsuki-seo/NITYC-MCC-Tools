@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スタック・キュー | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>スタック・キュー</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">取り出す順序を定めるという発想</a></li>
+    <li><a href="#s2">スタック — 後入れ先出し</a></li>
+    <li><a href="#s3">キュー — 先入れ先出し</a></li>
+    <li><a href="#s4">配列による実装</a></li>
+    <li><a href="#s5">リングバッファ — 領域を使い切る</a></li>
+    <li><a href="#s6">操作の手間と使い分け</a></li>
+    <li><a href="#s7">あふれと空の扱い</a></li>
+    <li><a href="#s8">総括</a></li>
+    <li><a href="#s9">確認問題</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 取り出す順序を定めるという発想 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>取り出す順序を定めるという発想</h2>
+
+  <p>
+    配列は、保持した要素のうち任意の一つを添字で指定して取り出せる構造である。
+    この自由度は強力であるが、裏を返せば、<strong>どの要素を取り出すかを
+    利用する側が毎回決めなければならない</strong>ということでもある。
+  </p>
+
+  <p>
+    ところが、実際の処理には「取り出す順序があらかじめ決まっている」ものが
+    少なくない。二つの状況を対比する。
+  </p>
+
+  <ul>
+    <li>
+      文書編集における取り消し操作 — 直前に行った操作から順に元へ戻す。
+      三つ前の操作だけを取り消すことはできず、必ず<strong>新しいものから</strong>処理する
+    </li>
+    <li>
+      印刷の待ち行列 — 先に依頼された文書から順に印刷する。
+      後から依頼した文書が先に出力されては、依頼した側の期待に反する。
+      必ず<strong>古いものから</strong>処理する
+    </li>
+  </ul>
+
+  <p>
+    両者はいずれも「溜めておいて、後で一つずつ処理する」という同じ形をしているが、
+    取り出す順序は正反対である。この順序の規約そのものを構造に埋め込んでしまえば、
+    利用する側は取り出す位置を指定する必要がなくなり、「次を取り出す」と
+    命じるだけで済む。この考え方に基づく代表的な構造が
+    <span class="term">スタック</span><span class="en">(stack)</span> と
+    <span class="term">キュー</span><span class="en">(queue)</span> である。
+  </p>
+
+  <p>
+    本講では、この二つの構造について、順序の規約・基本操作・配列を用いた実装・
+    利用に際しての境界条件を扱う。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>スタックとキューが定める取り出し順序の規約を、区別して説明できる</li>
+      <li>push／pop、enqueue／dequeue の各操作が構造をどう変化させるかを追跡できる</li>
+      <li>両構造を配列上に実装する際の位置管理と、境界条件の検査を記述できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      ある処理では、受け付けた依頼を溜めておき、後から一つずつ処理する。
+      このとき「スタックとして扱うか、キューとして扱うか」という選択が
+      決定づける事柄として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>溜めておける依頼の最大件数</li>
+      <li>依頼を処理する順序</li>
+      <li>一件の依頼を処理するのに要する時間</li>
+      <li>依頼を溜めるために必要な記憶領域の量</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          スタックとキューを分かつのは、溜めた要素のうち<strong>どれを次に取り出すか</strong>
+          という規約であり、それ以外の性質ではない。
+        </p>
+        <p>
+          (A) の最大件数は、どちらの構造を選ぶかではなく、確保した領域の大きさによって定まる。
+          (C) の処理時間は個々の依頼の内容に依存するものであり、溜め方とは独立である。
+          (D) の記憶領域は保持する要素数と一要素あたりの大きさで決まり、
+          両構造の間に本質的な差はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. スタック — 後入れ先出し ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>スタック — 後入れ先出し</h2>
+
+  <p>
+    <span class="term">スタック</span>は、<strong>最後に入れた要素を最初に取り出す</strong>
+    構造である。この規約を
+    <span class="term">後入れ先出し</span><span class="en">(LIFO: last in, first out)</span>
+    と呼ぶ。
+  </p>
+
+  <h3>二つの基本操作</h3>
+
+  <ul>
+    <li><span class="term">push</span> — 要素を一つ積む</li>
+    <li><span class="term">pop</span> — 最後に積んだ要素を一つ取り出し、構造から取り除く</li>
+  </ul>
+
+  <p>
+    重要なのは、<strong>出入口が一箇所しかない</strong>という制約である。
+    積むのも取り出すのも同じ端であり、途中や底にある要素へ直接触れる手段は
+    用意されていない。底にある要素を得るには、その上に積まれた要素を
+    すべて取り出すほかない。
+  </p>
+
+  <p>
+    要素を出し入れする側の端を
+    <span class="term">頂上</span><span class="en">(top)</span> と呼ぶ。
+    実装では、この頂上がどこであるかを常に把握しておく必要がある。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 272" role="img" aria-label="空のスタックに A、B、C の順に push し、その後 pop すると最後に積んだ C が取り出されることを示す状態遷移の図">
+      <!-- 状態1: 空 -->
+      <text x="60" y="24" class="svg-small">空の状態</text>
+      <rect x="20" y="36" width="80" height="34" class="svg-cell-plain"/>
+      <rect x="20" y="70" width="80" height="34" class="svg-cell-plain"/>
+      <rect x="20" y="104" width="80" height="34" class="svg-cell-plain"/>
+      <text x="60" y="160" class="svg-small">要素数 0</text>
+
+      <path d="M 112 87 L 152 87" class="svg-arrow" marker-end="url(#ah1)"/>
+      <text x="132" y="76" class="svg-small">push A</text>
+      <text x="132" y="104" class="svg-small">push B</text>
+
+      <!-- 状態2: A,B -->
+      <text x="205" y="24" class="svg-small">B まで積んだ状態</text>
+      <rect x="165" y="36" width="80" height="34" class="svg-cell-plain"/>
+      <rect x="165" y="70" width="80" height="34" class="svg-cell"/>
+      <text x="205" y="92" class="svg-text">B</text>
+      <rect x="165" y="104" width="80" height="34" class="svg-cell"/>
+      <text x="205" y="126" class="svg-text">A</text>
+      <text x="205" y="160" class="svg-small">頂上 = B</text>
+
+      <path d="M 257 87 L 297 87" class="svg-arrow" marker-end="url(#ah2)"/>
+      <text x="277" y="76" class="svg-small">push C</text>
+
+      <!-- 状態3: A,B,C -->
+      <text x="350" y="24" class="svg-small">C を積んだ状態</text>
+      <rect x="310" y="36" width="80" height="34" class="svg-hl"/>
+      <text x="350" y="58" class="svg-text">C</text>
+      <rect x="310" y="70" width="80" height="34" class="svg-cell"/>
+      <text x="350" y="92" class="svg-text">B</text>
+      <rect x="310" y="104" width="80" height="34" class="svg-cell"/>
+      <text x="350" y="126" class="svg-text">A</text>
+      <text x="350" y="160" class="svg-small">頂上 = C</text>
+
+      <path d="M 402 87 L 442 87" class="svg-arrow" marker-end="url(#ah3)"/>
+      <text x="422" y="76" class="svg-small">pop</text>
+
+      <!-- 状態4: pop後 -->
+      <text x="495" y="24" class="svg-small">pop 後</text>
+      <rect x="455" y="36" width="80" height="34" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="495" y="58" class="svg-small">C を取得</text>
+      <rect x="455" y="70" width="80" height="34" class="svg-hl"/>
+      <text x="495" y="92" class="svg-text">B</text>
+      <rect x="455" y="104" width="80" height="34" class="svg-cell"/>
+      <text x="495" y="126" class="svg-text">A</text>
+      <text x="495" y="160" class="svg-small">頂上 = B</text>
+
+      <!-- 説明 -->
+      <path d="M 20 200 L 560 200" class="svg-line"/>
+      <text x="290" y="228" class="svg-small">出入口は上端の一箇所のみ。底の A に触れるには、その上の B・C を先に取り出す必要がある</text>
+      <text x="290" y="256" class="svg-small">最後に積んだ C が最初に取り出される — これが後入れ先出しである</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-1　スタックの状態遷移。積むのも取り出すのも上端に限られるため、
+      要素は積んだ順序と逆に取り出される。底の要素へ直接到達する手段が
+      存在しないことが、この構造の制約であり、同時に順序を保証する根拠でもある。
+    </figcaption>
+  </figure>
+
+  <h3>頂上の管理</h3>
+
+  <p>
+    頂上を表す位置を変数で保持する場合、その値が何を指すかには二通りの流儀がある。
+  </p>
+
+  <ul>
+    <li><strong>最後に積んだ要素の位置</strong>を指す方式 — 空の状態を「要素が存在しない」ことを表す値で示し、push では先に位置を一つ進めてから書き込む</li>
+    <li><strong>次に積むべき位置</strong>を指す方式 — 空の状態では先頭位置を指し、push では書き込んでから位置を一つ進める</li>
+  </ul>
+
+  <p>
+    いずれの方式でも動作するが、<strong>push と pop で解釈を取り違えると、
+    要素の書き潰しや読み飛ばしが生じる</strong>。実装の際は、どちらの流儀を
+    採るかを先に決め、両操作で一貫させることを要する。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      pop は「頂上の要素を読む」操作と「頂上の位置を一つ戻す」操作の二つからなる。
+      位置を戻すのを忘れると、同じ要素を何度も取り出し続けることになる。
+      一方、読む前に位置を戻すと、一つ下の要素を取り出してしまう。
+      順序は方式に応じて定まるため、機械的に暗記せず、
+      頂上が何を指しているかから導く必要がある。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      空のスタックに対して、次の操作を上から順に実行した。
+      すべての操作を終えた時点で、スタックに残っている要素を
+      <strong>底から頂上へ向かう順</strong>に並べたものはどれか。
+    </p>
+    <pre><code>1. push 5
+2. push 7
+3. pop
+4. push 2
+5. push 9
+6. pop</code></pre>
+    <ol class="choices">
+      <li>5、2</li>
+      <li>5、7</li>
+      <li>2、5</li>
+      <li>5、2、9</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          各操作後の内容を底から順に追うと、
+          5 → 5, 7 → 5（7 を取り出す）→ 5, 2 → 5, 2, 9 → 5, 2（9 を取り出す）となる。
+          残るのは底から 5、2 である。
+        </p>
+        <p>
+          (B) は手順 3 の pop で取り除かれるのが 7 ではなく 5 であると誤ったもので、
+          取り出す端を底と取り違えている。
+          (C) は残る要素は正しいが並び順が逆であり、後から積んだ 2 が
+          底にあると解釈している。
+          (D) は手順 6 の pop を反映し忘れたもので、
+          操作の数と状態変化の対応が取れていない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. キュー — 先入れ先出し ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>キュー — 先入れ先出し</h2>
+
+  <p>
+    <span class="term">キュー</span>は、<strong>最初に入れた要素を最初に取り出す</strong>
+    構造である。この規約を
+    <span class="term">先入れ先出し</span><span class="en">(FIFO: first in, first out)</span>
+    と呼ぶ。窓口に並ぶ待ち行列がそのまま比喩になる。
+  </p>
+
+  <h3>二つの基本操作</h3>
+
+  <ul>
+    <li><span class="term">enqueue</span> — 要素を一つ、末尾に加える</li>
+    <li><span class="term">dequeue</span> — 先頭の要素を一つ取り出し、構造から取り除く</li>
+  </ul>
+
+  <p>
+    スタックとの決定的な違いは、<strong>出入口が両端に分かれている</strong>ことである。
+    加えるのは末尾、取り出すのは先頭であり、二つの端は別の場所にある。
+    したがって実装では、<strong>先頭と末尾の二つの位置を別々に管理する</strong>必要が生じる。
+    スタックが頂上一つで済んだのに対し、管理すべき情報が一つ増える。
+  </p>
+
+  <figure>
+    <svg viewBox="0 -6 510 266" role="img" aria-label="キューに A、B、C を enqueue した後 dequeue すると、最初に入れた A が取り出され、先頭位置が B へ移ることを示す図">
+      <!-- 状態1 -->
+      <text x="169" y="16" class="svg-small">A・B・C を順に enqueue した状態</text>
+
+      <text x="103" y="34" class="svg-small">先頭</text>
+      <text x="235" y="34" class="svg-small">末尾</text>
+
+      <rect x="70" y="42" width="66" height="42" class="svg-cell"/>
+      <text x="103" y="69" class="svg-text">A</text>
+      <rect x="136" y="42" width="66" height="42" class="svg-cell"/>
+      <text x="169" y="69" class="svg-text">B</text>
+      <rect x="202" y="42" width="66" height="42" class="svg-cell"/>
+      <text x="235" y="69" class="svg-text">C</text>
+
+      <path d="M 340 63 L 300 63" class="svg-arrow" marker-end="url(#ah4)"/>
+      <text x="390" y="59" class="svg-small">enqueue は</text>
+      <text x="390" y="76" class="svg-small">末尾から加わる</text>
+
+      <path d="M 60 63 L 20 63" class="svg-arrow" marker-end="url(#ah5)"/>
+
+      <!-- 遷移 -->
+      <path d="M 103 96 L 103 132" class="svg-arrow" marker-end="url(#ah6)"/>
+      <text x="252" y="118" class="svg-small">dequeue（先頭の A を取り出す）</text>
+
+      <!-- 状態2 -->
+      <text x="169" y="152" class="svg-small">dequeue 後の状態</text>
+
+      <text x="169" y="170" class="svg-small">先頭</text>
+      <text x="235" y="170" class="svg-small">末尾</text>
+
+      <rect x="70" y="176" width="66" height="42" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="103" y="203" class="svg-small">A を取得</text>
+      <rect x="136" y="176" width="66" height="42" class="svg-hl"/>
+      <text x="169" y="203" class="svg-text">B</text>
+      <rect x="202" y="176" width="66" height="42" class="svg-cell"/>
+      <text x="235" y="203" class="svg-text">C</text>
+
+      <text x="430" y="198" class="svg-small">先頭が B へ移る</text>
+
+      <text x="255" y="244" class="svg-small">加える端と取り出す端が分かれるため、先頭と末尾の二つの位置を管理する</text>
+
+      <defs>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　キューの状態遷移。末尾から加わり先頭から抜けるため、
+      要素は入れた順序のまま取り出される。スタックと異なり二つの端が
+      別々に動くことが、位置管理を二つ必要とする理由である。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      空のキューに対して、次の操作を上から順に実行した。
+      三回の dequeue によって取り出される値を、<strong>取り出された順</strong>に
+      並べたものはどれか。
+    </p>
+    <pre><code>1. enqueue 4
+2. enqueue 1
+3. dequeue
+4. enqueue 8
+5. dequeue
+6. enqueue 3
+7. dequeue</code></pre>
+    <ol class="choices">
+      <li>1、8、3</li>
+      <li>4、1、8</li>
+      <li>4、8、3</li>
+      <li>1、4、8</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          先頭から取り出されるため、手順 3 では最初に加えた 4、手順 5 では次に加えた 1、
+          手順 7 ではその次の 8 が取り出される。加えた順序がそのまま取り出す順序になる。
+        </p>
+        <p>
+          (A) は末尾から取り出すと解釈したもので、スタックの規約と混同している。
+          (C) は手順 5 で 1 を飛ばして 8 を取り出しており、
+          先頭の位置が一つずつ進むことを反映できていない。
+          (D) は取り出す値の集合は正しいが順序が入れ替わっており、
+          先入れ先出しが「入れた順に出る」ことを保証する点を捉えていない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 配列による実装 ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>配列による実装</h2>
+
+  <p>
+    スタックもキューも、連続した領域を持つ配列の上に実装できる。
+    ただし両者で、実装に要する手間は大きく異なる。
+  </p>
+
+  <h3>スタックの実装は素直である</h3>
+
+  <p>
+    スタックは出入口が一箇所であるため、頂上の位置を示す変数を一つ持てば足りる。
+    push は頂上の位置へ書き込んで位置を一つ進め、pop は位置を一つ戻して読み出す。
+    <strong>既存の要素を動かす必要は一切ない</strong>。
+  </p>
+
+  <pre><code>push（値 v を積む）
+1. もし 頂上 = 領域の大きさ ならば あふれとして処理を中止する
+2. 配列[頂上] ← v
+3. 頂上 ← 頂上 + 1
+
+pop（値を取り出す）
+1. もし 頂上 = 0 ならば 空として処理を中止する
+2. 頂上 ← 頂上 - 1
+3. 配列[頂上] を結果として返す</code></pre>
+
+  <h3>キューを素朴に実装すると破綻する</h3>
+
+  <p>
+    キューを「先頭は常に添字 0」と決めて実装すると、dequeue のたびに
+    残る要素をすべて一つずつ前へずらす必要が生じる。
+    要素が 100 個あれば 99 個を動かすことになり、
+    <strong>取り出す手間が要素数に比例して増大する</strong>。
+    一定の手間で出し入れできるという、この構造を用いる利点が失われる。
+  </p>
+
+  <p>
+    そこで、先頭の位置を変数で保持し、dequeue では
+    <strong>要素を動かす代わりに先頭の位置を一つ進める</strong>方式が考えられる。
+    これで取り出す手間は要素数によらず一定になる。
+  </p>
+
+  <p>
+    ところが、この方式には別の問題がある。先頭の位置は進む一方であり、
+    後ろへ戻ることがない。出し入れを繰り返すうちに、
+    <strong>配列の前方に使われない領域が溜まっていき、
+    実際に保持している要素数が少なくても末尾に到達してしまう</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 306" role="img" aria-label="先頭位置を進める方式のキューで、出し入れを繰り返すと配列の前方が使えない領域として溜まり、要素が三つしかなくても末尾に到達してしまう様子を示す図">
+      <!-- 初期 -->
+      <text x="290" y="22" class="svg-small">領域の大きさ 6 の配列に、A・B・C を加えた状態</text>
+      <rect x="50"  y="34" width="80" height="40" class="svg-cell"/>
+      <text x="90"  y="59" class="svg-text">A</text>
+      <rect x="130" y="34" width="80" height="40" class="svg-cell"/>
+      <text x="170" y="59" class="svg-text">B</text>
+      <rect x="210" y="34" width="80" height="40" class="svg-cell"/>
+      <text x="250" y="59" class="svg-text">C</text>
+      <rect x="290" y="34" width="80" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="34" width="80" height="40" class="svg-cell-plain"/>
+      <rect x="450" y="34" width="80" height="40" class="svg-cell-plain"/>
+      <text x="90"  y="90" class="svg-mono">[0]</text>
+      <text x="170" y="90" class="svg-mono">[1]</text>
+      <text x="250" y="90" class="svg-mono">[2]</text>
+      <text x="330" y="90" class="svg-mono">[3]</text>
+      <text x="410" y="90" class="svg-mono">[4]</text>
+      <text x="490" y="90" class="svg-mono">[5]</text>
+      <text x="90"  y="110" class="svg-small">先頭</text>
+      <text x="330" y="110" class="svg-small">末尾</text>
+
+      <path d="M 290 122 L 290 150" class="svg-arrow" marker-end="url(#ah7)"/>
+      <text x="400" y="142" class="svg-small">dequeue 2 回・enqueue 2 回</text>
+
+      <!-- 後 -->
+      <text x="290" y="176" class="svg-small">A・B を取り出し、D・E を加えた状態</text>
+      <rect x="50"  y="188" width="80" height="40" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="130" y="188" width="80" height="40" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="210" y="188" width="80" height="40" class="svg-cell"/>
+      <text x="250" y="213" class="svg-text">C</text>
+      <rect x="290" y="188" width="80" height="40" class="svg-cell"/>
+      <text x="330" y="213" class="svg-text">D</text>
+      <rect x="370" y="188" width="80" height="40" class="svg-cell"/>
+      <text x="410" y="213" class="svg-text">E</text>
+      <rect x="450" y="188" width="80" height="40" class="svg-hl"/>
+      <text x="90"  y="244" class="svg-mono">[0]</text>
+      <text x="170" y="244" class="svg-mono">[1]</text>
+      <text x="250" y="244" class="svg-mono">[2]</text>
+      <text x="330" y="244" class="svg-mono">[3]</text>
+      <text x="410" y="244" class="svg-mono">[4]</text>
+      <text x="490" y="244" class="svg-mono">[5]</text>
+      <text x="130" y="266" class="svg-small">使われないまま残る</text>
+      <text x="250" y="266" class="svg-small">先頭</text>
+      <text x="490" y="266" class="svg-small">末尾</text>
+
+      <text x="290" y="292" class="svg-small">保持している要素は 3 個だが、末尾は最終位置に達しており、次の enqueue ができない</text>
+
+      <defs>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　先頭位置を進める方式では、取り出した分だけ配列の前方が
+      使われない領域として取り残される。領域全体には空きがあるにもかかわらず
+      末尾に到達して加えられなくなるため、この空き領域を再利用する仕組みを要する。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      キューを配列で実装するにあたり、dequeue のたびに残りの要素を
+      すべて一つずつ前へずらす方式を採った。この方式の問題点として、
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>取り出される要素の順序が、先入れ先出しにならない</li>
+      <li>取り出しに要する手間が、保持している要素数に比例して増える</li>
+      <li>配列の前方に、使われない領域が溜まっていく</li>
+      <li>先頭と末尾の位置を管理する変数が、二つとも必要になる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          ずらす方式では、要素が n 個あれば dequeue のたびに n − 1 個を動かすことになる。
+          一定の手間で出し入れできるという利点が失われる点が問題である。
+        </p>
+        <p>
+          (A) は誤りで、ずらす方式でも取り出す順序は先入れ先出しのまま保たれる。
+          問題は順序ではなく手間である。
+          (C) は先頭位置を進める方式で生じる問題であり、
+          ずらす方式では先頭が常に添字 0 に保たれるため、前方に空きは生じない。
+          二つの方式の欠点を取り違えている。
+          (D) はずらす方式では先頭が添字 0 に固定されるため、
+          むしろ管理する位置は末尾の一つで済む。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. リングバッファ — 領域を使い切る ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>リングバッファ — 領域を使い切る</h2>
+
+  <p>
+    前節の問題は、配列を一直線の領域として扱っていることに起因する。
+    そこで、<strong>末尾に達した位置を先頭へ回り込ませる</strong>ことで、
+    配列を環状に見立てる方式を採る。これを
+    <span class="term">リングバッファ</span><span class="en">(ring buffer)</span>
+    あるいは<span class="term">循環キュー</span><span class="en">(circular queue)</span>
+    と呼ぶ。
+  </p>
+
+  <p>
+    位置を一つ進める操作は、剰余を用いて記述できる。
+    領域の大きさを n とすると、位置 p の次の位置は次式で求まる。
+  </p>
+
+  <pre><code>次の位置 ← (p + 1) を n で割った余り</code></pre>
+
+  <p>
+    p が n − 1 のとき、p + 1 は n であり、n を n で割った余りは 0 となる。
+    こうして位置が自動的に先頭へ戻る。<strong>条件分岐を書かずに
+    回り込みを表現できる</strong>点が、この記法の利点である。
+  </p>
+
+  <figure>
+    <svg viewBox="60 8 500 262" role="img" aria-label="領域の大きさ6のリングバッファを環状に配置し、末尾が添字5から添字0へ回り込む様子を示す図">
+      <!-- 環状の補助線 -->
+      <circle cx="180" cy="130" r="86" class="svg-line" fill="none"/>
+
+      <!-- [5] から [0] への回り込みを示す円弧（セルの下に敷く） -->
+      <path d="M 112 62 A 86 86 0 0 1 143 38" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <!-- 6分割のセルを円周上に配置（添字0を真上、時計回り） -->
+      <rect x="152" y="27" width="56" height="34" class="svg-bg"/>
+      <rect x="152" y="27" width="56" height="34" class="svg-cell-plain"/>
+      <text x="180" y="49" class="svg-mono">[0]</text>
+
+      <rect x="226.5" y="70" width="56" height="34" class="svg-cell"/>
+      <text x="254.5" y="92" class="svg-text">D</text>
+      <text x="316" y="92" class="svg-mono">[1]</text>
+
+      <rect x="226.5" y="156" width="56" height="34" class="svg-cell"/>
+      <text x="254.5" y="178" class="svg-text">E</text>
+      <text x="316" y="178" class="svg-mono">[2]</text>
+
+      <rect x="152" y="199" width="56" height="34" class="svg-cell"/>
+      <text x="180" y="221" class="svg-text">F</text>
+      <text x="180" y="252" class="svg-mono">[3]</text>
+
+      <rect x="77.5" y="156" width="56" height="34" class="svg-bg"/>
+      <rect x="77.5" y="156" width="56" height="34" class="svg-cell-plain"/>
+      <text x="105.5" y="178" class="svg-mono">[4]</text>
+
+      <rect x="77.5" y="70" width="56" height="34" class="svg-bg"/>
+      <rect x="77.5" y="70" width="56" height="34" class="svg-cell-plain"/>
+      <text x="105.5" y="92" class="svg-mono">[5]</text>
+
+      <text x="180" y="124" class="svg-small">[5] の次は</text>
+      <text x="180" y="144" class="svg-mono">(5+1) mod 6 = 0</text>
+
+      <!-- 説明側 -->
+      <path d="M 350 24 L 350 250" class="svg-line"/>
+
+      <text x="466" y="52" class="svg-small" style="text-anchor:middle">位置を進める計算</text>
+      <text x="466" y="82" class="svg-mono" style="text-anchor:middle">次 ← (p + 1) mod n</text>
+
+      <text x="466" y="120" class="svg-small" style="text-anchor:middle">n = 6 のとき</text>
+      <text x="466" y="146" class="svg-mono" style="text-anchor:middle">p = 3 → 4</text>
+      <text x="466" y="168" class="svg-mono" style="text-anchor:middle">p = 4 → 5</text>
+      <text x="466" y="190" class="svg-mono" style="text-anchor:middle">p = 5 → 0</text>
+
+      <text x="466" y="224" class="svg-small" style="text-anchor:middle">末尾で自動的に先頭へ戻るため</text>
+      <text x="466" y="242" class="svg-small" style="text-anchor:middle">条件分岐を要しない</text>
+
+      <defs>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　配列を環状に見立てたリングバッファ。添字が末尾に達すると
+      剰余演算によって先頭へ回り込むため、取り出しによって空いた前方の領域が
+      再び利用可能になる。これにより、領域全体を無駄なく使い切れる。
+    </figcaption>
+  </figure>
+
+  <h3>空と満杯の区別</h3>
+
+  <p>
+    回り込みを導入すると、新たな問題が生じる。<strong>要素が一つもない状態と、
+    領域が要素で埋め尽くされた状態が、どちらも「先頭と末尾が同じ位置を指す」
+    という形になってしまう</strong>。位置の比較だけでは、この二つを区別できない。
+  </p>
+
+  <p>
+    区別する方法は主に二通りある。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　リングバッファにおける空と満杯の区別。いずれの方法も、
+      位置の情報だけでは足りない分を、別の情報か領域の犠牲かで補っている。
+      どちらを採るかは、領域の逼迫度と管理の簡潔さの兼ね合いによる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>方法</th><th>判定の仕方</th><th>代償</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>要素数を別に保持する</td>
+          <td>要素数が 0 なら空、領域の大きさと等しければ満杯</td>
+          <td>出し入れのたびに要素数の更新を要する</td>
+        </tr>
+        <tr>
+          <td>一つ分を常に空けておく</td>
+          <td>先頭と末尾が同位置なら空、末尾の次が先頭なら満杯</td>
+          <td>領域を一つ分使えない</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      要素数を保持する方法を採った場合、enqueue と dequeue の双方で
+      要素数を更新しなければならない。片方だけを更新すると、
+      実際の保持数と記録された数が食い違い、空でないのに空と判定される、
+      あるいは領域に空きがあるのに満杯と判定されるといった不整合を招く。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      領域の大きさが 8 のリングバッファがある。現在、末尾の位置は添字 7 を指している。
+      ここに新たな要素を一つ加えたとき、加えた後の末尾の位置を示す添字はどれか。
+      ただし末尾の位置は「次に加えるべき位置」を指すものとし、
+      領域には十分な空きがあるものとする。
+    </p>
+    <ol class="choices">
+      <li>0</li>
+      <li>1</li>
+      <li>7</li>
+      <li>8</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          添字 7 へ書き込んだ後、末尾を一つ進める。
+          (7 + 1) を 8 で割った余りは 0 であるから、末尾は添字 0 を指す。
+          これが回り込みである。
+        </p>
+        <p>
+          (B) は二つ進めた結果であり、一回の enqueue で位置が進むのは一つだけである。
+          (C) は書き込んだだけで位置を進めておらず、
+          次の enqueue が同じ位置を書き潰すことになる。
+          (D) は剰余を取らずに 7 + 1 をそのまま答えたもので、
+          添字 8 は大きさ 8 の配列には存在しない。
+          最後の添字が 7 であることと、大きさが 8 であることの区別が必要である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 操作の手間と使い分け ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>操作の手間と使い分け</h2>
+
+  <p>
+    適切に実装されたスタックとキューでは、要素の出し入れに要する手間は
+    <strong>保持している要素数によらず一定である</strong>。
+    push も pop も、enqueue も dequeue も、位置を示す変数を読み書きして
+    配列の一箇所に触れるだけで完結する。要素が 10 個でも 10000 個でも変わらない。
+  </p>
+
+  <p>
+    この一定の手間は、<strong>触れられる要素を端に限ったことの見返り</strong>である。
+    配列は任意の要素を添字で参照できたが、スタックとキューはそれを捨てている。
+    構造が課す制約は、機能の制限であると同時に、性能の保証でもある。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　配列・スタック・キューの対比。スタックとキューは
+      任意位置への参照という自由度を捨てる代わりに、
+      処理する順序を構造自体が保証する。どの構造を選ぶかは、
+      扱うデータに対して順序の規約が定まっているか否かで判断する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>配列</th><th>スタック</th><th>キュー</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>取り出す順序</td>
+          <td>利用者が添字で指定</td>
+          <td>後入れ先出し</td>
+          <td>先入れ先出し</td>
+        </tr>
+        <tr>
+          <td>出入口</td>
+          <td>任意の位置</td>
+          <td>一箇所（頂上）</td>
+          <td>両端（先頭・末尾）</td>
+        </tr>
+        <tr>
+          <td>管理する位置</td>
+          <td class="num-cell">—</td>
+          <td class="num-cell">1 つ</td>
+          <td class="num-cell">2 つ</td>
+        </tr>
+        <tr>
+          <td>途中の要素への参照</td>
+          <td>できる</td>
+          <td>できない</td>
+          <td>できない</td>
+        </tr>
+        <tr>
+          <td>出し入れの手間</td>
+          <td>一定（位置が既知の場合）</td>
+          <td>一定</td>
+          <td>一定</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>どちらを選ぶか</h3>
+
+  <p>
+    選択の基準は単純である。<strong>処理したい順序が、新しいものからか、
+    古いものからか</strong>で決まる。
+  </p>
+
+  <p>
+    <strong>スタックが適する</strong>のは、最後に始まったものが最初に終わる形を
+    した処理である。積み上げた皿を上から取る動作が、この形の身近な例である。
+  </p>
+
+  <ul>
+    <li>
+      <span class="term">関数呼び出し</span><span class="en">(function call)</span>の管理 —
+      呼び出された関数は、呼び出し元より先に終了する。
+      各呼び出しの戻り先を積み、終了時に頂上から取り出す。
+      この領域を <span class="term">コールスタック</span><span class="en">(call stack)</span> と呼ぶ
+    </li>
+    <li>
+      括弧の対応の照合 — <code>( [ ( ) ] )</code> のような入れ子を検査する。
+      開き括弧を積み、閉じ括弧が来たら頂上と対応するかを見る。
+      最後に開いた括弧が最初に閉じるため、頂上との照合だけで済む
+    </li>
+    <li>
+      ブラウザの「戻る」操作 — 訪れた頁を順に積み、直前の頁から順に遡る
+    </li>
+  </ul>
+
+  <p>
+    <strong>キューが適する</strong>のは、発生した順序を保って処理する形である。
+    窓口に並ぶ待ち行列が、この形の身近な例である。
+  </p>
+
+  <ul>
+    <li>
+      緩衝領域としての利用 —
+      生成する側と消費する側で速度が異なる場合に、
+      生成された順を保ったまま両者を切り離す。
+      キーボード入力や通信の受信データがこの形で扱われる
+    </li>
+    <li>
+      資源の割り当て — 限られた資源を複数の利用者が待つ場面で、
+      待ち始めた順に割り当てる。
+      これにより、特定の利用者が待ち続ける状態を避けられる
+    </li>
+    <li>
+      <span class="term">幅優先探索</span><span class="en">(breadth-first search)</span> —
+      探索対象を発見した順に取り出すことで、近い位置から順に調べられる
+    </li>
+  </ul>
+
+  <p>
+    いずれの例も、構造そのものが順序の規約を保証している点が要である。
+    利用する側は取り出す位置を判断せず、「次を取り出す」と命じるだけでよい。
+    <strong>順序の管理を構造に委ねることが、これらを用いる目的である。</strong>
+  </p>
+
+  <p>
+    一方、<strong>保持している要素を走査したい、途中の要素を書き換えたい</strong>
+    という要求がある場合、これらの構造は適さない。
+    その場合は配列など、任意位置に参照できる構造を用いる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      ある処理系では、利用者から届いた要求を溜めておき、
+      届いた順に一件ずつ処理する。先に届いた要求が後回しにされることは
+      あってはならない。この用途に適する構造と、その理由の組合せとして
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>スタック。最後に届いた要求から処理されるため</li>
+      <li>キュー。先に届いた要求から処理されるため</li>
+      <li>スタック。要素の出し入れが要素数によらず一定の手間で済むため</li>
+      <li>配列。任意の要求を添字で指定して取り出せるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          「届いた順に処理する」「先に届いたものが後回しにされない」という要件は
+          先入れ先出しそのものであり、キューが適する。
+        </p>
+        <p>
+          (A) は構造と理由が整合しているが、後入れ先出しでは後から届いた要求が
+          先に処理され、要件に反する。
+          (C) は述べている性質自体は正しいものの、その性質はキューにも当てはまるため、
+          スタックを選ぶ理由にならない。手間の一定性は両構造で共通である。
+          (D) は配列でも実現しうるが、取り出す順序を利用する側が毎回管理せねばならず、
+          順序の保証が構造によって与えられない。要件を満たすには追加の手当てを要する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. あふれと空の扱い ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>あふれと空の扱い</h2>
+
+  <p>
+    実装にあたって必ず手当てを要するのが、<strong>領域の限界と、
+    取り出すものが無い状態</strong>という二つの境界である。
+  </p>
+
+  <ul>
+    <li>
+      <span class="term">あふれ</span><span class="en">(overflow)</span> —
+      領域が埋まっている状態で、さらに要素を加えようとすること
+    </li>
+    <li>
+      <span class="term">下位あふれ</span><span class="en">(underflow)</span> —
+      要素が一つもない状態で、取り出そうとすること
+    </li>
+  </ul>
+
+  <p>
+    これらを検査せずに操作を実行すると、確保した領域の外へ書き込む、
+    あるいは意味を持たない値を読み出すことになる。いずれも
+    <strong>誤りが即座に現れるとは限らず、無関係に見える箇所で
+    不具合として表面化する</strong>ため、原因の特定が難しい。
+    操作の冒頭で検査することを要する。
+  </p>
+
+  <h3>検査式における境界の扱い</h3>
+
+  <p>
+    検査式を書く際に誤りやすいのが、最後の添字と領域の大きさの区別である。
+    多くの言語では添字が 0 から始まるため、<strong>大きさ n の配列で
+    利用できる最後の添字は n − 1 である</strong>。
+  </p>
+
+  <p>
+    頂上が「次に積むべき位置」を指す方式のスタックでは、
+    頂上が n に達した時点で領域が埋まっている。検査式は次のようになる。
+  </p>
+
+  <pre><code>あふれの検査
+  もし 頂上 = n ならば あふれである
+
+空の検査
+  もし 頂上 = 0 ならば 空である</code></pre>
+
+  <p>
+    ここで、あふれの検査を「頂上 = n − 1 ならば」と書くと、
+    最後の一箇所を使わないまま満杯と判定することになる。
+    逆に「頂上 &gt; n ならば」と書くと、すでに領域外へ書き込んだ後にしか
+    検知できず、検査の意味をなさない。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      境界の検査式は、頂上や先頭・末尾が<strong>何を指しているか</strong>によって変わる。
+      「最後に積んだ位置」を指す方式であれば、あふれの条件は
+      「頂上 = n − 1」となり、上記とは異なる。
+      検査式だけを他の実装から写しても正しく動作しない。
+      採用した方式から式を導くことを要する。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      大きさ 10 の配列でスタックを実装する。頂上を示す変数は
+      「次に積むべき位置」を指し、空の状態では 0 である。
+      このとき、push の冒頭に置くあふれの検査式として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>頂上 = 9 ならば あふれ</li>
+      <li>頂上 = 10 ならば あふれ</li>
+      <li>頂上 &gt; 10 ならば あふれ</li>
+      <li>頂上 = 0 ならば あふれ</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          頂上が「次に積むべき位置」を指すため、添字 9 へ積んだ後、頂上は 10 になる。
+          この時点で利用できる位置は残っておらず、満杯である。
+          したがって検査式は「頂上 = 10」となる。
+        </p>
+        <p>
+          (A) の 9 は最後の添字であり、この時点ではまだ添字 9 が空いている。
+          最後の一箇所を使わないまま満杯と判定してしまう、典型的なオフバイワンの誤りである。
+          (C) は頂上が 10 の状態での push を許してしまい、
+          添字 10 すなわち領域外へ書き込んだ後にしか検知できない。
+          (D) の 0 は空の状態を表す条件であり、
+          あふれではなく pop の側で検査すべき内容である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li>
+      スタックとキューは、取り出す位置を利用する側が指定するのではなく、
+      <strong>取り出す順序の規約そのものを構造に埋め込んだ</strong>データ構造である
+    </li>
+    <li>
+      スタックは後入れ先出しであり、push と pop を出入口一箇所で行う。
+      管理すべき位置は頂上の一つで足りる
+    </li>
+    <li>
+      キューは先入れ先出しであり、末尾に加えて先頭から取り出す。
+      出入口が両端に分かれるため、位置の管理は二つ必要になる
+    </li>
+    <li>
+      キューを配列で素朴に実装すると、要素をずらす手間が要素数に比例するか、
+      配列の前方に使えない領域が溜まるかのいずれかに陥る
+    </li>
+    <li>
+      リングバッファは剰余演算によって添字を回り込ませ、領域を使い切る。
+      その代わり、空と満杯がともに先頭と末尾の一致として現れるため、
+      要素数を保持するか一箇所を空けておくかで区別を付ける
+    </li>
+    <li>
+      両構造とも出し入れの手間は要素数によらず一定である。
+      これは<strong>途中の要素に触れられないという制約の見返り</strong>であり、
+      走査や任意位置の書き換えを要する用途には適さない
+    </li>
+    <li>
+      あふれと空は、操作の冒頭で必ず検査する。
+      検査式は位置を示す変数が何を指すかによって変わるため、
+      採用した方式から導く必要がある
+    </li>
+  </ul>
+</section>
+
+<!-- ============ 9. 確認問題 ============ -->
+<section id="s9">
+  <h2><span class="num">9</span>確認問題</h2>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-1</span>
+    <p class="q-body">
+      空のスタックと空のキューを一つずつ用意した。
+      両方に対して 1、2、3 をこの順に加えた後、
+      それぞれから続けて三回取り出した。
+      スタックから取り出された順とキューから取り出された順の組合せとして
+      正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>スタック: 1、2、3 ／ キュー: 3、2、1</li>
+      <li>スタック: 3、2、1 ／ キュー: 1、2、3</li>
+      <li>スタック: 3、2、1 ／ キュー: 3、2、1</li>
+      <li>スタック: 1、2、3 ／ キュー: 1、2、3</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          スタックは後入れ先出しであるから、最後に加えた 3 から順に取り出される。
+          キューは先入れ先出しであるから、最初に加えた 1 から順に取り出される。
+        </p>
+        <p>
+          (A) は両者の規約を取り違えている。
+          (C) と (D) はいずれも両構造が同じ順序で取り出すとしており、
+          両者を分かつのが取り出す順序である点を捉えていない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-2</span>
+    <p class="q-body">
+      領域の大きさ 5 のリングバッファでキューを実装している。
+      現在、先頭は添字 3、末尾（次に加えるべき位置）は添字 1 を指しており、
+      要素数は 3 である。ここで dequeue を一回、enqueue を一回行った。
+      操作後の先頭と末尾の添字の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>先頭 4、末尾 2</li>
+      <li>先頭 4、末尾 1</li>
+      <li>先頭 2、末尾 2</li>
+      <li>先頭 3、末尾 2</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          dequeue で先頭が一つ進み、(3 + 1) を 5 で割った余りは 4 であるから先頭は 4 になる。
+          enqueue で末尾が一つ進み、(1 + 1) を 5 で割った余りは 2 であるから末尾は 2 になる。
+        </p>
+        <p>
+          (B) は dequeue のみを反映し、enqueue による末尾の前進を忘れている。
+          (C) は先頭を進める方向を誤り、逆向きに動かした結果である。
+          先頭も末尾も、進む向きは常に同じである。
+          (D) は enqueue のみを反映し、dequeue による先頭の前進を忘れている。
+          出し入れのそれぞれが、異なる位置を動かす点に注意を要する。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-3</span>
+    <p class="q-body">
+      スタックとキューの双方に共通して当てはまる性質として、
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>管理すべき位置を示す変数が一つで足りる</li>
+      <li>保持している要素のうち、途中にあるものを添字で直接参照できる</li>
+      <li>要素の出し入れに要する手間が、保持している要素数によらず一定である</li>
+      <li>最後に加えた要素が、最初に取り出される</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          適切に実装された両構造では、出し入れは位置を示す変数の更新と
+          配列一箇所への読み書きで完結するため、要素数によらず手間は一定である。
+        </p>
+        <p>
+          (A) はスタックには当てはまるが、キューは先頭と末尾の二つを要するため共通しない。
+          (B) は両構造が捨てている性質であり、配列の特徴である。
+          途中の要素に触れられないことが、これらの構造の制約である。
+          (D) はスタックの規約であり、キューでは最初に加えた要素が最初に取り出される。
+          両者を分かつ性質を共通の性質と取り違えている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-4</span>
+    <p class="q-body">
+      リングバッファにおいて、要素数を別に保持せず、先頭と末尾の位置のみで
+      空と満杯を判定しようとすると不都合が生じる。その理由として
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>剰余演算では、添字を先頭へ回り込ませることができないため</li>
+      <li>空の状態と満杯の状態が、どちらも先頭と末尾が同じ位置を指す形になるため</li>
+      <li>先頭と末尾が、それぞれ逆の向きに進むため</li>
+      <li>満杯の状態では、末尾の位置が領域の大きさを超えてしまうため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          要素をすべて取り出した状態でも、領域を埋め尽くした状態でも、
+          先頭と末尾は同じ位置を指す。位置の比較だけでは両者を区別できないため、
+          要素数を保持するか、一箇所を常に空けておく必要がある。
+        </p>
+        <p>
+          (A) は誤りで、剰余演算はまさに回り込みを実現する手段である。
+          (C) も誤りで、先頭と末尾はいずれも同じ向きに進む。
+          (D) は剰余を取る以上、位置が領域の大きさに達することはなく、
+          常に 0 から n − 1 の範囲に収まる。
+          添字の範囲と、空・満杯の判別という別々の問題を混同している。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／スタック・キュー<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
