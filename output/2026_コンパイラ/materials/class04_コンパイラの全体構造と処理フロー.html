@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>コンパイラの全体構造と処理フロー | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>コンパイラの全体構造と処理フロー</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">変換は一度には行えない</a></li>
+    <li><a href="#s2">処理段階の全体像</a></li>
+    <li><a href="#s3">各段階が担う判断</a></li>
+    <li><a href="#s4">前段の誤りは後段では直せない</a></li>
+    <li><a href="#s5">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 変換は一度には行えない ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>変換は一度には行えない</h2>
+
+  <p>
+    人間が記述したプログラムと、計算機が実行する機械語の間には隔たりがある。
+    その隔たりの大きさを、一行の代入文で確認する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 214" role="img" aria-label="ソースコード一行 x = a + b * 2 が、レジスタへの読み出し、乗算、加算、書き戻しという四つの機械語命令に対応することを示す図">
+      <path d="M 290 82 L 290 104" class="svg-arrow" marker-end="url(#ah1)"/>
+
+      <text x="290" y="22" class="svg-small">人間が記述する記法</text>
+
+      <rect x="150" y="34" width="280" height="42" class="svg-cell"/>
+      <text x="290" y="61" class="svg-mono">x = a + b * 2</text>
+
+      <text x="386" y="99" class="svg-small" style="text-anchor:start">変換</text>
+
+      <text x="290" y="128" class="svg-small">計算機が実行する命令の列</text>
+
+      <rect x="150" y="138" width="280" height="30" class="svg-cell-plain"/>
+      <text x="290" y="158" class="svg-mono">b を読み出す ／ 2 を掛ける</text>
+
+      <rect x="150" y="168" width="280" height="30" class="svg-cell-plain"/>
+      <text x="290" y="188" class="svg-mono">a を読み出す ／ 加える ／ x へ書く</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　一行の代入文は、機械語では複数の命令に展開される。記法の上では一つの式であっても、
+      計算機の側にはそれに直接対応する単一の命令が存在しない。
+    </figcaption>
+  </figure>
+
+  <p>
+    この変換を一手に行おうとすると、何を手がかりに何を決めるのかが混線する。
+    たとえば <code>b * 2</code> を先に計算すべきだと判断するには、演算子の優先順位という構造上の規則を知っている必要がある。
+    一方で <code>b</code> が数値なのか文字列なのかは、構造ではなく宣言から定まる。
+    さらに、掛け算をどの機械語命令で実現するかは、対象とする計算機の仕様に属する。
+    <strong>これらは性質の異なる判断であり、同時に扱う理由がない。</strong>
+  </p>
+
+  <p>
+    そこでコンパイラは、変換を複数の段階に分割する。各段階は一種類の判断だけを担い、
+    その結果を次の段階へ渡す。この分割は、処理量を小分けにするためではなく、
+    <span class="term">関心の分離</span><span class="en">(separation of concerns)</span> のためである。
+    一つの段階の設計を変更しても、受け渡すデータの形式が保たれていれば他の段階に影響しない。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>コンパイラが変換を段階に分割する理由を説明できる</li>
+      <li>各処理段階の入力と出力が何であるかを述べ、段階の連鎖として全体像を示せる</li>
+      <li>与えられた誤りが、どの段階で検出されるものかを弁別できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      コンパイラが変換処理を複数の段階に分割している主な理由として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>変換の対象となるプログラムが大きく、一度に処理すると記憶域が不足するため</li>
+      <li>変換に必要な判断が性質ごとに異なり、それぞれを独立して扱えるようにするため</li>
+      <li>段階を増やすほど生成される機械語の実行速度が速くなるため</li>
+      <li>機械語には複数の命令があり、命令の個数と同じ数の段階を要するため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          語の切り出し、構造の決定、型の整合の確認、命令の選択は、それぞれ拠り所とする規則が異なる。
+          段階に分けることで、各段階は一種類の判断に専念でき、設計の変更も局所に留まる。
+        </p>
+        <p>
+          (A) の記憶域は分割の結果として得られる場合があるが、目的ではない。
+          小規模なプログラムを変換する場合でも段階の分割は行われる。
+          (C) は実行速度と段階数を結び付けている点が誤りである。実行速度に寄与するのは最適化の内容であって、
+          段階に分けたこと自体ではない。
+          (D) は図 1-1 の命令数と段階数を対応させた誤りである。両者に対応関係はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 処理段階の全体像 ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>処理段階の全体像</h2>
+
+  <p>
+    コンパイラは変換を次の五つの段階に分ける。各段階は前段の出力を入力として受け取り、
+    自らの出力を次段へ渡す。この受け渡しの連鎖が全体の骨格である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 356" role="img" aria-label="字句解析から構文解析、意味解析、最適化、コード生成へと続く五段階のパイプラインと、段階の間で受け渡される文字列、トークン列、構文木、注釈付き構文木、中間表現、機械語を示す図">
+      <path d="M 250 22 L 250 46" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 250 80 L 250 104" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 250 138 L 250 162" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 250 196 L 250 220" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 250 254 L 250 278" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 250 312 L 250 336" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <text x="264" y="18" class="svg-mono" style="text-anchor:start">ソースコード（文字の並び）</text>
+
+      <rect x="170" y="50" width="240" height="26" class="svg-cell"/>
+      <text x="290" y="68" class="svg-text">字句解析</text>
+      <text x="264" y="100" class="svg-mono" style="text-anchor:start">トークン列</text>
+
+      <rect x="170" y="108" width="240" height="26" class="svg-cell"/>
+      <text x="290" y="126" class="svg-text">構文解析</text>
+      <text x="264" y="158" class="svg-mono" style="text-anchor:start">構文木</text>
+
+      <rect x="170" y="166" width="240" height="26" class="svg-cell"/>
+      <text x="290" y="184" class="svg-text">意味解析</text>
+      <text x="264" y="216" class="svg-mono" style="text-anchor:start">注釈付き構文木</text>
+
+      <rect x="170" y="224" width="240" height="26" class="svg-cell"/>
+      <text x="290" y="242" class="svg-text">最適化</text>
+      <text x="264" y="274" class="svg-mono" style="text-anchor:start">中間表現</text>
+
+      <rect x="170" y="282" width="240" height="26" class="svg-cell"/>
+      <text x="290" y="300" class="svg-text">コード生成</text>
+      <text x="264" y="332" class="svg-mono" style="text-anchor:start">機械語</text>
+
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-1　各段階の間で受け渡されるデータ。段階名を覚えることより、
+      隣り合う段階の出力と入力が噛み合っていることが全体像の理解にあたる。
+      文字の並びとして始まったものが、段階を経るごとに構造を与えられ、最後に機械語となる。
+    </figcaption>
+  </figure>
+
+  <h3>受け渡されるデータ</h3>
+
+  <p>
+    最初の入力はソースコード、すなわち<strong>意味を持たない文字の並び</strong>である。
+    計算機にとって、この時点では <code>if</code> という三文字と <code>ifx</code> という三文字の区別すらない。
+  </p>
+
+  <p>
+    <span class="term">字句解析</span><span class="en">(lexical analysis)</span> は、この文字の並びを意味のある最小単位に切り分ける。
+    この最小単位を <span class="term">トークン</span><span class="en">(token)</span> と呼ぶ。
+    <code>x = a + b * 2</code> は、変数名・代入記号・変数名・演算子・変数名・演算子・数値という
+    七つのトークンの列になる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 188" role="img" aria-label="文字の並び x = a + b * 2 が、変数名・代入記号・変数名・演算子・変数名・演算子・数値という七つのトークンに切り分けられることを示す図。空白は捨てられる。">
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">入力（文字の並び）</text>
+
+      <rect x="24" y="30" width="532" height="34" class="svg-cell-plain"/>
+      <text x="290" y="52" class="svg-mono">x␣=␣a␣+␣b␣*␣2</text>
+
+      <path d="M 290 70 L 290 102" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <text x="24" y="124" class="svg-small" style="text-anchor:start">出力（トークン列）</text>
+
+      <rect x="24"  y="134" width="70" height="30" class="svg-cell"/>
+      <text x="59"  y="154" class="svg-mono">x</text>
+      <text x="59"  y="178" class="svg-small">変数名</text>
+
+      <rect x="94"  y="134" width="70" height="30" class="svg-cell"/>
+      <text x="129" y="154" class="svg-mono">=</text>
+      <text x="129" y="178" class="svg-small">代入記号</text>
+
+      <rect x="164" y="134" width="70" height="30" class="svg-cell"/>
+      <text x="199" y="154" class="svg-mono">a</text>
+      <text x="199" y="178" class="svg-small">変数名</text>
+
+      <rect x="234" y="134" width="70" height="30" class="svg-cell"/>
+      <text x="269" y="154" class="svg-mono">+</text>
+      <text x="269" y="178" class="svg-small">演算子</text>
+
+      <rect x="304" y="134" width="70" height="30" class="svg-cell"/>
+      <text x="339" y="154" class="svg-mono">b</text>
+      <text x="339" y="178" class="svg-small">変数名</text>
+
+      <rect x="374" y="134" width="70" height="30" class="svg-cell"/>
+      <text x="409" y="154" class="svg-mono">*</text>
+      <text x="409" y="178" class="svg-small">演算子</text>
+
+      <rect x="444" y="134" width="70" height="30" class="svg-cell"/>
+      <text x="479" y="154" class="svg-mono">2</text>
+      <text x="479" y="178" class="svg-small">数値</text>
+
+      <defs>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-2　字句解析は文字の並びを語に切り分け、各語に種別を与える。
+      語の区切りに用いられた空白（␣）は、区切りの役目を終えるためトークンとしては残らない。
+      この段階では語の並び順が正しいかは判定しない。
+    </figcaption>
+  </figure>
+
+  <p>
+    <span class="term">構文解析</span><span class="en">(syntax analysis)</span> は、トークン列が文法に適合するかを調べ、
+    適合するならその構造を木の形で表す。この木を <span class="term">構文木</span><span class="en">(syntax tree)</span> と呼ぶ。
+    <code>b * 2</code> が先に計算されるという優先順位は、ここで木の形として確定する。
+    一列に並んでいたトークンが、入れ子の構造を与えられる段階である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 294" role="img" aria-label="一列に並んだ七つのトークンが、代入を根とし、右の子が乗算の部分木である構文木に組み替えられることを示す図。乗算の部分木は加算の下位に置かれる。">
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">入力（トークン列 ― 一列）</text>
+
+      <rect x="24"  y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="47"  y="48" class="svg-mono">x</text>
+      <rect x="76"  y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="99"  y="48" class="svg-mono">=</text>
+      <rect x="128" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="151" y="48" class="svg-mono">a</text>
+      <rect x="180" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="203" y="48" class="svg-mono">+</text>
+      <rect x="232" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="255" y="48" class="svg-mono">b</text>
+      <rect x="284" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="307" y="48" class="svg-mono">*</text>
+      <rect x="336" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="359" y="48" class="svg-mono">2</text>
+
+      <path d="M 203 62 L 203 96" class="svg-arrow" marker-end="url(#ah9)"/>
+
+      <text x="24" y="124" class="svg-small" style="text-anchor:start">出力（構文木 ― 入れ子）</text>
+
+      <path d="M 186 152 L 116 186" class="svg-line"/>
+      <path d="M 220 152 L 290 186" class="svg-line"/>
+      <path d="M 272 212 L 212 246" class="svg-line"/>
+      <path d="M 308 212 L 368 246" class="svg-line"/>
+
+      <rect x="176" y="134" width="54" height="26" class="svg-cell"/>
+      <text x="203" y="152" class="svg-mono">=</text>
+
+      <rect x="89"  y="194" width="54" height="26" class="svg-cell"/>
+      <text x="116" y="212" class="svg-mono">x</text>
+
+      <rect x="263" y="194" width="54" height="26" class="svg-cell"/>
+      <text x="290" y="212" class="svg-mono">+</text>
+
+      <rect x="185" y="254" width="54" height="26" class="svg-cell"/>
+      <text x="212" y="272" class="svg-mono">a</text>
+
+      <rect x="341" y="254" width="54" height="26" class="svg-hl"/>
+      <text x="368" y="272" class="svg-mono">b * 2</text>
+
+      <text x="410" y="276" class="svg-small" style="text-anchor:start">先に計算される</text>
+
+      <defs>
+        <marker id="ah9" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-3　構文解析はトークンの並びに入れ子の構造を与える。
+      <code>b * 2</code> が <code>+</code> より深い位置に置かれることで、演算子の優先順位が木の形として固定される。
+      優先順位は実行時に判定されるのではなく、この段階で確定している。
+    </figcaption>
+  </figure>
+
+  <p>
+    <span class="term">意味解析</span><span class="en">(semantic analysis)</span> は、構文木に対して、
+    文法の上では正しくとも意味の上で成り立たない事柄がないかを調べる。
+    変数が宣言されているか、演算子の両辺の型が整合するかといった検査がここに属する。
+    検査を通過した構文木には型などの情報が付加され、<span class="term">注釈付き構文木</span>となる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 210" role="img" aria-label="構文木の各節点に型の注釈が付き、整数型の変数 x と、加算の結果である整数型の右辺とが整合することを示す図。未宣言の変数や型の不整合はこの段階で検出される。">
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">注釈付き構文木（構文木に型の情報が付加されたもの）</text>
+
+      <path d="M 166 74 L 96 108" class="svg-line"/>
+      <path d="M 200 74 L 270 108" class="svg-line"/>
+      <path d="M 252 134 L 192 168" class="svg-line"/>
+      <path d="M 288 134 L 348 168" class="svg-line"/>
+
+      <rect x="156" y="56" width="54" height="26" class="svg-cell"/>
+      <text x="183" y="74" class="svg-mono">=</text>
+
+      <rect x="69"  y="116" width="54" height="26" class="svg-cell"/>
+      <text x="96"  y="134" class="svg-mono">x</text>
+      <text x="55"  y="135" class="svg-small" style="text-anchor:end">整数型</text>
+
+      <rect x="243" y="116" width="54" height="26" class="svg-cell"/>
+      <text x="270" y="134" class="svg-mono">+</text>
+      <text x="311" y="135" class="svg-small" style="text-anchor:start">整数型</text>
+
+      <rect x="165" y="176" width="54" height="26" class="svg-cell"/>
+      <text x="192" y="194" class="svg-mono">a</text>
+      <text x="151" y="195" class="svg-small" style="text-anchor:end">整数型</text>
+
+      <rect x="321" y="176" width="54" height="26" class="svg-cell"/>
+      <text x="348" y="194" class="svg-mono">b * 2</text>
+      <text x="389" y="195" class="svg-small" style="text-anchor:start">整数型</text>
+    </svg>
+    <figcaption>
+      図 2-4　意味解析は構文木の各節点に型を定め、矛盾がないかを調べる。
+      木の形そのものは構文解析の結果のままであり、変わるのは付加される情報である。
+      <code>x</code> が宣言されていない場合や左辺と右辺の型が整合しない場合は、文法上は正しくともここで誤りとして退けられる。
+    </figcaption>
+  </figure>
+
+  <p>
+    <span class="term">最適化</span><span class="en">(optimization)</span> は、プログラムの意味を変えずに、
+    実行時の効率を改善する。この段階では機械語そのものではなく、
+    特定の計算機に依存しない <span class="term">中間表現</span><span class="en">(intermediate representation)</span> を対象とすることが多い。
+    中間表現を挟むことで、最適化の処理を複数の対象計算機で共用できる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 204" role="img" aria-label="中間表現の三命令のうち、変数 b に定数 2 を掛ける命令が、b を b 自身に加える命令へ置き換えられることを示す図。加算の結果は乗算と同じ値であり、プログラムの意味は変わらない。">
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">最適化前（中間表現）</text>
+
+      <rect x="24" y="30" width="230" height="26" class="svg-cell-plain"/>
+      <text x="139" y="48" class="svg-mono">t1 ← b * 2</text>
+
+      <rect x="24" y="62" width="230" height="26" class="svg-cell-plain"/>
+      <text x="139" y="80" class="svg-mono">t2 ← a + t1</text>
+
+      <rect x="24" y="94" width="230" height="26" class="svg-cell-plain"/>
+      <text x="139" y="112" class="svg-mono">x ← t2</text>
+
+      <path d="M 260 74 L 312 74" class="svg-arrow" marker-end="url(#ah10)"/>
+
+      <text x="326" y="20" class="svg-small" style="text-anchor:start">最適化後</text>
+
+      <rect x="326" y="30" width="230" height="26" class="svg-hl"/>
+      <text x="441" y="48" class="svg-mono">t1 ← b + b</text>
+
+      <rect x="326" y="62" width="230" height="26" class="svg-cell-plain"/>
+      <text x="441" y="80" class="svg-mono">t2 ← a + t1</text>
+
+      <rect x="326" y="94" width="230" height="26" class="svg-cell-plain"/>
+      <text x="441" y="112" class="svg-mono">x ← t2</text>
+
+      <text x="24" y="150" class="svg-small" style="text-anchor:start">置き換えの根拠: b を 2 倍した値と、b を b 自身に加えた値は等しい。</text>
+      <text x="24" y="172" class="svg-small" style="text-anchor:start">乗算より加算のほうが速い計算機では、この置き換えが実行時間を縮める。</text>
+      <text x="24" y="194" class="svg-small" style="text-anchor:start">どちらが速いかは計算機に依存するため、適否は対象計算機によって変わる。</text>
+
+      <defs>
+        <marker id="ah10" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-5　最適化は意味を保ったまま実行の効率を改善する。
+      置き換えの前後で <code>x</code> に入る値は変わらず、変わるのは値の求め方だけである。
+      対象が中間表現であるため、この置き換えは特定の機械語を前提としない。
+    </figcaption>
+  </figure>
+
+  <p>
+    <span class="term">コード生成</span><span class="en">(code generation)</span> は、中間表現を対象計算機の機械語に変換する。
+    どの命令を選ぶか、値をどのレジスタに置くかといった、計算機の仕様に依存する判断がここに集約される。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 206" role="img" aria-label="中間表現の三命令が、レジスタを用いる機械語の命令列に変換されることを示す図。仮の変数はレジスタに割り当てられ、加算は対象計算機の命令に置き換えられる。">
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">入力（中間表現 ― 計算機に依存しない）</text>
+
+      <rect x="24" y="30" width="230" height="26" class="svg-cell-plain"/>
+      <text x="139" y="48" class="svg-mono">t1 ← b + b</text>
+
+      <rect x="24" y="62" width="230" height="26" class="svg-cell-plain"/>
+      <text x="139" y="80" class="svg-mono">t2 ← a + t1</text>
+
+      <rect x="24" y="94" width="230" height="26" class="svg-cell-plain"/>
+      <text x="139" y="112" class="svg-mono">x ← t2</text>
+
+      <path d="M 260 74 L 312 74" class="svg-arrow" marker-end="url(#ah11)"/>
+
+      <text x="326" y="20" class="svg-small" style="text-anchor:start">出力（機械語 ― 対象計算機に依存する）</text>
+
+      <rect x="326" y="30" width="230" height="26" class="svg-cell"/>
+      <text x="441" y="48" class="svg-mono">ADD R1, R2, R2</text>
+
+      <rect x="326" y="62" width="230" height="26" class="svg-cell"/>
+      <text x="441" y="80" class="svg-mono">ADD R1, R3, R1</text>
+
+      <rect x="326" y="94" width="230" height="26" class="svg-cell"/>
+      <text x="441" y="112" class="svg-mono">STORE R1, x</text>
+
+      <text x="24" y="150" class="svg-small" style="text-anchor:start">ここで決まる事柄: どの命令を選ぶか（加算に ADD を充てる）。</text>
+      <text x="24" y="172" class="svg-small" style="text-anchor:start">値をどこに置くか（b を R2、a を R3、途中の値を R1 に割り当てる）。</text>
+      <text x="24" y="194" class="svg-small" style="text-anchor:start">いずれも対象計算機が持つ命令とレジスタの数によって答えが変わる。</text>
+
+      <defs>
+        <marker id="ah11" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-6　コード生成は中間表現を対象計算機の機械語に変換する。
+      命令の選択とレジスタの割り当てという、計算機の仕様に依存する判断がこの段階に集まる。
+      対象計算機が変わればこの段階の出力だけが変わり、前段までの結果は共用できる。
+    </figcaption>
+  </figure>
+
+  <h3>前半と後半の区分</h3>
+
+  <p>
+    五つの段階のうち、字句解析・構文解析・意味解析は<strong>ソース言語の規則にのみ依存し、対象計算機に依存しない</strong>。
+    これらをまとめて <span class="term">フロントエンド</span><span class="en">(front end)</span> と呼ぶ。
+    最適化の一部とコード生成は対象計算機に依存し、<span class="term">バックエンド</span><span class="en">(back end)</span> と呼ぶ。
+  </p>
+
+  <p>
+    この区分には実用上の帰結がある。ある言語を新しい計算機向けに対応させる場合、
+    バックエンドを差し替えればフロントエンドは再利用できる。逆に新しい言語を既存の計算機向けに実装する場合、
+    フロントエンドを作ればバックエンドは再利用できる。中間表現は、この両者を分離する境界として機能する。
+  </p>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      この五段階は、事前に機械語を生成する処理系に固有の枠組みではない。
+      ソースコードを逐次解釈して実行する処理系も、文字の並びをトークンに切り、構造を組み、
+      意味の整合を確かめたうえで実行する。<strong>差は解析を行うか否かではなく、
+      解析の後に機械語のファイルを生成するか、その場で実行に移るかにある。</strong>
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      ある言語処理系の内部を調べたところ、トークン列を入力として受け取り、構文木を出力する部分が見つかった。
+      この部分が担っている処理段階はどれか。
+    </p>
+    <ol class="choices">
+      <li>字句解析</li>
+      <li>構文解析</li>
+      <li>意味解析</li>
+      <li>コード生成</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          段階は入力と出力の組で識別できる。トークン列を受け取って構文木を出す位置にあるのは構文解析である。
+        </p>
+        <p>
+          (A) の字句解析は、トークン列を出力する側であって受け取る側ではない。入力は文字の並びである。
+          (C) の意味解析は構文木を受け取り、型などの注釈を付けた構文木を出す。入力が構文木である点が異なる。
+          (D) のコード生成が出力するのは機械語であり、構文木ではない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-2</span>
+    <p class="q-body">
+      ソースコードを逐次解釈して実行する処理系についての記述として、正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>字句解析や構文解析を行わず、ソースコードをそのまま計算機に渡して実行する</li>
+      <li>字句解析と構文解析は行うが、型や宣言に関する検査は一切行わない</li>
+      <li>解析は行い、その結果を機械語のファイルとして出力せずに実行へ移る</li>
+      <li>解析を行うのは初回の実行時のみで、二回目以降は文字の並びのまま実行する</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          文字の並びをそのまま実行できる計算機は存在しない。逐次解釈する処理系も、
+          トークンへの切り分けと構造の決定を経て初めて実行できる。
+          区別されるのは、解析の結果を機械語のファイルとして残すか、その場で実行に移るかである。
+        </p>
+        <p>
+          (A) は解析の有無を両者の違いと捉えた誤りである。解析はどちらの方式でも行われる。
+          (B) は意味解析を事前生成の方式に固有のものとする誤りである。検査の時期は方式によって異なりうるが、
+          宣言されていない変数の使用などは逐次解釈する処理系でも検出される。
+          (D) は解析結果の再利用と、解析の省略を取り違えている。解析結果を保存して再利用する処理系はあるが、
+          その場合に再利用されるのは解析済みの表現であって、文字の並びのまま実行されるのではない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 各段階が担う判断 ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>各段階が担う判断</h2>
+
+  <p>
+    段階の役割は、<strong>何を決めるかと同時に、何を決めないかによって定まる</strong>。
+    字句解析は語を切り出すが、切り出した語の並び方が正しいかは見ない。
+    構文解析は構造を組むが、組んだ構造が意味として成り立つかは見ない。
+    この境界が明確であることが、段階を独立に設計できる条件である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　各段階が拠り所とする規則と、その規則を記述する形式。
+      各段階が検出できる誤りの種類は、その段階が参照する規則の範囲によって決まる。
+      ソース言語の規則は一箇所にまとまっているのではなく、性質ごとに担い手が分かれている。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>段階</th><th>拠り所とする規則</th><th>規則を記述する形式</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>字句解析</td>
+          <td>語を構成する文字の並び方</td>
+          <td><span class="term">正規表現</span><span class="en">(regular expression)</span></td>
+        </tr>
+        <tr>
+          <td>構文解析</td>
+          <td>文法（語の並び方の規則）</td>
+          <td><span class="term">文脈自由文法</span><span class="en">(context-free grammar)</span></td>
+        </tr>
+        <tr>
+          <td>意味解析</td>
+          <td>宣言と型に関する規則</td>
+          <td>型付け規則と<span class="term">記号表</span><span class="en">(symbol table)</span></td>
+        </tr>
+        <tr>
+          <td>最適化</td>
+          <td>意味を保つ変形の規則</td>
+          <td>変形の適用条件</td>
+        </tr>
+        <tr>
+          <td>コード生成</td>
+          <td>対象計算機の命令仕様</td>
+          <td>命令表とレジスタの構成</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>文法だけでは書けない規則がある</h3>
+
+  <p>
+    表 3-1 で構文解析と意味解析が分かれているのは、便宜上の区分ではない。
+    <strong>文脈自由文法では表現できない規則が存在する</strong>ため、別の仕組みを要する。
+  </p>
+
+  <p>
+    「変数は使用する前に宣言されていること」がその例である。
+    宣言と使用は任意の距離だけ離れうるうえ、その間に現れる語の数にも限りがない。
+    文脈自由文法が記述できるのは語の並び方の規則であって、
+    <strong>離れた二箇所が同じ名前を指しているかという照合は、その枠組みでは書けない</strong>。
+  </p>
+
+  <p>
+    そこで意味解析は、宣言された名前とその型を記録した表を別に持ち、
+    使用箇所ごとに、その名前が表にあるかを探して照合する。この表を <span class="term">記号表</span><span class="en">(symbol table)</span> と呼ぶ。
+    構文解析が <code>c ← a + b</code> を構造として受理したうえで、
+    <code>a</code> が存在するかどうかを意味解析が判定するのは、この分担による。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 340" role="img" aria-label="記号表の構成を示す図。宣言を読むたびに名前・型・宣言位置を一行ずつ記録し、使用箇所ではその表を名前で探して宣言の有無と型を確かめる。宣言と使用が離れていても表を介して結び付けられる。">
+      <path d="M 196 66 L 320 66" class="svg-arrow" marker-end="url(#ah15)"/>
+      <path d="M 196 191 L 320 191" class="svg-arrow" marker-end="url(#ah16)"/>
+
+      <text x="24" y="24" class="svg-small" style="text-anchor:start">入力（宣言を読む）</text>
+
+      <rect x="24" y="36" width="168" height="26" class="svg-cell-plain"/>
+      <text x="36" y="54" class="svg-mono" style="text-anchor:start">整数 a</text>
+      <text x="204" y="46" class="svg-small" style="text-anchor:start">記録する</text>
+
+      <rect x="24" y="70" width="168" height="26" class="svg-cell-plain"/>
+      <text x="36" y="88" class="svg-mono" style="text-anchor:start">整数 b</text>
+
+      <text x="24" y="130" class="svg-small" style="text-anchor:start">（宣言と使用の間に任意個の文が挟まりうる）</text>
+
+      <text x="24" y="166" class="svg-small" style="text-anchor:start">入力（使用を読む）</text>
+
+      <rect x="24" y="178" width="168" height="26" class="svg-hl"/>
+      <text x="36" y="196" class="svg-mono" style="text-anchor:start">c ← a + b</text>
+      <text x="204" y="171" class="svg-small" style="text-anchor:start">名前で探す</text>
+
+      <text x="452" y="24" class="svg-small">記号表</text>
+
+      <rect x="330" y="36" width="82" height="26" class="svg-cell"/>
+      <text x="371" y="54" class="svg-small">名前</text>
+      <rect x="412" y="36" width="82" height="26" class="svg-cell"/>
+      <text x="453" y="54" class="svg-small">型</text>
+      <rect x="494" y="36" width="62" height="26" class="svg-cell"/>
+      <text x="525" y="54" class="svg-small">宣言位置</text>
+
+      <rect x="330" y="62" width="82" height="26" class="svg-cell-plain"/>
+      <text x="371" y="80" class="svg-mono">a</text>
+      <rect x="412" y="62" width="82" height="26" class="svg-cell-plain"/>
+      <text x="453" y="80" class="svg-small">整数</text>
+      <rect x="494" y="62" width="62" height="26" class="svg-cell-plain"/>
+      <text x="525" y="80" class="svg-small">1 行目</text>
+
+      <rect x="330" y="88" width="82" height="26" class="svg-cell-plain"/>
+      <text x="371" y="106" class="svg-mono">b</text>
+      <rect x="412" y="88" width="82" height="26" class="svg-cell-plain"/>
+      <text x="453" y="106" class="svg-small">整数</text>
+      <rect x="494" y="88" width="62" height="26" class="svg-cell-plain"/>
+      <text x="525" y="106" class="svg-small">2 行目</text>
+
+      <text x="330" y="140" class="svg-small" style="text-anchor:start">宣言を読むたびに一行ずつ増える</text>
+
+      <text x="330" y="196" class="svg-small" style="text-anchor:start">a を探す → 行が有る。型は整数</text>
+      <text x="330" y="218" class="svg-small" style="text-anchor:start">b を探す → 行が有る。型は整数</text>
+      <text x="330" y="240" class="svg-small" style="text-anchor:start">よって a + b は整数</text>
+
+      <text x="24" y="284" class="svg-small" style="text-anchor:start">文法は語の並び方しか見ないため、離れた二箇所を結び付けられない。</text>
+      <text x="24" y="306" class="svg-small" style="text-anchor:start">記号表は名前から宣言を探し当てる仕組みであり、両者の距離に依存しない。</text>
+      <text x="24" y="328" class="svg-small" style="text-anchor:start">これが意味解析を構文解析と別の段階として置く理由である。</text>
+
+      <defs>
+        <marker id="ah15" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah16" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　記号表は、宣言された名前とその型を一行ずつ記録した表である。
+      意味解析は宣言を読むたびに行を足し、使用箇所では名前でこの表を探し、宣言の有無と型を確かめる。
+      表を介するため、宣言と使用がどれだけ離れていても照合できる。
+    </figcaption>
+  </figure>
+
+  <h3>誤りが検出される段階</h3>
+
+  <p>
+    同じく「誤ったプログラム」であっても、誤りの性質によって検出される段階が異なる。
+    これは各段階が参照する規則の範囲が異なることの直接の帰結である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 284" role="img" aria-label="宣言されていない変数を使った場合に記号表を探しても該当する行が見つからず、意味解析が誤りとして報告することを示す図。構文解析は同じ記述を構造として受理している。">
+      <path d="M 196 76 L 320 76" class="svg-arrow" marker-end="url(#ah17)"/>
+
+      <text x="24" y="24" class="svg-small" style="text-anchor:start">入力</text>
+
+      <rect x="24" y="36" width="168" height="26" class="svg-cell-plain"/>
+      <text x="36" y="54" class="svg-mono" style="text-anchor:start">整数 a</text>
+
+      <rect x="24" y="64" width="168" height="26" class="svg-hl"/>
+      <text x="36" y="82" class="svg-mono" style="text-anchor:start">c ← a + b</text>
+
+      <text x="24" y="118" class="svg-small" style="text-anchor:start">語の並び方は文法に適合しており、</text>
+      <text x="24" y="140" class="svg-small" style="text-anchor:start">構文解析はこの記述を受理する。</text>
+
+      <text x="452" y="24" class="svg-small">記号表</text>
+
+      <rect x="330" y="36" width="112" height="26" class="svg-cell"/>
+      <text x="386" y="54" class="svg-small">名前</text>
+      <rect x="442" y="36" width="114" height="26" class="svg-cell"/>
+      <text x="499" y="54" class="svg-small">型</text>
+
+      <rect x="330" y="62" width="112" height="26" class="svg-cell-plain"/>
+      <text x="386" y="80" class="svg-mono">a</text>
+      <rect x="442" y="62" width="114" height="26" class="svg-cell-plain"/>
+      <text x="499" y="80" class="svg-small">整数</text>
+
+      <text x="330" y="118" class="svg-small" style="text-anchor:start">a を探す → 行が有る</text>
+      <text x="330" y="140" class="svg-small" style="text-anchor:start">b を探す → 該当する行が無い</text>
+
+      <text x="24" y="184" class="svg-small" style="text-anchor:start">b は宣言されていないため、記号表に行が存在しない。</text>
+      <text x="24" y="206" class="svg-small" style="text-anchor:start">型が定まらず、規則に適合しているかを判定できない。よって意味解析が誤りとして報告する。</text>
+
+      <text x="24" y="250" class="svg-small" style="text-anchor:start">検出できるのは、宣言を記録した表を別に持っているからである。</text>
+      <text x="24" y="272" class="svg-small" style="text-anchor:start">語の並び方だけを見る仕組みでは、この誤りは通過する。</text>
+
+      <defs>
+        <marker id="ah17" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-2　宣言されていない名前を使った場合、記号表を探しても該当する行が見つからない。
+      構文解析が同じ記述を受理していることと対照すると、両段階が参照する規則の範囲の違いが読み取れる。
+      誤りが意味解析で検出されるのは、その段階だけが宣言の記録を参照するためである。
+    </figcaption>
+  </figure>
+
+  <ul>
+    <li>語として成立しない文字の並びがある — <strong>字句解析</strong>で検出される</li>
+    <li>語は正しいが、並び方が文法に反する — <strong>構文解析</strong>で検出される</li>
+    <li>文法上は正しいが、宣言されていない変数を使っている — <strong>意味解析</strong>で検出される</li>
+    <li>宣言も型も正しいが、計算結果が意図と違う — <strong>いずれの段階でも検出されない</strong></li>
+  </ul>
+
+  <p>
+    最後の項目が重要である。コンパイラが検査するのは、あくまで言語の規則に適合しているかであって、
+    プログラムが書き手の意図どおりに動くかではない。<strong>規則に適合したプログラムが正しいプログラムであるとは限らない。</strong>
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      変数の型が整合していることと、演算の結果が意図どおりであることは別である。
+      整数どうしの割り算で小数部が切り捨てられる場合、型の上では何も問題がないため意味解析を通過する。
+      こうした誤りは、規則への適合を調べる仕組みでは原理的に検出できない。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      「変数は使用する前に宣言されていること」という規則を、構文解析ではなく意味解析が担う理由として、
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>宣言の照合は処理量が多く、構文解析に含めると変換に要する時間が長くなるため</li>
+      <li>離れた二箇所が同じ名前を指すかという照合は、文脈自由文法の枠組みでは記述できないため</li>
+      <li>宣言を必要とするかどうかは言語によって異なり、文法として固定できないため</li>
+      <li>構文解析の時点ではトークンがまだ切り出されておらず、名前を比較できないため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          文脈自由文法が記述できるのは語の並び方である。宣言と使用は任意の距離だけ離れうるため、
+          両者が同じ名前を指しているかの照合は並び方の規則として書けない。
+          意味解析が記号表という別の仕組みを持つのは、この限界を補うためである。
+        </p>
+        <p>
+          (A) は分担の理由を処理量に求めた誤りである。仮に十分に高速であっても、
+          文法として記述できない以上、構文解析の枠組みでは扱えない。
+          (C) は言語ごとの差異を理由とした誤りだが、宣言を要する言語に限っても事情は変わらない。
+          その言語の文法を書いたとしても、照合の規則はそこに含められない。
+          (D) は処理の順序を取り違えた誤りである。構文解析はトークン列を入力として受け取るため、
+          その時点で名前は既に切り出されている。比較できない理由は入力の有無ではなく、文法の表現力にある。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      文法の上では正しく記述されているが、値を代入しようとしている変数がどこにも宣言されていない。
+      この誤りが検出される段階として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>字句解析 — 宣言のない変数名はトークンとして切り出せないため</li>
+      <li>構文解析 — 宣言文が欠けていることで文の並びが文法に反するため</li>
+      <li>意味解析 — 宣言の有無は文法ではなく宣言に関する規則で定まるため</li>
+      <li>コード生成 — 変数に割り当てる記憶域が決められないため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          宣言されているかどうかは、その語が文中のどこに現れるかという文法の問題ではなく、
+          プログラム全体を通じてその名前が定義されているかという問題である。
+          これを扱うのは意味解析である。
+        </p>
+        <p>
+          (A) は字句解析が語の意味に関与すると考えた誤りである。字句解析は文字の並びから語を切り出すだけで、
+          その語が何を指すかは扱わない。宣言のない変数名も、語としては問題なく切り出される。
+          (B) は宣言の欠落を文法違反と捉えた誤りである。設問は文法上は正しいと述べており、
+          構文解析は通過する。
+          (D) は検出が可能な最も遅い段階を答えたものだが、意味解析で既に検出されるため、
+          コード生成まで到達しない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 前段の誤りは後段では直せない ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>前段の誤りは後段では直せない</h2>
+
+  <p>
+    各段階は前段の出力のみを入力とする。ソースコードを参照し直すことはしない。
+    この一方向性から、いくつかの帰結が導かれる。
+  </p>
+
+  <h3>解釈の確定は後戻りしない</h3>
+
+  <p>
+    前段がある解釈を確定させると、後段はそれを前提に処理を進める。
+    前段の解釈が書き手の意図と食い違っていても、後段にはそれを知る手立てがない。
+    後段が見ているのは前段の出力だけだからである。
+  </p>
+
+  <p>
+    この構造は、エラーの報告位置が実際の誤り箇所とずれる現象を説明する。
+    たとえば文を区切る記号を書き忘れた場合、構文解析は次の行の先頭までを一つの文として解釈しようと試み、
+    そこで初めて文法に反すると判定する。報告される位置は次の行になるが、
+    <strong>手当てすべき箇所は前の行である</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 228" role="img" aria-label="三行のプログラムのうち二行目の末尾に文の区切りが欠けており、構文解析が二行目から三行目の先頭まで一つの文として解釈を続け、三行目で破綻を報告することを示す図。手当てすべき位置は二行目である。">
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">入力（行番号付き。; は文の区切りを表す）</text>
+
+      <path d="M 366 72 L 372 72" class="svg-line"/>
+      <path d="M 372 72 L 372 110" class="svg-line"/>
+      <path d="M 372 110 L 366 110" class="svg-line"/>
+
+      <text x="30"  y="52" class="svg-small" style="text-anchor:start">1</text>
+      <rect x="48" y="34" width="300" height="24" class="svg-cell-plain"/>
+      <text x="60"  y="52" class="svg-mono" style="text-anchor:start">a ← 3 ;</text>
+
+      <text x="30"  y="84" class="svg-small" style="text-anchor:start">2</text>
+      <rect x="48" y="66" width="300" height="24" class="svg-hl"/>
+      <text x="60"  y="84" class="svg-mono" style="text-anchor:start">b ← 8</text>
+      <text x="380" y="84" class="svg-small" style="text-anchor:start">区切りが無い</text>
+
+      <text x="30"  y="116" class="svg-small" style="text-anchor:start">3</text>
+      <rect x="48" y="98" width="300" height="24" class="svg-cell-plain"/>
+      <text x="60"  y="116" class="svg-mono" style="text-anchor:start">c ← a + b ;</text>
+
+      <text x="380" y="116" class="svg-small" style="text-anchor:start">← ここで破綻を報告</text>
+
+      <text x="24" y="158" class="svg-small" style="text-anchor:start">構文解析は区切りが来るまで読み続けるため、2 行目の b から</text>
+      <text x="24" y="180" class="svg-small" style="text-anchor:start">3 行目の c までを一つの文として解釈しようとする。</text>
+
+      <text x="24" y="214" class="svg-small" style="text-anchor:start">破綻が明らかになる位置: 3 行目　　手当てすべき位置: 2 行目</text>
+    </svg>
+    <figcaption>
+      図 4-1　区切りの欠落は、欠落した行ではなく次の行で報告される。
+      構文解析は 2 行目で止まらず、区切りが続くものとして 3 行目まで読み進め、
+      そこで文として成立しないと判定する。報告位置は解釈が破綻した位置であって、誤りが書かれた位置ではない。
+    </figcaption>
+  </figure>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      報告された位置に誤りが見当たらない場合、その直前を疑うのが定石である。
+      報告位置は「解釈が破綻した位置」であって「誤りが書かれた位置」ではない。
+      両者が一致するのは、破綻が即座に生じた場合に限られる。
+    </p>
+  </div>
+
+  <h3>意味を変えない変形という要件</h3>
+
+  <p>
+    最適化とコード生成には、<strong>プログラムの意味を変えてはならない</strong>という要件が課される。
+    この要件は、一方向性から必然的に導かれる。
+  </p>
+
+  <p>
+    これらの段階に到達した時点で、プログラムが言語の規則に適合していることは意味解析によって確認済みである。
+    後段がその意味を変える変形を行えば、確認済みという前提が崩れる。
+    そして後段には、変形後のプログラムを検査し直す仕組みがない。検査を担う段階は既に過ぎている。
+  </p>
+
+  <p>
+    したがって最適化が行えるのは、<strong>実行の効率のみを変え、結果を変えない変形</strong>に限られる。
+    計算結果が定数であると判明した式を、あらかじめ計算した値で置き換えるといった変形がこれにあたる。
+    どれほど高速になるとしても、結果が変わりうる変形は採用できない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 214" role="img" aria-label="意味解析を通過した後に最適化が意味を変える変形を行った場合、検査を担う段階は既に過ぎているため誤りが検出されないまま機械語になることを示す図。処理は一方向に進み後戻りしない。">
+      <path d="M 122 62 L 158 62" class="svg-arrow" marker-end="url(#ah12)"/>
+      <path d="M 262 62 L 298 62" class="svg-arrow" marker-end="url(#ah13)"/>
+      <path d="M 402 62 L 438 62" class="svg-arrow" marker-end="url(#ah14)"/>
+
+      <rect x="24" y="44" width="96" height="36" class="svg-cell"/>
+      <text x="72" y="67" class="svg-text">意味解析</text>
+      <text x="72" y="100" class="svg-small">ここで検査する</text>
+
+      <rect x="164" y="44" width="96" height="36" class="svg-hl"/>
+      <text x="212" y="67" class="svg-text">最適化</text>
+
+      <rect x="304" y="44" width="96" height="36" class="svg-cell"/>
+      <text x="352" y="67" class="svg-text">コード生成</text>
+
+      <rect x="444" y="44" width="112" height="36" class="svg-cell-plain"/>
+      <text x="500" y="67" class="svg-mono">機械語</text>
+
+      <text x="24" y="20" class="svg-small" style="text-anchor:start">処理は一方向に進む（戻る経路は存在しない）</text>
+
+      <text x="212" y="130" class="svg-small">ここで意味を変える変形をしても</text>
+      <text x="212" y="150" class="svg-small">検査を担う段階は既に過ぎている</text>
+
+      <text x="24" y="184" class="svg-small" style="text-anchor:start">よって最適化に許されるのは、実行の効率だけを変え、結果を変えない変形に限られる。</text>
+      <text x="24" y="206" class="svg-small" style="text-anchor:start">結果が変わりうる変形は、どれほど高速であっても採用できない。</text>
+
+      <defs>
+        <marker id="ah12" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah13" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah14" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-2　意味を保つという要件は、処理の一方向性から導かれる。
+      規則への適合を確かめる段階は最適化より前にあり、変形後にやり直す経路がない。
+      要件が課されるのは変形の内容が危ういからではなく、確認する機会がもう無いからである。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      あるプログラムをコンパイルしたところ、10 行目に文法上の誤りがあると報告された。
+      しかし 10 行目を確認しても誤りが見当たらなかった。この状況の説明として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>構文解析より後の段階で誤りが生じており、報告された行番号は意味を持たない</li>
+      <li>9 行目以前の記述が原因で解釈が成立しなくなり、破綻が明らかになった位置が 10 行目であった</li>
+      <li>字句解析が 10 行目のトークンを切り出せておらず、構文解析に渡されていない</li>
+      <li>最適化によって行の順序が入れ替わり、元の行番号との対応が失われた</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          構文解析は、トークンを順に読みながら文法に適合する構造を組み立てる。
+          手前の記述に不足があると、解析はそれを補う形で解釈を続けようとし、
+          続けられなくなった位置で初めて破綻を報告する。報告位置は破綻が明らかになった位置であり、
+          原因が書かれた位置とは異なりうる。
+        </p>
+        <p>
+          (A) は報告位置を無意味と断じた点が誤りである。位置は解析が進めなくなった地点を正しく示しており、
+          原因を探す起点として有効である。
+          (C) は字句解析が切り出せない場合、報告されるのは語として成立しない旨であって文法上の誤りではない。
+          設問の報告内容と整合しない。
+          (D) は最適化が行番号を変えると考えた誤りである。文法上の誤りがある以上、構文解析を通過しておらず、
+          処理は最適化に到達していない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      最適化の段階に「プログラムの意味を変えない」という要件が課される理由として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>意味を変える変形は、いかなる場合も実行速度の改善につながらないため</li>
+      <li>規則への適合は前段で確認済みであり、後段には変形後に検査し直す仕組みがないため</li>
+      <li>最適化は対象計算機に依存しない段階であり、意味に関する情報を持たないため</li>
+      <li>意味を変えるかどうかの判断は、実行してみるまで確定できないため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          処理が一方向に進む以上、最適化の後に意味解析をやり直すことはできない。
+          確認済みという前提を維持するには、変形が意味を保つことを要件とするほかない。
+        </p>
+        <p>
+          (A) は速度の改善と意味の保存を結び付けた誤りである。検査を省く変形などは速度を改善しうるが、
+          速度が改善するかどうかは要件の根拠ではない。
+          (C) は最適化が意味の情報を持たないとした点が誤りである。意味を保つ変形を行うには、
+          注釈付き構文木や中間表現が担う意味の情報が必要である。
+          (D) は判断の時期に関する誤りである。定数の畳み込みのように、
+          意味を保つことが変形の規則から確定できる場合がある。実行を待つ必要はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 総括 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>総括</h2>
+
+  <ul>
+    <li>
+      ソースコードと機械語の間には隔たりがあり、その変換に要する判断は性質ごとに異なる。
+      コンパイラが段階を分けるのは、関心の分離のためである。
+    </li>
+    <li>
+      処理は字句解析・構文解析・意味解析・最適化・コード生成の順に進み、
+      文字の並び・トークン列・構文木・注釈付き構文木・中間表現・機械語が順に受け渡される。
+      全体像は、この入出力の連鎖として捉えられる。
+    </li>
+    <li>
+      ソース言語のみに依存する前半をフロントエンド、対象計算機に依存する後半をバックエンドと呼ぶ。
+      中間表現がその境界となり、一方を差し替えて他方を再利用できる。
+    </li>
+    <li>
+      各段階の役割は、拠り所とする規則の範囲によって定まる。
+      誤りがどの段階で検出されるかは、その誤りがどの規則に反するかで決まる。
+      コンパイラが検査するのは規則への適合であって、書き手の意図との一致ではない。
+    </li>
+    <li>
+      ソース言語の規則は一箇所で担保されるのではなく、性質ごとに担い手が分かれている。
+      語の綴りは正規表現、語の並びは文脈自由文法、宣言と型は記号表と型付け規則が担う。
+      構文解析と意味解析が別の段階であるのは、文法の枠組みでは書けない規則があるためである。
+    </li>
+    <li>
+      処理は一方向に進み、前段が確定させた解釈は後段では覆せない。
+      エラーの報告位置が誤りの箇所とずれること、最適化が意味を保つ変形に限られることは、
+      いずれもこの一方向性から導かれる。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／コンパイラの全体構造と処理フロー<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
