@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>木構造（二分木・探索木） | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>木構造（二分木・探索木）</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">一列に並べる限界</a></li>
+    <li><a href="#s2">木構造の用語と形</a></li>
+    <li><a href="#s3">二分木 — 子を2個までに制限する</a></li>
+    <li><a href="#s4">二分探索木 — 大小関係を配置の規則にする</a></li>
+    <li><a href="#s5">挿入と削除</a></li>
+    <li><a href="#s6">形が性能を決める</a></li>
+    <li><a href="#s7">利用される場面</a></li>
+    <li><a href="#s8">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 一列に並べる限界 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>一列に並べる限界</h2>
+
+  <p>
+    1000件の商品番号が昇順に格納されているとする。ここから特定の番号を探し出し、
+    見つからなければ正しい位置へ新たに加えたい。これまで扱ってきた構造で、
+    この二つの操作を同時に速く行えるものがあるかを検討する。
+  </p>
+
+  <p>
+    配列は先頭の位置と添字から要素の位置を直接計算できるため、
+    昇順に並んでいれば中央と比較して候補を半分に絞る手が使える。
+    探すだけなら10回程度の比較で済む。しかし新たな1件を途中へ加えるには、
+    <strong>挿入位置より後ろの要素をすべて1つずつずらす</strong>必要がある。
+    要素が連続した領域に等間隔で並ぶという、速さの根拠そのものが移動を強いる。
+  </p>
+
+  <p>
+    リストは逆の性質を持つ。挿入も削除もポインタの張り替えだけで完了し、
+    他の要素は一切動かない。ただし目的の位置へ到達する手段が
+    <strong>先頭から順にたどることしかない</strong>。
+    1000件の中央にある要素へ届くまでに500回たどる必要があり、
+    中央と比較して半分に絞るという手は使えない。たどり着けなければ比較もできないためである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 304" role="img" aria-label="一列に並んだ7要素を先頭から順にたどると目的の70まで6回の移動を要するのに対し、同じ値を二分探索木に配置すると40と60の2回の比較で70に到達できることを上下二段で比較した図">
+      <text x="24" y="26" class="svg-small" style="text-anchor:start">一列に並べる — 先頭から順にたどる</text>
+      <path d="M 92 60 L 88 60" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 160 60 L 156 60" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 228 60 L 224 60" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 296 60 L 292 60" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 364 60 L 360 60" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 432 60 L 458 60" class="svg-arrow" marker-end="url(#ah1)"/>
+      <rect x="24" y="40" width="64" height="40" class="svg-cell"/>
+      <text x="56" y="66" class="svg-text">10</text>
+      <rect x="92" y="40" width="64" height="40" class="svg-cell"/>
+      <text x="124" y="66" class="svg-text">20</text>
+      <rect x="160" y="40" width="64" height="40" class="svg-cell"/>
+      <text x="192" y="66" class="svg-text">30</text>
+      <rect x="228" y="40" width="64" height="40" class="svg-cell"/>
+      <text x="260" y="66" class="svg-text">40</text>
+      <rect x="296" y="40" width="64" height="40" class="svg-cell"/>
+      <text x="328" y="66" class="svg-text">50</text>
+      <rect x="364" y="40" width="64" height="40" class="svg-cell"/>
+      <text x="396" y="66" class="svg-text">60</text>
+      <rect x="462" y="40" width="64" height="40" class="svg-hl"/>
+      <text x="494" y="66" class="svg-text">70</text>
+      <text x="24" y="100" class="svg-small" style="text-anchor:start">70 に届くまで 6 回たどる</text>
+      <text x="24" y="138" class="svg-small" style="text-anchor:start">分岐を持たせる — 半分ずつ切り捨てる</text>
+      <path d="M 363 184 L 265 210" class="svg-line"/>
+      <path d="M 363 184 L 461 210" class="svg-line"/>
+      <path d="M 265 240 L 216 266" class="svg-line"/>
+      <path d="M 265 240 L 314 266" class="svg-line"/>
+      <path d="M 461 240 L 412 266" class="svg-line"/>
+      <path d="M 461 240 L 510 266" class="svg-line"/>
+      <rect x="335" y="154" width="56" height="30" class="svg-hl"/>
+      <text x="363" y="175" class="svg-text">40</text>
+      <rect x="237" y="210" width="56" height="30" class="svg-cell"/>
+      <text x="265" y="231" class="svg-text">20</text>
+      <rect x="433" y="210" width="56" height="30" class="svg-hl"/>
+      <text x="461" y="231" class="svg-text">60</text>
+      <rect x="188" y="266" width="56" height="30" class="svg-cell"/>
+      <text x="216" y="287" class="svg-text">10</text>
+      <rect x="286" y="266" width="56" height="30" class="svg-cell"/>
+      <text x="314" y="287" class="svg-text">30</text>
+      <rect x="384" y="266" width="56" height="30" class="svg-cell"/>
+      <text x="412" y="287" class="svg-text">50</text>
+      <rect x="482" y="266" width="56" height="30" class="svg-hl"/>
+      <text x="510" y="287" class="svg-text">70</text>
+      <text x="164" y="173" class="svg-small" style="text-anchor:end">70 &gt; 40 なので右へ</text>
+      <text x="164" y="229" class="svg-small" style="text-anchor:end">70 &gt; 60 なので右へ</text>
+      <text x="164" y="285" class="svg-small" style="text-anchor:end">2 回の分岐で到達</text>
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　同じ 7 個の値を、一列に並べた場合と分岐を持たせた場合で比較した。
+      一列では 70 に届くまで 6 回たどるが、分岐を持たせると 40・60 との比較で
+      残りの候補を半分ずつ捨てられるため、2 回で到達する。
+      たどる回数が要素数に比例して増えるのは、配置が一列であることに起因する。
+    </figcaption>
+  </figure>
+
+  <p>
+    配列とリストが抱える制約は、どちらも<strong>要素を一列に並べている</strong>ことから生じている。
+    一列であるかぎり、要素の位置は前後関係だけで決まり、
+    「ここから先は見なくてよい」という判断の手がかりを構造自体が持たない。
+    要素から複数の行き先へ枝分かれする配置を許せば、比較のたびに
+    行き先を選んで残りを捨てる、という進み方が可能になる。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>木構造の各部の名称を用いて、構造を説明できる</li>
+      <li>二分木の走査順序を追跡し、節点数と高さの関係を述べられる</li>
+      <li>二分探索木の条件を述べ、与えられた木がその条件を満たすかを判定できる</li>
+      <li>二分探索木への挿入・削除の手順を、条件が保たれる根拠とともに説明できる</li>
+      <li>木の形が探索の手数を左右することを説明できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      昇順に並んだ要素の集合に対し、「特定の値を速く探す」ことと
+      「途中へ軽く挿入する」ことを、配列とリストのいずれもが同時には満たせない。
+      その根本的な理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>配列もリストも要素を一列に並べるため、位置が前後関係だけで決まり、探索の途中で候補をまとめて捨てる手がかりを構造が持たないから</li>
+      <li>配列もリストも要素数の上限があらかじめ決まっており、上限に近づくと操作が遅くなるから</li>
+      <li>昇順に並べるという条件が、挿入のたびに全体の並べ替えを必要とするから</li>
+      <li>比較という操作それ自体に時間がかかり、要素数が増えると1回の比較も遅くなるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          一列の配置では、要素の位置は前後関係のみで定まる。配列は位置の計算が速い代わりに
+          並び順が記憶域の配置に固定され、リストは張り替えが軽い代わりに位置へ到達する手段が
+          順次たどることに限られる。いずれも一列であることに由来する制約である。
+        </p>
+        <p>
+          (B) の上限は、あらかじめ領域を確保する実装に見られる事柄であって、
+          ここで問題にしている探索と挿入の両立とは別の話である。
+          (C) は挿入位置さえ定まれば並べ替えは不要であり、昇順という条件自体が原因ではない。
+          (D) の1回の比較に要する時間は要素数に左右されない。回数が増えることと、
+          1回あたりが遅くなることを取り違えている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 木構造の用語と形 ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>木構造の用語と形</h2>
+
+  <p>
+    枝分かれのある配置は、計算機に固有のものではない。
+    計算機のファイルシステムでは、一つのディレクトリの下に複数のディレクトリとファイルが置かれ、
+    その各ディレクトリがさらに下位を持つ。企業や学校の組織図も、
+    一つの長の下に複数の部門が並び、各部門がさらに下位の係を持つ形で描かれる。
+    生物の分類体系、書籍の目次、トーナメント表も同じ形をしている。
+  </p>
+
+  <p>
+    これらに共通するのは、<strong>各要素が「ただ一つの上位」と「複数の下位」を持つ</strong>という関係である。
+    あるファイルが属するディレクトリは一つに定まり、ある係が属する部門も一つに定まる。
+    一方で、一つのディレクトリが下位に持つ要素の数に制限はない。
+    この非対称な関係を、そのままデータ構造として扱うのが木構造である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 238" role="img" aria-label="ファイルシステムのディレクトリ構成と組織図を並べ、どちらも同じ枝分かれの形になることを示した図。いずれも最上位がただ一つであり、各要素の上位も一つに定まる">
+      <text x="146" y="30" class="svg-small">ファイルシステム</text>
+      <path d="M 146 80 L 91 112" class="svg-line"/>
+      <path d="M 146 80 L 201 112" class="svg-line"/>
+      <path d="M 91 140 L 51 172" class="svg-line"/>
+      <path d="M 91 140 L 145 172" class="svg-line"/>
+      <rect x="107" y="52" width="78" height="28" class="svg-hl"/>
+      <text x="146" y="71" class="svg-mono">/home</text>
+      <rect x="52" y="112" width="78" height="28" class="svg-cell"/>
+      <text x="91" y="131" class="svg-mono">work</text>
+      <rect x="162" y="112" width="78" height="28" class="svg-cell"/>
+      <text x="201" y="131" class="svg-mono">photo</text>
+      <rect x="12" y="172" width="78" height="28" class="svg-cell"/>
+      <text x="51" y="191" class="svg-mono">report</text>
+      <rect x="106" y="172" width="78" height="28" class="svg-cell"/>
+      <text x="145" y="191" class="svg-mono">data</text>
+      <text x="434" y="30" class="svg-small">組織図</text>
+      <path d="M 434 80 L 379 112" class="svg-line"/>
+      <path d="M 434 80 L 489 112" class="svg-line"/>
+      <path d="M 379 140 L 339 172" class="svg-line"/>
+      <path d="M 379 140 L 433 172" class="svg-line"/>
+      <rect x="395" y="52" width="78" height="28" class="svg-hl"/>
+      <text x="434" y="71" class="svg-mono">学校</text>
+      <rect x="340" y="112" width="78" height="28" class="svg-cell"/>
+      <text x="379" y="131" class="svg-mono">教務係</text>
+      <rect x="450" y="112" width="78" height="28" class="svg-cell"/>
+      <text x="489" y="131" class="svg-mono">会計係</text>
+      <rect x="300" y="172" width="78" height="28" class="svg-cell"/>
+      <text x="339" y="191" class="svg-mono">時間割</text>
+      <rect x="394" y="172" width="78" height="28" class="svg-cell"/>
+      <text x="433" y="191" class="svg-mono">成績</text>
+      <path d="M 290 42 L 290 206" class="svg-line"/>
+      <text x="146" y="226" class="svg-small">上位はただ一つ　下位の数に制限はない</text>
+      <text x="434" y="226" class="svg-small">上位はただ一つ　下位の数に制限はない</text>
+    </svg>
+    <figcaption>
+      図 2-1　ファイルシステムと組織図は、題材が異なっても同じ形に描ける。
+      最上位の要素がただ一つであり、各要素の上位が一つに定まる一方、
+      下位の個数には制限がない。この共通の形を扱う構造が木構造である。
+    </figcaption>
+  </figure>
+
+  <p>
+    <span class="term">木構造</span><span class="en">(tree structure)</span> は、
+    要素どうしを枝分かれのある形で連結したデータ構造である。
+    要素にあたるものを<span class="term">節点</span><span class="en">(node)</span>、
+    節点どうしを結ぶ連結を<span class="term">枝</span><span class="en">(edge)</span> と呼ぶ。
+  </p>
+
+  <p>
+    木には出発点となる特別な節点がただ一つ存在し、これを
+    <span class="term">根</span><span class="en">(root)</span> と呼ぶ。
+    ある節点から枝で下につながる節点をその<span class="term">子</span><span class="en">(child)</span>、
+    上につながる節点を<span class="term">親</span><span class="en">(parent)</span> と呼ぶ。
+    子を一つも持たない節点を<span class="term">葉</span><span class="en">(leaf)</span> と呼ぶ。
+    根から葉へ向かう向きを下とするのが慣例であり、図では根を最上部に描く。
+  </p>
+
+  <p>
+    ある節点とその子孫すべてを取り出したものは、それ自体が一つの木として成立する。
+    これを<span class="term">部分木</span><span class="en">(subtree)</span> と呼ぶ。
+    取り出す前は親を持つ一つの節点であっても、取り出した後はその節点が根になる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 250" role="img" aria-label="もとの木から節点 B とその子孫 D・E を取り出すと、B を根とする一つの木になることを、左右に並べて示した図">
+      <text x="24" y="32" class="svg-small" style="text-anchor:start">もとの木</text>
+      <text x="340" y="32" class="svg-small" style="text-anchor:start">取り出した部分木</text>
+      <path d="M 158 82 L 88 116" class="svg-line"/>
+      <path d="M 158 82 L 228 116" class="svg-line"/>
+      <path d="M 88 146 L 48 180" class="svg-line"/>
+      <path d="M 88 146 L 128 180" class="svg-line"/>
+      <path d="M 228 146 L 228 180" class="svg-line"/>
+      <rect x="128" y="52" width="60" height="30" class="svg-cell"/>
+      <text x="158" y="72" class="svg-text">A</text>
+      <rect x="58" y="116" width="60" height="30" class="svg-hl"/>
+      <text x="88" y="136" class="svg-text">B</text>
+      <rect x="198" y="116" width="60" height="30" class="svg-cell"/>
+      <text x="228" y="136" class="svg-text">C</text>
+      <rect x="18" y="180" width="60" height="30" class="svg-hl"/>
+      <text x="48" y="200" class="svg-text">D</text>
+      <rect x="98" y="180" width="60" height="30" class="svg-hl"/>
+      <text x="128" y="200" class="svg-text">E</text>
+      <rect x="198" y="180" width="60" height="30" class="svg-cell"/>
+      <text x="228" y="200" class="svg-text">F</text>
+      <path d="M 300 44 L 300 224" class="svg-line"/>
+      <path d="M 426 82 L 386 116" class="svg-line"/>
+      <path d="M 426 82 L 466 116" class="svg-line"/>
+      <rect x="396" y="52" width="60" height="30" class="svg-hl"/>
+      <text x="426" y="72" class="svg-text">B</text>
+      <rect x="356" y="116" width="60" height="30" class="svg-hl"/>
+      <text x="386" y="136" class="svg-text">D</text>
+      <rect x="436" y="116" width="60" height="30" class="svg-hl"/>
+      <text x="466" y="136" class="svg-text">E</text>
+      <text x="468" y="71" class="svg-small" style="text-anchor:start">B が根になる</text>
+      <text x="24" y="242" class="svg-small" style="text-anchor:start">B とその子孫をまとめて取り出すと、それ自体が一つの木になる</text>
+    </svg>
+    <figcaption>
+      図 2-2　部分木は、それ自体が一つの木である。
+      もとの木で B は A の子であるが、B とその子孫だけを取り出すと B が根になる。
+      取り出しても内部の親子関係は変わらないため、木に対する操作をそのまま適用できる。
+    </figcaption>
+  </figure>
+
+  <p>
+    この性質により、<strong>木の操作は部分木に対する同じ操作の繰り返しとして記述できる。</strong>
+    ある節点に対する処理を、その左右の部分木に対する同じ処理と、自身に対する処理に分ければよい。
+    部分木は葉に至るまで小さくなり続けるため、この分割は必ず終わる。
+    木を扱う処理が再帰的な手順として自然に書けるのは、この構造のためである。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　木構造の用語と、ファイルシステム・組織図における対応。
+      いずれも根がただ一つであり、各要素の親が一つに定まる点が共通する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>用語</th><th>ファイルシステム</th><th>組織図</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>根</td>
+          <td>最上位のディレクトリ</td>
+          <td>組織の長</td>
+        </tr>
+        <tr>
+          <td>節点</td>
+          <td>ディレクトリとファイル</td>
+          <td>各部門・各係</td>
+        </tr>
+        <tr>
+          <td>枝</td>
+          <td>上位ディレクトリへの所属</td>
+          <td>指揮系統の線</td>
+        </tr>
+        <tr>
+          <td>葉</td>
+          <td>下位を持たないファイル</td>
+          <td>下位部門を持たない係</td>
+        </tr>
+        <tr>
+          <td>部分木</td>
+          <td>あるディレクトリ以下の全体</td>
+          <td>ある部門とその配下すべて</td>
+        </tr>
+        <tr>
+          <td>深さ</td>
+          <td>最上位から数えた階層の段数</td>
+          <td>長から数えた役職の段数</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="根、内部の節点、葉、親子関係、深さ、高さの位置関係を示した木構造の全体図">
+      <path d="M 262 74 L 176 108" class="svg-line"/>
+      <path d="M 318 74 L 404 108" class="svg-line"/>
+      <path d="M 148 142 L 112 176" class="svg-line"/>
+      <path d="M 204 142 L 256 176" class="svg-line"/>
+      <path d="M 432 142 L 484 176" class="svg-line"/>
+
+      <rect x="252" y="40" width="76" height="34" class="svg-hl"/>
+      <text x="290" y="62" class="svg-text">A</text>
+
+      <rect x="138" y="108" width="76" height="34" class="svg-cell"/>
+      <text x="176" y="130" class="svg-text">B</text>
+
+      <rect x="366" y="108" width="76" height="34" class="svg-cell"/>
+      <text x="404" y="130" class="svg-text">C</text>
+
+      <rect x="74"  y="176" width="76" height="34" class="svg-cell"/>
+      <text x="112" y="198" class="svg-text">D</text>
+
+      <rect x="218" y="176" width="76" height="34" class="svg-cell"/>
+      <text x="256" y="198" class="svg-text">E</text>
+
+      <rect x="446" y="176" width="76" height="34" class="svg-cell"/>
+      <text x="484" y="198" class="svg-text">F</text>
+
+      <text x="344" y="62"  class="svg-small" style="text-anchor:start">根</text>
+      <text x="24"  y="62"  class="svg-small" style="text-anchor:start">深さ 0</text>
+      <text x="24"  y="130" class="svg-small" style="text-anchor:start">深さ 1</text>
+      <text x="24"  y="198" class="svg-small" style="text-anchor:start">深さ 2</text>
+      <text x="152" y="238" class="svg-small" style="text-anchor:start">D・E・F は葉</text>
+      <text x="366" y="238" class="svg-small" style="text-anchor:start">木の高さ 2</text>
+    </svg>
+    <figcaption>
+      図 2-3　木構造の各部の名称。A は根であり、B と C は A の子である。
+      D・E・F は子を持たないため葉である。深さは根から数えた枝の本数であり、
+      その最大値がこの木の高さにあたる。
+    </figcaption>
+  </figure>
+
+  <p>
+    節点の位置を表す語として、根からその節点に至るまでにたどる枝の本数を
+    <span class="term">深さ</span><span class="en">(depth)</span> と呼ぶ。根の深さは 0 である。
+    木全体に含まれる節点の深さの最大値を、その木の
+    <span class="term">高さ</span><span class="en">(height)</span> と呼ぶ。
+    図 2-3 では最も深い節点が D・E・F の深さ 2 であるため、木の高さは 2 である。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      深さと高さの数え方は、根を 0 とする流儀と 1 とする流儀があり、文献によって異なる。
+      <strong>枝の本数を数えるか、節点の個数を数えるかの違い</strong>である。
+      本講では枝の本数で数え、根の深さを 0 とする。値を問われた際は、
+      どちらの流儀に基づくかを確認する必要がある。
+    </p>
+  </div>
+
+  <h3>木として成立する条件</h3>
+
+  <p>
+    節点と枝を任意につないだものが、すべて木になるわけではない。木であるためには、
+    根以外のすべての節点が<strong>ただ一つの親を持つ</strong>ことを要する。
+    この条件から、たどって元の節点へ戻る経路が生じないこと、
+    そして根からどの節点へも経路がただ一通りに定まることが導かれる。
+  </p>
+
+  <p>
+    この条件に照らすと、これまで扱ってきた線形リストは、
+    各節点が子を高々1個しか持たない木として位置づけられる。
+    木は一列の配置を特殊な場合として含む、より広い構造である。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      節点 P・Q・R・S があり、枝が次のようにつながっている。
+      この構造が木として成立しないものはどれか。
+    </p>
+    <ol class="choices">
+      <li>P の子が Q と R、R の子が S</li>
+      <li>P の子が Q、Q の子が R、R の子が S</li>
+      <li>P の子が Q と R、Q の子が S、R の子も S</li>
+      <li>P の子が Q と R と S</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          (C) では S が Q と R の二つを親に持つ。木の条件は根以外のすべての節点が
+          ただ一つの親を持つことであり、これに反する。また P から S へ至る経路が
+          Q を経由するものと R を経由するものの二通り生じる点でも、木の性質を満たさない。
+        </p>
+        <p>
+          (A) は各節点の親が一つに定まり、高さ 2 の木として成立する。
+          (B) は各節点が子を1個ずつ持つ形であり、一列につながってはいるが、
+          木の条件は満たしている。子の個数が少ないことは木でない理由にならない。
+          (D) は根が3個の子を持つ形で、子の個数に上限を課すのは二分木の条件であって、
+          木一般の条件ではない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 二分木 — 子を2個までに制限する ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>二分木 — 子を2個までに制限する</h2>
+
+  <p>
+    <span class="term">二分木</span><span class="en">(binary tree)</span> は、
+    各節点が持つ子を高々2個に制限した木である。2個の子はそれぞれ
+    <span class="term">左の子</span><span class="en">(left child)</span>、
+    <span class="term">右の子</span><span class="en">(right child)</span> と呼び、
+    <strong>左右は区別される</strong>。子が1個だけの場合も、
+    それが左の子であるか右の子であるかを定める必要がある。
+  </p>
+
+  <p>
+    左右を区別することの意味は、位置そのものに情報を持たせられる点にある。
+    子の個数に制限のない木では、どの子がどの順で並ぶかに決まりがない。
+    左右という固定された2つの位置を設けることで、
+    「左側は値が小さいもの」といった規則を配置に埋め込めるようになる。
+  </p>
+
+  <h3>節点数と高さの関係</h3>
+
+  <p>
+    二分木では、深さ 0 に節点が最大1個、深さ 1 に最大2個、深さ 2 に最大4個と、
+    深さが1増えるごとに収容できる節点数が倍になる。深さ <code>d</code> に置ける節点数は
+    最大 <code>2^d</code> 個であるから、高さ <code>h</code> の二分木が含みうる節点数は
+    最大で <code>2^0 + 2^1 + … + 2^h = 2^(h+1) − 1</code> 個となる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　高さごとの最大節点数。節点数が2倍になっても高さは1しか増えない。
+      この増え方の緩さが、木をたどる操作の手数を抑える根拠になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>高さ</th><th>その深さの最大節点数</th><th>木全体の最大節点数</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">0</td><td class="num-cell">1</td><td class="num-cell">1</td></tr>
+        <tr><td class="num-cell">1</td><td class="num-cell">2</td><td class="num-cell">3</td></tr>
+        <tr><td class="num-cell">2</td><td class="num-cell">4</td><td class="num-cell">7</td></tr>
+        <tr><td class="num-cell">3</td><td class="num-cell">8</td><td class="num-cell">15</td></tr>
+        <tr><td class="num-cell">9</td><td class="num-cell">512</td><td class="num-cell">1023</td></tr>
+        <tr><td class="num-cell">19</td><td class="num-cell">524288</td><td class="num-cell">1048575</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    表 3-1 が示すのは、<strong>節点を隙間なく詰めた木では、高さが節点数の対数の程度に収まる</strong>
+    ことである。100万個の節点を持つ木でも、高さは 19 程度で足りる。
+    根から葉まで下りきっても 19 回たどれば到達する。
+    一列に並べた100万件を順にたどる場合と比べると、桁違いに少ない。
+  </p>
+
+  <h3>走査 — すべての節点を漏れなく訪れる</h3>
+
+  <p>
+    木に含まれる節点をすべて訪れる手続きを
+    <span class="term">走査</span><span class="en">(traversal)</span> と呼ぶ。
+    一列の構造と異なり、木では分岐のたびにどちらへ進むかの選択が生じるため、
+    訪れる順序に複数の流儀がある。
+  </p>
+
+  <p>
+    いずれの走査も、ある節点に対して「自身の処理」「左部分木の走査」「右部分木の走査」の
+    3つを行う点は共通であり、違いは<strong>自身をどの時点で処理するか</strong>だけである。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-2　走査の種類と手順。左部分木を右部分木より先に処理する点は共通で、
+      自身を処理する位置だけが異なる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>走査</th><th>原語</th><th>手順</th><th>主な用途</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>行きがけ順</td>
+          <td>preorder</td>
+          <td>自身 → 左部分木 → 右部分木</td>
+          <td>木の構造を複製・保存する</td>
+        </tr>
+        <tr>
+          <td>通りがけ順</td>
+          <td>inorder</td>
+          <td>左部分木 → 自身 → 右部分木</td>
+          <td>配置の規則に沿った順に取り出す</td>
+        </tr>
+        <tr>
+          <td>帰りがけ順</td>
+          <td>postorder</td>
+          <td>左部分木 → 右部分木 → 自身</td>
+          <td>子を処理し終えてから親を処理する</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    走査の手順は、部分木に対して同じ手順を適用する形で記述する。
+    節点が存在しない箇所に達した時点で、その枝の処理は何もせずに終わる。
+  </p>
+
+  <pre><code>通りがけ順の走査(節点 N):
+1. N が存在しなければ、何もせず終了する
+2. 通りがけ順の走査(N の左の子)
+3. N の値を処理する
+4. 通りがけ順の走査(N の右の子)</code></pre>
+
+  <p>
+    行きがけ順・通りがけ順・帰りがけ順の違いは、
+    木の外周を一周する一本の曲線として捉えると見やすい。
+    曲線は根の左上から出発し、各節点の左・下・右を順に通って根の右上へ戻る。
+    この経路はどの走査でも同一であり、
+    <strong>曲線が節点のどの位置を通った時点でその節点を処理するか</strong>だけが異なる。
+    以下の図で、丸数字は処理される順番を表す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 308" role="img" aria-label="木の外周を一周する曲線が、各節点の左側を通る時点に番号を付けた図。行きがけ順の訪問順序 A B D E C を示す">
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">行きがけ順　節点の<tspan class="svg-mono">左</tspan>を通るときに処理する</text>
+      <path d="M 242 34 C 243.3 43.0 271.9 50.4 248 76 C 224.1 101.6 173.9 120.7 130 154 C 86.1 187.3 48.8 208.1 42 232 C 35.2 255.9 74.1 266.0 98 266 C 121.9 266.0 135.2 248.6 154 232 C 172.8 215.4 172.3 188.0 186 188 C 199.7 188.0 199.2 215.4 218 232 C 236.8 248.6 250.1 266.0 274 266 C 297.9 266.0 336.8 255.9 330 232 C 323.2 208.1 247.5 180.0 242 154 C 236.5 128.0 276.3 110.0 304 110 C 331.7 110.0 345.5 137.4 372 154 C 398.5 170.6 404.1 188.0 428 188 C 451.9 188.0 498.5 177.9 484 154 C 469.5 130.1 379.2 101.6 360 76 C 340.8 50.4 386.7 43.0 394 34" class="svg-arrow" fill="none" marker-end="url(#ah30)"/>
+      <path d="M 280 92 L 186 138" class="svg-line"/>
+      <path d="M 328 92 L 428 138" class="svg-line"/>
+      <path d="M 162 170 L 98 216" class="svg-line"/>
+      <path d="M 210 170 L 274 216" class="svg-line"/>
+      <rect x="268" y="60" width="72" height="32" class="svg-cell"/>
+      <text x="304" y="81" class="svg-text">A</text>
+      <rect x="150" y="138" width="72" height="32" class="svg-cell"/>
+      <text x="186" y="159" class="svg-text">B</text>
+      <rect x="392" y="138" width="72" height="32" class="svg-cell"/>
+      <text x="428" y="159" class="svg-text">C</text>
+      <rect x="62" y="216" width="72" height="32" class="svg-cell"/>
+      <text x="98" y="237" class="svg-text">D</text>
+      <rect x="238" y="216" width="72" height="32" class="svg-cell"/>
+      <text x="274" y="237" class="svg-text">E</text>
+      <text x="234" y="38" class="svg-small" style="text-anchor:end">出発</text>
+      <text x="402" y="38" class="svg-small" style="text-anchor:start">一周して終わり</text>
+      <circle cx="248" cy="76" r="11" class="svg-bg"/>
+      <circle cx="248" cy="76" r="11" class="svg-hl"/>
+      <text x="248" y="80.5" class="svg-mono">1</text>
+      <circle cx="130" cy="154" r="11" class="svg-bg"/>
+      <circle cx="130" cy="154" r="11" class="svg-hl"/>
+      <text x="130" y="158.5" class="svg-mono">2</text>
+      <circle cx="42" cy="232" r="11" class="svg-bg"/>
+      <circle cx="42" cy="232" r="11" class="svg-hl"/>
+      <text x="42" y="236.5" class="svg-mono">3</text>
+      <circle cx="218" cy="232" r="11" class="svg-bg"/>
+      <circle cx="218" cy="232" r="11" class="svg-hl"/>
+      <text x="218" y="236.5" class="svg-mono">4</text>
+      <circle cx="372" cy="154" r="11" class="svg-bg"/>
+      <circle cx="372" cy="154" r="11" class="svg-hl"/>
+      <text x="372" y="158.5" class="svg-mono">5</text>
+      <text x="24" y="296" class="svg-small" style="text-anchor:start">処理される順序</text>
+      <text x="140" y="296" class="svg-mono" style="text-anchor:start">A B D E C</text>
+      <defs>
+        <marker id="ah30" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　行きがけ順の走査。外周をなぞる曲線が節点の左側を通る時点で、その節点を処理する。根 A を最初に処理し、その後に左部分木へ降りるため、部分木の中身より先に親が決まる。この性質により、行きがけ順で取り出した列から木の形を組み立て直せる。
+    </figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 580 308" role="img" aria-label="木の外周を一周する曲線が、各節点の下側を通る時点に番号を付けた図。通りがけ順の訪問順序 D B E A C を示す">
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">通りがけ順　節点の<tspan class="svg-mono">下</tspan>を通るときに処理する</text>
+      <path d="M 242 34 C 243.3 43.0 271.9 50.4 248 76 C 224.1 101.6 173.9 120.7 130 154 C 86.1 187.3 48.8 208.1 42 232 C 35.2 255.9 74.1 266.0 98 266 C 121.9 266.0 135.2 248.6 154 232 C 172.8 215.4 172.3 188.0 186 188 C 199.7 188.0 199.2 215.4 218 232 C 236.8 248.6 250.1 266.0 274 266 C 297.9 266.0 336.8 255.9 330 232 C 323.2 208.1 247.5 180.0 242 154 C 236.5 128.0 276.3 110.0 304 110 C 331.7 110.0 345.5 137.4 372 154 C 398.5 170.6 404.1 188.0 428 188 C 451.9 188.0 498.5 177.9 484 154 C 469.5 130.1 379.2 101.6 360 76 C 340.8 50.4 386.7 43.0 394 34" class="svg-arrow" fill="none" marker-end="url(#ah31)"/>
+      <path d="M 280 92 L 186 138" class="svg-line"/>
+      <path d="M 328 92 L 428 138" class="svg-line"/>
+      <path d="M 162 170 L 98 216" class="svg-line"/>
+      <path d="M 210 170 L 274 216" class="svg-line"/>
+      <rect x="268" y="60" width="72" height="32" class="svg-cell"/>
+      <text x="304" y="81" class="svg-text">A</text>
+      <rect x="150" y="138" width="72" height="32" class="svg-cell"/>
+      <text x="186" y="159" class="svg-text">B</text>
+      <rect x="392" y="138" width="72" height="32" class="svg-cell"/>
+      <text x="428" y="159" class="svg-text">C</text>
+      <rect x="62" y="216" width="72" height="32" class="svg-cell"/>
+      <text x="98" y="237" class="svg-text">D</text>
+      <rect x="238" y="216" width="72" height="32" class="svg-cell"/>
+      <text x="274" y="237" class="svg-text">E</text>
+      <text x="234" y="38" class="svg-small" style="text-anchor:end">出発</text>
+      <text x="402" y="38" class="svg-small" style="text-anchor:start">一周して終わり</text>
+      <circle cx="98" cy="266" r="11" class="svg-bg"/>
+      <circle cx="98" cy="266" r="11" class="svg-hl"/>
+      <text x="98" y="270.5" class="svg-mono">1</text>
+      <circle cx="186" cy="188" r="11" class="svg-bg"/>
+      <circle cx="186" cy="188" r="11" class="svg-hl"/>
+      <text x="186" y="192.5" class="svg-mono">2</text>
+      <circle cx="274" cy="266" r="11" class="svg-bg"/>
+      <circle cx="274" cy="266" r="11" class="svg-hl"/>
+      <text x="274" y="270.5" class="svg-mono">3</text>
+      <circle cx="304" cy="110" r="11" class="svg-bg"/>
+      <circle cx="304" cy="110" r="11" class="svg-hl"/>
+      <text x="304" y="114.5" class="svg-mono">4</text>
+      <circle cx="428" cy="188" r="11" class="svg-bg"/>
+      <circle cx="428" cy="188" r="11" class="svg-hl"/>
+      <text x="428" y="192.5" class="svg-mono">5</text>
+      <text x="24" y="296" class="svg-small" style="text-anchor:start">処理される順序</text>
+      <text x="140" y="296" class="svg-mono" style="text-anchor:start">D B E A C</text>
+      <defs>
+        <marker id="ah31" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-2　通りがけ順の走査。曲線が節点の下側を通るのは左部分木を回り終えた直後であり、その時点で自身を処理してから右部分木へ向かう。A が4番目に現れるのは、左部分木 D・B・E をすべて処理し終えた後に自身を処理するためである。
+    </figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 580 308" role="img" aria-label="木の外周を一周する曲線が、各節点の右側を通る時点に番号を付けた図。帰りがけ順の訪問順序 D E B C A を示す">
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">帰りがけ順　節点の<tspan class="svg-mono">右</tspan>を通るときに処理する</text>
+      <path d="M 242 34 C 243.3 43.0 271.9 50.4 248 76 C 224.1 101.6 173.9 120.7 130 154 C 86.1 187.3 48.8 208.1 42 232 C 35.2 255.9 74.1 266.0 98 266 C 121.9 266.0 135.2 248.6 154 232 C 172.8 215.4 172.3 188.0 186 188 C 199.7 188.0 199.2 215.4 218 232 C 236.8 248.6 250.1 266.0 274 266 C 297.9 266.0 336.8 255.9 330 232 C 323.2 208.1 247.5 180.0 242 154 C 236.5 128.0 276.3 110.0 304 110 C 331.7 110.0 345.5 137.4 372 154 C 398.5 170.6 404.1 188.0 428 188 C 451.9 188.0 498.5 177.9 484 154 C 469.5 130.1 379.2 101.6 360 76 C 340.8 50.4 386.7 43.0 394 34" class="svg-arrow" fill="none" marker-end="url(#ah32)"/>
+      <path d="M 280 92 L 186 138" class="svg-line"/>
+      <path d="M 328 92 L 428 138" class="svg-line"/>
+      <path d="M 162 170 L 98 216" class="svg-line"/>
+      <path d="M 210 170 L 274 216" class="svg-line"/>
+      <rect x="268" y="60" width="72" height="32" class="svg-cell"/>
+      <text x="304" y="81" class="svg-text">A</text>
+      <rect x="150" y="138" width="72" height="32" class="svg-cell"/>
+      <text x="186" y="159" class="svg-text">B</text>
+      <rect x="392" y="138" width="72" height="32" class="svg-cell"/>
+      <text x="428" y="159" class="svg-text">C</text>
+      <rect x="62" y="216" width="72" height="32" class="svg-cell"/>
+      <text x="98" y="237" class="svg-text">D</text>
+      <rect x="238" y="216" width="72" height="32" class="svg-cell"/>
+      <text x="274" y="237" class="svg-text">E</text>
+      <text x="234" y="38" class="svg-small" style="text-anchor:end">出発</text>
+      <text x="402" y="38" class="svg-small" style="text-anchor:start">一周して終わり</text>
+      <circle cx="154" cy="232" r="11" class="svg-bg"/>
+      <circle cx="154" cy="232" r="11" class="svg-hl"/>
+      <text x="154" y="236.5" class="svg-mono">1</text>
+      <circle cx="330" cy="232" r="11" class="svg-bg"/>
+      <circle cx="330" cy="232" r="11" class="svg-hl"/>
+      <text x="330" y="236.5" class="svg-mono">2</text>
+      <circle cx="242" cy="154" r="11" class="svg-bg"/>
+      <circle cx="242" cy="154" r="11" class="svg-hl"/>
+      <text x="242" y="158.5" class="svg-mono">3</text>
+      <circle cx="484" cy="154" r="11" class="svg-bg"/>
+      <circle cx="484" cy="154" r="11" class="svg-hl"/>
+      <text x="484" y="158.5" class="svg-mono">4</text>
+      <circle cx="360" cy="76" r="11" class="svg-bg"/>
+      <circle cx="360" cy="76" r="11" class="svg-hl"/>
+      <text x="360" y="80.5" class="svg-mono">5</text>
+      <text x="24" y="296" class="svg-small" style="text-anchor:start">処理される順序</text>
+      <text x="140" y="296" class="svg-mono" style="text-anchor:start">D E B C A</text>
+      <defs>
+        <marker id="ah32" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-3　帰りがけ順の走査。曲線が節点の右側に達するのは、その節点の部分木をすべて回り終えた時点である。根 A が最後になるため、子の処理結果を親がまとめ上げる用途に適する。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      根を P とする二分木がある。P の左の子は Q、右の子は R であり、
+      Q の右の子は S、R の左の子は T である。Q と R にこれ以外の子はなく、S と T は葉である。
+      この木を帰りがけ順で走査したとき、節点が処理される順序はどれか。
+    </p>
+    <ol class="choices">
+      <li>P Q S R T</li>
+      <li>Q S P T R</li>
+      <li>S Q T R P</li>
+      <li>S T Q R P</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          帰りがけ順は「左部分木 → 右部分木 → 自身」である。まず P の左部分木を処理する。
+          Q には左の子がなく右の子 S があるため、S を処理してから Q を処理する。
+          次に P の右部分木を処理する。R は左の子 T を持つため、T を処理してから R を処理する。
+          最後に自身の P を処理し、S Q T R P となる。
+        </p>
+        <p>
+          (A) は自身を最初に処理する行きがけ順の順序である。
+          (B) は自身を左右の部分木の間で処理する通りがけ順の順序であり、
+          帰りがけ順と取り違えている。(D) は S と T をまとめて先に処理しており、
+          深さの同じ節点を並べて訪れる形になっている。走査は部分木ごとに処理を完結させるため、
+          S を処理した後は Q へ戻る。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      高さが 4 の二分木について、含みうる節点数の最大値と、
+      その最大値を取るとき深さ 4 に存在する節点数の組合せとして正しいものはどれか。
+      なお根の深さを 0 とする。
+    </p>
+    <ol class="choices">
+      <li>最大値は 16、深さ 4 の節点数は 16</li>
+      <li>最大値は 31、深さ 4 の節点数は 16</li>
+      <li>最大値は 16、深さ 4 の節点数は 8</li>
+      <li>最大値は 32、深さ 4 の節点数は 16</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          深さ <code>d</code> の最大節点数は <code>2^d</code> であるから、深さ 4 では <code>2^4 = 16</code> 個である。
+          木全体はこれを深さ 0 から 4 まで合計したもので、
+          <code>1 + 2 + 4 + 8 + 16 = 31</code> 個となる。
+        </p>
+        <p>
+          (A) は深さ 4 の段だけを数えており、それより浅い段の節点を数え落としている。
+          高さは最も深い段の位置を表すのであって、木がその段だけで構成されるわけではない。
+          (C) は <code>2^3 = 8</code> を最下段と誤っており、根を深さ 1 と数える流儀で計算した場合に生じる。
+          (D) の 32 は <code>2^5</code> であり、合計 <code>2^(h+1) − 1</code> の 1 を引き忘れた値である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 二分探索木 — 大小関係を配置の規則にする ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>二分探索木 — 大小関係を配置の規則にする</h2>
+
+  <p>
+    二分木は左右の位置を区別する構造であるが、それだけでは
+    どの値をどちらに置くかの決まりがない。ここに大小関係の規則を課したものが
+    <span class="term">二分探索木</span><span class="en">(binary search tree)</span> である。
+  </p>
+
+  <div class="note">
+    <span class="label">二分探索木の条件</span>
+    <p>
+      すべての節点について、<strong>左部分木に含まれる値はその節点の値より小さく、
+      右部分木に含まれる値はその節点の値より大きい</strong>。
+    </p>
+  </div>
+
+  <p>
+    この条件で注意を要するのは、比較の対象が<strong>直接の子ではなく部分木全体</strong>である点である。
+    ある節点の左の子が自身より小さいだけでは足りず、左部分木に属する孫・ひ孫に至るまで、
+    すべてがその節点より小さくなければならない。条件が「すべての節点について」と
+    述べられているのは、この全体への要求を表している。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 280" role="img" aria-label="根が50の二分探索木で値70を探索する際、50との比較で左部分木の25と10と40が候補から外れ、次に60との比較で55が外れて2回の比較で70に到達する経路を示した図">
+      <path d="M 262 76 L 194 106" class="svg-line"/>
+      <path d="M 318 76 L 382 104" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 166 144 L 118 174" class="svg-line"/>
+      <path d="M 222 144 L 268 174" class="svg-line"/>
+      <path d="M 398 144 L 354 174" class="svg-line"/>
+      <path d="M 442 144 L 486 172" class="svg-arrow" marker-end="url(#ah2)"/>
+
+      <rect x="156" y="110" width="72" height="34" class="svg-cell-plain"/>
+      <text x="192" y="132" class="svg-text">25</text>
+      <rect x="76"  y="178" width="72" height="34" class="svg-cell-plain"/>
+      <text x="112" y="200" class="svg-text">10</text>
+      <rect x="240" y="178" width="72" height="34" class="svg-cell-plain"/>
+      <text x="276" y="200" class="svg-text">40</text>
+      <rect x="324" y="178" width="72" height="34" class="svg-cell-plain"/>
+      <text x="360" y="200" class="svg-text">55</text>
+
+      <rect x="254" y="42"  width="72" height="34" class="svg-cell"/>
+      <text x="290" y="64"  class="svg-text">50</text>
+      <rect x="376" y="110" width="72" height="34" class="svg-cell"/>
+      <text x="412" y="132" class="svg-text">60</text>
+      <rect x="460" y="178" width="72" height="34" class="svg-hl"/>
+      <text x="496" y="200" class="svg-text">70</text>
+
+      <text x="24" y="64"  class="svg-small" style="text-anchor:start">70 &gt; 50 → 右へ</text>
+      <text x="24" y="132" class="svg-small" style="text-anchor:start">70 &gt; 60 → 右へ</text>
+      <text x="24" y="248" class="svg-small" style="text-anchor:start">枠線のみの節点は、比較の結果 候補から外れたもの</text>
+      <text x="24" y="270" class="svg-small" style="text-anchor:start">7 個の節点のうち、実際に比較したのは 3 個</text>
+
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　二分探索木における値 70 の探索。根で 70 &gt; 50 と分かった時点で、
+      左部分木の 25・10・40 は見る必要がなくなる。条件が部分木全体に及ぶからこそ、
+      個々の値を確かめずにまとめて候補から外せる。
+    </figcaption>
+  </figure>
+
+  <h3>探索の手順</h3>
+
+  <p>
+    探索は根から始め、探す値と現在の節点の値を比較して進む向きを決める。
+    小さければ左へ、大きければ右へ進み、一致すれば発見である。
+    進んだ先に節点が存在しなければ、その値は木に含まれていない。
+  </p>
+
+  <pre><code>探索(節点 N, 探す値 x):
+1. N が存在しなければ、見つからなかったとして終了する
+2. x = N の値 ならば、N を答えとして終了する
+3. x &lt; N の値 ならば、探索(N の左の子, x)
+4. そうでなければ、探索(N の右の子, x)</code></pre>
+
+  <p>
+    1回の比較ごとに一方の部分木がまるごと候補から外れるため、
+    比較の回数は根から葉へ至る経路の長さ、すなわち<strong>木の高さに収まる</strong>。
+    節点が隙間なく詰まった木であれば、高さは節点数の対数の程度であった。
+    100万件の中から目的の値を19回程度の比較で見つけられることになる。
+  </p>
+
+  <h3>通りがけ順が昇順になる理由</h3>
+
+  <p>
+    二分探索木を通りがけ順で走査すると、値が昇順に取り出される。
+    通りがけ順は「左部分木 → 自身 → 右部分木」の順に処理する。
+    二分探索木の条件から、左部分木の値はすべて自身より小さく、
+    右部分木の値はすべて自身より大きい。したがって、自身を挟んで
+    小さい側が先に、大きい側が後に処理される。この関係がすべての節点で成り立つため、
+    全体として昇順に並ぶ。図 4-1 の木を通りがけ順にたどると
+    <code>10 25 40 50 55 60 70</code> となる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      根の値が 50、その左の子が 30、左の子 30 の右の子が 60 である二分木がある。
+      この木が二分探索木の条件を満たすかどうかと、その理由の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>満たす。30 は 50 より小さく左にあり、60 は 30 より大きく右にあるため、各節点とその子の関係はいずれも正しいから</li>
+      <li>満たさない。60 は 50 の左部分木に属しているが 50 より大きく、左部分木のすべての値が根より小さいという条件に反するから</li>
+      <li>満たさない。二分探索木では葉の値が根の値より小さくなければならないから</li>
+      <li>満たす。通りがけ順にたどると 30 60 50 となり、左から右へ値をたどれる形になっているから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          条件は部分木全体に及ぶ。60 は 50 の左部分木に属する節点であるから、
+          50 より小さくなければならない。親である 30 との関係が正しくとも、
+          祖先である 50 との関係が破れている時点で条件を満たさない。
+        </p>
+        <p>
+          (A) は直接の親子の関係だけを確かめており、条件が部分木全体に及ぶことを見落としている。
+          この誤りは孫の代で初めて現れるため、子までしか確認しないと気づけない。
+          (C) の「葉が根より小さい」という規則は存在しない。根より大きい値は右部分木の葉として正しく配置されうる。
+          (D) の通りがけ順は 30 60 50 で昇順になっておらず、結論の根拠として成立しない。
+          むしろ昇順にならないことが、条件を満たさない証拠である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 挿入と削除 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>挿入と削除</h2>
+
+  <p>
+    二分探索木に対する操作では、操作後も条件が保たれていなければならない。
+    条件が破れた木は探索の根拠を失い、比較で部分木を捨てる判断が誤りになる。
+    挿入と削除の手順は、いずれも条件を保つという要請から導かれる。
+  </p>
+
+  <h3>挿入 — 探索が失敗した位置に葉としてつなぐ</h3>
+
+  <p>
+    新たな値を加えるには、まずその値を探索する。条件を満たす木において、
+    ある値が入るべき位置は一箇所に定まっており、探索がたどり着く先がその位置である。
+    探索が節点の存在しない箇所に達したら、そこへ新しい節点を葉として接続する。
+  </p>
+
+  <pre><code>挿入(節点 N, 値 x):
+1. N が存在しなければ、値 x を持つ新しい節点を作って返す
+2. x &lt; N の値 ならば、N の左の子 ← 挿入(N の左の子, x)
+3. x &gt; N の値 ならば、N の右の子 ← 挿入(N の右の子, x)
+4. N を返す</code></pre>
+
+  <p>
+    既存の節点を動かさず、葉として付け加えるだけで済む点が重要である。
+    たどった経路上の節点はいずれも比較に用いただけで、値も位置も変わらない。
+    <strong>挿入に要する手数も、探索と同じく木の高さに収まる</strong>。
+  </p>
+
+  <h3>削除 — 子の個数で3つの場合に分かれる</h3>
+
+  <p>
+    削除は挿入ほど単純ではない。節点を取り除くと、その節点につながっていた部分木が
+    木から切り離されてしまうためである。切り離される部分木をどう繋ぎ直すかが、
+    子の個数によって変わる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　削除対象の子の個数と処理。子が2個の場合だけ、値の置き換えという別の手段を要する。
+      繋ぎ直す先が一つに定まらないためである。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>子の個数</th><th>処理</th><th>条件が保たれる理由</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num-cell">0</td>
+          <td>親との接続を断ち、そのまま取り除く</td>
+          <td>切り離される部分木が存在しないため、他の節点の配置に影響しない</td>
+        </tr>
+        <tr>
+          <td class="num-cell">1</td>
+          <td>その子を、削除する節点の位置に繋ぎ替える</td>
+          <td>子の部分木は削除対象と同じ側に属しており、祖先との大小関係をすでに満たしている</td>
+        </tr>
+        <tr>
+          <td class="num-cell">2</td>
+          <td>左部分木の最大値、または右部分木の最小値を持つ節点の値を持ち上げ、その節点を削除する</td>
+          <td>持ち上げる値は、残る全要素のうち削除対象の位置に置ける唯一の値である</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>子が2個の場合に持ち上げる値</h3>
+
+  <p>
+    子が2個ある節点を削除するとき、その位置に置ける値には制約がある。
+    その位置は<strong>左部分木のすべての値より大きく、右部分木のすべての値より小さい</strong>
+    という条件を満たさなければならない。残る要素の中でこの条件を満たすのは、
+    左部分木の最大値か、右部分木の最小値のいずれかしかない。
+  </p>
+
+  <p>
+    左部分木の最大値を選んだ場合を考える。その値は左部分木の中で最大であるから、
+    左部分木の他のすべての値より大きい。また左部分木に属する以上、
+    削除する節点より小さく、したがって右部分木のすべての値よりも小さい。
+    条件を両側とも満たす。右部分木の最小値を選んだ場合も同様の理由で成立する。
+  </p>
+
+  <p>
+    左部分木の最大値を持つ節点は、左の子から右へ右へとたどり続けた先にある。
+    <strong>その節点は右の子を持たない</strong>ため、そこを取り除く操作は
+    子が0個または1個の場合に帰着する。削除が無限に連鎖することはない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 346" role="img" aria-label="子を2個持つ節点50を削除する際、左部分木の最大値である40を50の位置へ持ち上げ、元の40の節点を取り除くことで二分探索木の条件が保たれることを削除前と削除後の二段で示した図">
+      <text x="24" y="26" class="svg-small" style="text-anchor:start">削除前 — 50 を削除する</text>
+
+      <path d="M 190 66 L 142 88" class="svg-line"/>
+      <path d="M 238 66 L 286 88" class="svg-line"/>
+      <path d="M 114 122 L 82 144" class="svg-line"/>
+      <path d="M 162 122 L 194 144" class="svg-line"/>
+
+      <rect x="180" y="36" width="68" height="30" class="svg-hl"/>
+      <text x="214" y="56" class="svg-text">50</text>
+      <rect x="104" y="92" width="68" height="30" class="svg-cell"/>
+      <text x="138" y="112" class="svg-text">25</text>
+      <rect x="256" y="92" width="68" height="30" class="svg-cell"/>
+      <text x="290" y="112" class="svg-text">60</text>
+      <rect x="44"  y="148" width="68" height="30" class="svg-cell"/>
+      <text x="78"  y="168" class="svg-text">10</text>
+      <rect x="164" y="148" width="68" height="30" class="svg-cell"/>
+      <text x="198" y="168" class="svg-text">40</text>
+
+      <text x="340" y="112" class="svg-small" style="text-anchor:start">左部分木の最大値は 40</text>
+      <text x="340" y="134" class="svg-small" style="text-anchor:start">右へたどった先にあり、</text>
+      <text x="340" y="156" class="svg-small" style="text-anchor:start">右の子を持たない</text>
+
+      <text x="24" y="206" class="svg-small" style="text-anchor:start">削除後 — 40 を持ち上げ、元の 40 を取り除いた</text>
+
+      <path d="M 190 252 L 142 268" class="svg-line"/>
+      <path d="M 238 252 L 286 268" class="svg-line"/>
+
+      <rect x="180" y="222" width="68" height="30" class="svg-hl"/>
+      <text x="214" y="242" class="svg-text">40</text>
+      <rect x="104" y="272" width="68" height="30" class="svg-cell"/>
+      <text x="138" y="292" class="svg-text">25</text>
+      <rect x="256" y="272" width="68" height="30" class="svg-cell"/>
+      <text x="290" y="292" class="svg-text">60</text>
+
+      <text x="356" y="278" class="svg-small" style="text-anchor:start">10 は 25 の左の子として残る</text>
+      <path d="M 116 302 L 104 308" class="svg-line"/>
+      <rect x="44" y="308" width="68" height="30" class="svg-cell"/>
+      <text x="78" y="328" class="svg-text">10</text>
+
+    </svg>
+    <figcaption>
+      図 5-1　子が2個ある節点の削除。40 を持ち上げると、左部分木に残る 10・25 はいずれも 40 より小さく、
+      右部分木の 60 は 40 より大きいため、条件が保たれる。50 の位置に 25 や 60 を持ち上げた場合は
+      この関係が崩れるため、持ち上げる値は自由に選べない。
+    </figcaption>
+  </figure>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      二分探索木から、子を2個持つ節点 <code>v</code> を削除する。
+      <code>v</code> の位置へ持ち上げる値として条件を保てるものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>v</code> の左の子の値。左部分木の根であり、削除される位置に最も近いから</li>
+      <li><code>v</code> の左部分木に含まれる値のうち最大のもの。左部分木の他のどの値よりも大きく、かつ右部分木のどの値よりも小さいから</li>
+      <li><code>v</code> の右部分木に含まれる値のうち最大のもの。残る値の中で最も大きく、上位の位置にふさわしいから</li>
+      <li><code>v</code> の左部分木に含まれる値のうち最小のもの。左部分木の値はすべて <code>v</code> より小さいため、そのうちどれを選んでも条件は保たれるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          持ち上げる値は、左部分木のすべての値より大きく、右部分木のすべての値より小さい
+          という二つの条件を同時に満たす必要がある。左部分木の最大値はその両方を満たす。
+          右部分木の最小値も同じ理由で選べる。
+        </p>
+        <p>
+          (A) の左の子は、左部分木にそれより大きい値（左の子の右部分木にある値）が残っていれば、
+          持ち上げた後にその値が自身より上位に来てしまう。左部分木の根であることと
+          左部分木の最大であることは別である。
+          (C) の右部分木の最大値は、右部分木に残る他の値より大きいため、
+          持ち上げると右部分木の条件が破れる。「上位の位置」は値の大小ではなく
+          左右の部分木との関係で決まる。
+          (D) は左部分木のどれを選んでもよいとしている点が誤りである。
+          最小値を持ち上げると、左部分木に残るそれより大きい値との関係が破れる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      空の二分探索木に対し、次の操作を上から順に実行する。
+    </p>
+    <pre><code>1. 40 を挿入
+2. 20 を挿入
+3. 60 を挿入
+4. 30 を挿入
+5. 20 を削除</code></pre>
+    <p class="q-body">
+      すべての操作の完了後、根の左の子が持つ値はどれか。
+    </p>
+    <ol class="choices">
+      <li>30</li>
+      <li>40</li>
+      <li>60</li>
+      <li>左の子は存在しない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          操作1で 40 が根になる。操作2で 20 &lt; 40 より 40 の左の子となる。
+          操作3で 60 &gt; 40 より右の子となる。操作4の 30 は、40 と比べて左へ、
+          20 と比べて大きいため 20 の右の子となる。操作5で削除する 20 は
+          子を 30 の1個だけ持つため、その子を 20 の位置へ繋ぎ替える。
+          結果として 40 の左の子は 30 になる。
+        </p>
+        <p>
+          (B) の 40 は根であり、自身が自身の子になることはない。
+          (C) の 60 は 40 より大きいため右部分木に属し、左の子には来ない。
+          削除によって左右が入れ替わることはない。
+          (D) は 20 を削除した時点で左部分木が空になると考えた場合に選ばれるが、
+          削除されるのは節点 20 だけであり、その子 30 は木に残る。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 形が性能を決める ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>形が性能を決める</h2>
+
+  <p>
+    ここまで、探索・挿入・削除のいずれも手数が木の高さに収まることを見た。
+    そして節点が隙間なく詰まった木では、高さが節点数の対数の程度に収まることも確かめた。
+    しかしこの二つを繋いで「二分探索木の操作は常に速い」と結論することはできない。
+    <strong>高さが対数に収まるのは、木の形が整っている場合に限られる</strong>。
+  </p>
+
+  <h3>挿入順序が形を決める</h3>
+
+  <p>
+    二分探索木の形は、値の集合だけでは定まらない。挿入の順序によって変わる。
+    昇順に整列済みの値を先頭から順に挿入する場合を考える。
+    最初の値が根になり、次の値はそれより大きいので右の子になる。
+    その次はさらに大きいので、また右の子になる。左の子は一度も作られない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 270" role="img" aria-label="同じ4つの値30、10、50、20から、挿入順序の違いによって高さ2の均衡した木と高さ3の一列に伸びた木が生じることを左右に並べて比較した図">
+      <text x="24" y="26" class="svg-small" style="text-anchor:start">30 → 10 → 50 → 20 の順に挿入</text>
+
+      <path d="M 122 68 L 82 90" class="svg-line"/>
+      <path d="M 170 68 L 210 90" class="svg-line"/>
+      <path d="M 92 124 L 122 150" class="svg-line"/>
+
+      <rect x="112" y="38" width="68" height="30" class="svg-cell"/>
+      <text x="146" y="58" class="svg-text">30</text>
+      <rect x="44"  y="94" width="68" height="30" class="svg-cell"/>
+      <text x="78"  y="114" class="svg-text">10</text>
+      <rect x="180" y="94" width="68" height="30" class="svg-cell"/>
+      <text x="214" y="114" class="svg-text">50</text>
+      <rect x="92"  y="150" width="68" height="30" class="svg-cell"/>
+      <text x="126" y="170" class="svg-text">20</text>
+
+      <text x="24" y="212" class="svg-small" style="text-anchor:start">高さ 2 ／ 最大 3 回の比較で</text>
+      <text x="24" y="234" class="svg-small" style="text-anchor:start">どの値にも到達する</text>
+
+      <text x="330" y="26" class="svg-small" style="text-anchor:start">10 → 20 → 30 → 50 の順に挿入</text>
+
+      <path d="M 404 68 L 424 90" class="svg-line"/>
+      <path d="M 448 124 L 468 150" class="svg-line"/>
+      <path d="M 492 184 L 512 208" class="svg-line"/>
+
+      <rect x="356" y="38"  width="68" height="30" class="svg-cell"/>
+      <text x="390" y="58"  class="svg-text">10</text>
+      <rect x="400" y="94"  width="68" height="30" class="svg-cell"/>
+      <text x="434" y="114" class="svg-text">20</text>
+      <rect x="444" y="150" width="68" height="30" class="svg-cell"/>
+      <text x="478" y="170" class="svg-text">30</text>
+      <rect x="488" y="208" width="68" height="30" class="svg-hl"/>
+      <text x="522" y="228" class="svg-text">50</text>
+
+      <text x="330" y="262" class="svg-small" style="text-anchor:start">高さ 3 ／ 50 に届くまで 4 回の比較</text>
+    </svg>
+    <figcaption>
+      図 6-1　同じ値の集合でも、挿入順序によって木の形が変わる。昇順に挿入した右の木は
+      左の子が一つも作られず、一列に伸びた形になっている。この形では比較のたびに捨てられる
+      左部分木が空であり、候補を絞るという二分探索木の利点が働かない。
+    </figcaption>
+  </figure>
+
+  <p>
+    右の木のように、各節点が子を一方にしか持たない形を
+    <span class="term">退化した木</span><span class="en">(degenerate tree)</span> と呼ぶ。
+    退化した木は構造としてはリストと変わらない。高さが節点数から 1 を引いた値になるため、
+    探索の比較回数は節点数に比例する。整列済みのデータをそのまま挿入するという、
+    実際に起こりやすい状況で最悪の形が生じる点に注意を要する。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      二分探索木は、平均的には節点数の対数に比例する手数で操作できるが、
+      <strong>最悪の場合は節点数に比例する</strong>。この差は要素数が増えるほど広がり、
+      100万件では19回と100万回の開きになる。形を整った状態に保つ仕組みを備えた木も
+      考案されており、最悪の場合でも対数に収まることが保証される。
+      素朴な二分探索木にはその保証がない。
+    </p>
+  </div>
+
+  <h3>配列・リストとの使い分け</h3>
+
+  <p>
+    ここまでに扱った配列・リスト・二分探索木を、操作ごとの手数で対比する。
+    いずれも要素を保持する構造であるが、何を速く行えるかが異なるため、
+    求める操作に応じて選ぶことになる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　構造ごとの操作に要する手数（要素数を n とする）。二分探索木の値は形が整っている場合のものであり、
+      退化した木では探索・挿入・削除のいずれも n に比例する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>操作</th><th>配列（整列済み）</th><th>リスト</th><th>二分探索木</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>値の探索</td>
+          <td>log n に比例</td>
+          <td>n に比例</td>
+          <td>log n に比例</td>
+        </tr>
+        <tr>
+          <td>位置が分かっている要素の挿入・削除</td>
+          <td>n に比例（後続の移動）</td>
+          <td>一定回数</td>
+          <td>一定回数（繋ぎ替えのみ）</td>
+        </tr>
+        <tr>
+          <td>値を指定した挿入・削除</td>
+          <td>n に比例</td>
+          <td>n に比例</td>
+          <td>log n に比例</td>
+        </tr>
+        <tr>
+          <td>k 番目の要素の取り出し</td>
+          <td>一定回数</td>
+          <td>k に比例</td>
+          <td>n に比例</td>
+        </tr>
+        <tr>
+          <td>昇順にすべて取り出す</td>
+          <td>n に比例</td>
+          <td>n に比例（整列していれば）</td>
+          <td>n に比例（通りがけ順）</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    表 6-1 から、<strong>二分探索木が有利になるのは、値を指定した探索と、
+    値を指定した挿入・削除の双方が頻繁に生じる場合</strong>であると分かる。
+    整列済み配列は探索こそ速いが挿入で後続要素の移動を伴い、
+    リストは挿入が軽いが目的の値まで順にたどる必要がある。
+    二分探索木は、たどる操作そのものが候補を絞る比較を兼ねることで、両方を対数に収めている。
+  </p>
+
+  <p>
+    一方で、<code>k</code> 番目という位置の指定で要素を取り出す用途には向かない。
+    木は大小関係で配置を決めており、順位の情報を保持していないためである。
+    この用途が中心であれば配列を選ぶ。
+    構造の選択は、性能の優劣ではなく、行う操作との対応で決まる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      空の二分探索木に、値 <code>15, 25, 35, 45, 55</code> を含む集合を挿入する。
+      挿入し終えた木の高さが最も大きくなる挿入順序はどれか。なお根の深さを 0 とする。
+    </p>
+    <ol class="choices">
+      <li>35, 15, 55, 25, 45</li>
+      <li>15, 25, 35, 45, 55</li>
+      <li>35, 25, 45, 15, 55</li>
+      <li>45, 25, 55, 15, 35</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          (B) は昇順である。15 が根になり、以降はすべて直前の値より大きいため、
+          右の子としてつながり続け、左の子が一度も作られない。5 個の節点が一列に並び、高さは 4 になる。
+          これが退化した木である。
+        </p>
+        <p>
+          (A) は中央の 35 を根とし、その左右に 15 と 55 を配置してから残りを加えるため、
+          高さは 2 に収まる。(C) も同様に中央から挿入する順序で、高さは 2 である。
+          (D) は 45 を根とするためやや偏るが、25 が左の子となりその左右に 15 と 35 が付くため、
+          高さは 2 にとどまる。いずれも根に中央付近の値が来ており、
+          左右に振り分けられることで高さが抑えられている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-2</span>
+    <p class="q-body">
+      ある用途で保持するデータについて、値を指定した探索と、値を指定した挿入・削除が
+      いずれも頻繁に発生する。一方で「先頭から <code>k</code> 番目の要素」を
+      取り出す操作は行わない。この状況に適した構造と理由の組合せとして最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>整列済み配列。探索が対数に収まり、挿入も添字の計算だけで位置が定まるから</li>
+      <li>リスト。挿入・削除がポインタの張り替えだけで済み、探索もその過程で同時に行えるから</li>
+      <li>二分探索木。たどる操作が候補を絞る比較を兼ねるため、探索と挿入・削除のいずれも高さに収まるから</li>
+      <li>二分探索木。節点数に関わらず高さが一定に保たれ、操作の手数が要素数に左右されないから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          二分探索木では、目的の位置へたどる過程がそのまま大小の比較になっており、
+          比較のたびに片側の部分木を候補から外せる。探索も、挿入位置の決定も、
+          削除対象の発見も同じ経路をたどるため、いずれも高さに収まる。
+          <code>k</code> 番目の取り出しを行わないという条件は、木の弱点を避けている。
+        </p>
+        <p>
+          (A) は探索が対数に収まる点は正しいが、挿入は位置が定まった後に後続要素を
+          すべて移動させる必要がある。位置の決定と挿入の実行を混同している。
+          (B) は挿入・削除の軽さは正しいが、目的の値まで先頭から順にたどるため
+          探索が要素数に比例する。たどることと絞り込むことは別である。
+          (D) は結論は合っているが理由が誤りである。高さは一定ではなく、
+          節点数と挿入順序に左右される。整った形でようやく対数に収まる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 利用される場面 ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>利用される場面</h2>
+
+  <p>
+    木構造は、階層を持つデータの表現と、大小関係による絞り込みという二つの役割で用いられる。
+    前者は構造をそのまま写し取る用途であり、後者は探索の手数を抑える用途である。
+  </p>
+
+  <h3>階層をそのまま表す</h3>
+
+  <p>
+    ディレクトリの構成、組織の編成、書籍の章立てのように、
+    もともと階層を持つ対象は、木構造に写すと関係をそのまま保持できる。
+    この用途では、大小関係の条件は課されない。子の個数にも制限を設けない。
+  </p>
+
+  <p>
+    表示や処理の順序は走査によって定まる。ディレクトリの一覧を上位から順に表示するなら
+    行きがけ順であり、各ディレクトリの容量を配下の合計として求めるなら帰りがけ順である。
+    後者は、子の結果が出揃ってからでなければ親の値を決められないためである。
+    <strong>どの走査を選ぶかは、処理の依存関係が決める。</strong>
+  </p>
+
+  <p>
+    文書の構造を表す記述、すなわち HTML や XML のような入れ子を持つ形式も、
+    解釈された後は木として扱われる。<strong>開始と終了で囲まれた範囲が、
+    そのまま一つの部分木に対応する</strong>ためである。
+    ある要素の内側に書かれたものはすべてその要素の子孫となり、
+    内側と外側が交差することはない。この性質が、親がただ一つに定まるという木の条件を満たす。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 250" role="img" aria-label="入れ子を持つ記述と、それを解釈して得られる木を並べた図。article の内側に h1 と section があり、section の内側に p が二つある構造が、そのまま親子関係に対応する">
+      <text x="24" y="34" class="svg-small" style="text-anchor:start">記述</text>
+      <text x="318" y="34" class="svg-small" style="text-anchor:start">解釈された結果</text>
+      <text x="24" y="62" class="svg-mono" style="text-anchor:start">&lt;article&gt;</text>
+      <text x="38" y="86" class="svg-mono" style="text-anchor:start">&lt;h1&gt;木構造&lt;/h1&gt;</text>
+      <text x="38" y="110" class="svg-mono" style="text-anchor:start">&lt;section&gt;</text>
+      <text x="52" y="134" class="svg-mono" style="text-anchor:start">&lt;p&gt;…&lt;/p&gt;</text>
+      <text x="52" y="158" class="svg-mono" style="text-anchor:start">&lt;p&gt;…&lt;/p&gt;</text>
+      <text x="38" y="182" class="svg-mono" style="text-anchor:start">&lt;/section&gt;</text>
+      <text x="24" y="206" class="svg-mono" style="text-anchor:start">&lt;/article&gt;</text>
+      <path d="M 292 44 L 292 224" class="svg-line"/>
+      <path d="M 411 80 L 351 116" class="svg-line"/>
+      <path d="M 411 80 L 471 116" class="svg-line"/>
+      <path d="M 471 144 L 411 180" class="svg-line"/>
+      <path d="M 471 144 L 531 180" class="svg-line"/>
+      <rect x="372" y="52" width="78" height="28" class="svg-cell"/>
+      <text x="411" y="71" class="svg-mono">article</text>
+      <rect x="312" y="116" width="78" height="28" class="svg-cell"/>
+      <text x="351" y="135" class="svg-mono">h1</text>
+      <rect x="432" y="116" width="78" height="28" class="svg-hl"/>
+      <text x="471" y="135" class="svg-mono">section</text>
+      <rect x="372" y="180" width="78" height="28" class="svg-cell"/>
+      <text x="411" y="199" class="svg-mono">p</text>
+      <rect x="492" y="180" width="78" height="28" class="svg-cell"/>
+      <text x="531" y="199" class="svg-mono">p</text>
+      <text x="24" y="242" class="svg-small" style="text-anchor:start">section の開始と終了が囲む範囲が、その節点の部分木にあたる</text>
+    </svg>
+    <figcaption>
+      図 7-1　入れ子を持つ記述と、そこから得られる木。
+      <code>section</code> の開始と終了で囲まれた範囲に含まれる要素が、
+      そのまま <code>section</code> を根とする部分木を成す。
+      囲む範囲が交差しないことが、各要素の親を一つに定める。
+    </figcaption>
+  </figure>
+
+  <h3>大小関係で候補を絞る</h3>
+
+  <p>
+    二分探索木が効くのは、<strong>値の集合が変化し続けながら、その集合に対する探索も行われる場面</strong>である。
+    集合が変化しないなら、あらかじめ整列した配列を用意すれば足りる。
+    変化するからこそ、挿入・削除を軽く済ませる必要が生じる。
+  </p>
+
+  <p>
+    図 7-2 は、学籍番号をキーとする索引を木として保持した例である。
+    特定の番号を探すだけでなく、ある範囲に含まれる番号をまとめて取り出す操作も、
+    木の性質をそのまま使って行える。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 240" role="img" aria-label="学籍番号をキーとする二分探索木から、1104 以上 1109 以下の範囲に含まれる 1104・1106・1108 が取り出される様子を示した図">
+      <path d="M 292 84 L 160 122" class="svg-line"/>
+      <path d="M 292 84 L 424 122" class="svg-line"/>
+      <path d="M 160 150 L 94 188" class="svg-line"/>
+      <path d="M 160 150 L 226 188" class="svg-line"/>
+      <path d="M 424 150 L 358 188" class="svg-line"/>
+      <path d="M 424 150 L 490 188" class="svg-line"/>
+      <rect x="256" y="56" width="72" height="28" class="svg-hl"/>
+      <text x="292" y="75" class="svg-mono">1106</text>
+      <rect x="124" y="122" width="72" height="28" class="svg-cell"/>
+      <text x="160" y="141" class="svg-mono">1103</text>
+      <rect x="388" y="122" width="72" height="28" class="svg-cell"/>
+      <text x="424" y="141" class="svg-mono">1110</text>
+      <rect x="58" y="188" width="72" height="28" class="svg-cell"/>
+      <text x="94" y="207" class="svg-mono">1101</text>
+      <rect x="190" y="188" width="72" height="28" class="svg-hl"/>
+      <text x="226" y="207" class="svg-mono">1104</text>
+      <rect x="322" y="188" width="72" height="28" class="svg-hl"/>
+      <text x="358" y="207" class="svg-mono">1108</text>
+      <rect x="454" y="188" width="72" height="28" class="svg-cell"/>
+      <text x="490" y="207" class="svg-mono">1112</text>
+      <text x="24" y="232" class="svg-small" style="text-anchor:start">範囲 1104 以上 1109 以下に含まれる節点を強調</text>
+    </svg>
+    <figcaption>
+      図 7-2　学籍番号をキーとする索引の木。範囲の下端 1104 を探索してから
+      通りがけ順に走査を続けると、1104・1106・1108 が昇順に得られ、
+      上端を越えた時点で打ち切れる。範囲外の 1101・1103・1110・1112 をたどる必要がない。
+    </figcaption>
+  </figure>
+
+  <ul>
+    <li>
+      データベースの<span class="term">索引</span><span class="en">(index)</span> —
+      表に対する行の追加・削除が続く一方で、特定の値を持つ行の検索も行われる。
+      索引を木として保持することで、両方を対数に収める
+    </li>
+    <li>
+      範囲を指定した取り出し — ある値以上かつある値以下の要素をすべて列挙する。
+      通りがけ順が昇順になる性質により、範囲の下端を探索してから
+      昇順に走査を続けるだけで済む
+    </li>
+    <li>
+      優先度や期限による管理 — 締切の早い順に処理する、
+      有効期限の切れたものを取り除く、といった操作が値の大小で表せる
+    </li>
+  </ul>
+
+  <p>
+    実務で用いられる索引は、本講で扱った二分探索木そのものではなく、
+    一つの節点に多数の子を持たせ、挿入のたびに形を整える仕組みを備えた木である。
+    整った形を保証しなければ、第6節で見たとおり一列に退化しうるためである。
+    ただし<strong>大小関係を配置の規則とし、比較のたびに候補を絞るという原理は共通</strong>しており、
+    二分探索木はその原理を最小の形で表したものにあたる。
+  </p>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      連想配列や集合として提供される機能の内部にも、木が用いられることがある。
+      値を順序づけて保持し、範囲の指定や最小値の取り出しに応じる実装がこれにあたる。
+      順序を保持しない実装では、別の仕組みが用いられる。
+      提供される操作の一覧に順序に関するものが含まれるかどうかが、判断の手がかりになる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      あるディレクトリ以下のすべてのファイルの容量を合計し、
+      各ディレクトリに「配下の合計容量」を記録したい。用いる走査として適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>行きがけ順。上位のディレクトリから順に確定するため、記録の順序が自然になるから</li>
+      <li>帰りがけ順。あるディレクトリの合計は配下すべての値が定まってからでなければ求められないから</li>
+      <li>通りがけ順。左右の配下を均等に処理でき、合計の計算が偏らないから</li>
+      <li>どの走査でもよい。すべての節点を一度ずつ訪れる点は共通であり、合計値は順序に依存しないから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          あるディレクトリの合計容量は、その配下にあるすべての要素の容量が
+          確定していなければ求められない。自身の処理を子の処理より後に置く走査、
+          すなわち帰りがけ順がこの依存関係に対応する。
+        </p>
+        <p>
+          (A) の行きがけ順は自身を最初に処理するため、配下の値が未確定の時点で
+          自身の合計を求めることになり、成立しない。
+          (C) の通りがけ順も、左の配下を処理した時点で自身を処理するため、
+          右の配下がまだ残っている。均等に処理するかどうかは依存関係と無関係である。
+          (D) は「すべてを一度ずつ訪れる」点のみに着目しており、
+          <strong>値の確定順序という依存関係</strong>を見落としている。
+          訪れることと、その時点で計算できることは別である。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-2</span>
+    <p class="q-body">
+      次の用途のうち、二分探索木を用いる利点が最も大きいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>一度作成した後は変更せず、特定の値の有無を繰り返し調べるだけの集合</li>
+      <li>要素の追加・削除が続く集合に対し、特定の値の検索と、指定した範囲に含まれる値の列挙を行う</li>
+      <li>常に末尾にのみ要素を追加し、末尾からのみ取り出す用途</li>
+      <li>要素を格納した順に番号を振り、<code>k</code> 番目の要素を指定して取り出す用途</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          集合が変化し続けることが、挿入・削除の軽さを要求する。
+          同時に検索も行われることが、大小関係による絞り込みを要求する。
+          範囲の列挙は、通りがけ順が昇順になる性質を直接利用できる。
+          二分探索木の性質がいずれも活きる。
+        </p>
+        <p>
+          (A) は集合が変化しないため、あらかじめ整列した配列で足りる。
+          挿入・削除の軽さという利点が不要な場面では、木を選ぶ理由がない。
+          (C) は末尾での追加と取り出しに限られ、大小関係による絞り込みを必要としない。
+          (D) の <code>k</code> 番目という指定は順位の情報を要するが、
+          木は大小関係で配置を決めており順位を保持していない。この用途は木の弱点にあたる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li>
+      配列とリストはいずれも要素を一列に並べるため、速く探すことと軽く挿入することを
+      両立できない。分岐を持つ配置がこの制約を解く。
+    </li>
+    <li>
+      木構造は節点を枝で連結した構造であり、根以外のすべての節点がただ一つの親を持つ。
+      根からの枝の本数を深さ、その最大値を木の高さと呼ぶ。
+    </li>
+    <li>
+      二分木は子を高々2個に制限し、左右を区別する。節点が隙間なく詰まった二分木では、
+      高さが節点数の対数の程度に収まる。走査は自身を処理する時点の違いで
+      行きがけ順・通りがけ順・帰りがけ順に分かれる。
+    </li>
+    <li>
+      二分探索木は、すべての節点について左部分木の値が自身より小さく、
+      右部分木の値が自身より大きいという条件を満たす二分木である。
+      条件が部分木全体に及ぶからこそ、1回の比較で候補をまとめて捨てられる。
+      通りがけ順の走査は値を昇順に取り出す。
+    </li>
+    <li>
+      挿入は探索がたどり着いた位置に葉としてつなぐ。削除は子の個数で処理が分かれ、
+      子が2個の場合は左部分木の最大値または右部分木の最小値を持ち上げる。
+      これらの値だけが、削除される位置の条件を満たすためである。
+    </li>
+    <li>
+      木の形は挿入順序によって変わる。整列済みの値を順に挿入すると一列に退化し、
+      探索の手数が節点数に比例する。二分探索木の利点は、形が整っていることを前提とする。
+    </li>
+    <li>
+      木構造は、階層を持つ対象をそのまま写す用途と、大小関係で候補を絞る用途で用いられる。
+      後者が効くのは、集合が変化し続けながら探索も行われる場面である。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／木構造（二分木・探索木）<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
