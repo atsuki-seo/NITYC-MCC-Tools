@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>正規表現とオートマトン理論 | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>正規表現とオートマトン理論</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">語の形を有限の記述で定める</a></li>
+    <li><a href="#s2">正規表現 — 連接・選択・繰り返し</a></li>
+    <li><a href="#s3">略記法とトークンの定義</a></li>
+    <li><a href="#s4">有限オートマトン — 状態と遷移による判定</a></li>
+    <li><a href="#s5">正規表現と有限オートマトンの対応</a></li>
+    <li><a href="#s6">有限の状態で判定できない言語</a></li>
+    <li><a href="#s7">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 語の形を有限の記述で定める ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>語の形を有限の記述で定める</h2>
+
+  <p>
+    字句解析は、文字の並びとして与えられたソースコードを、意味のある最小単位であるトークンに切り出す工程である。
+    切り出した各語には「識別子」「整数」「演算子」といった種別を与える。
+    事前に機械語へ変換する処理系に限らず、ソースコードを逐次解釈して実行する処理系も、最初にこの工程を経る。
+  </p>
+
+  <p>
+    種別を与えるには、各種別に属する語の形をあらかじめ決めておく必要がある。
+    <code>x1</code> は識別子であり、<code>1x</code> は識別子ではない。この判断の根拠となる規則が要る。
+  </p>
+
+  <h3>言葉による定義の限界</h3>
+
+  <p>
+    「整数とは数字の並びである」と言葉で定めたとする。<code>42</code> が整数であることは疑いない。
+    しかし <code>007</code> を整数と認めるのか、<code>3.14</code> や <code>.5</code> はどの種別に属するのか、
+    この定義からは定まらない。人が読めば文脈から補える曖昧さも、機械は補えない。
+  </p>
+
+  <p>
+    一方で、識別子として認められる語を全て書き並べることもできない。
+    <code>x</code>, <code>x1</code>, <code>x12</code>, … と、規則を満たす語は限りなく存在するためである。
+    <strong>必要なのは、無数の語を含む集合を、有限の長さの記述で過不足なく定める手段である。</strong>
+  </p>
+
+  <h3>文字列と言語</h3>
+
+  <p>
+    この問題を扱うために、次の用語を用いる。
+  </p>
+
+  <ul>
+    <li><span class="term">アルファベット</span><span class="en">(alphabet)</span> — 用いてよい文字の有限集合。ソースコードであれば、英字・数字・記号の全体がこれにあたる</li>
+    <li><span class="term">文字列</span><span class="en">(string)</span> — アルファベットの文字を有限個並べたもの。一文字も含まない文字列を <span class="term">空文字列</span><span class="en">(empty string)</span> と呼び、ε で表す</li>
+    <li><span class="term">言語</span><span class="en">(language)</span> — 文字列の集合。「識別子の全体」「整数の全体」は、それぞれ一つの言語である</li>
+  </ul>
+
+  <p>
+    この用語で言い直すと、字句解析で必要になるのは次の二つである。
+  </p>
+
+  <ul>
+    <li>トークンの種別ごとに、その言語を有限の記述で定める手段 — <strong>正規表現</strong></li>
+    <li>与えられた文字列がその言語に属するかを、機械が判定する仕組み — <strong>有限オートマトン</strong></li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>トークンの種別を、文字列の集合である言語として捉えられる</li>
+      <li>連接・選択・繰り返しと略記法を用いて、トークンを正規表現で定義できる</li>
+      <li>有限オートマトンの動作を状態遷移図に沿って追跡し、受理・不受理を判定できる</li>
+      <li>正規表現と有限オートマトンの対応、および有限の状態では判定できない言語の例を説明できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      「英字で始まり、英字または数字が続く文字列」を識別子とする。この規則が定める識別子の言語についての記述として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>規則を満たす文字列の集合であり、その要素は限りなく存在する</li>
+      <li>あるソースコードに実際に現れた識別子を集めた集合である</li>
+      <li>計算機の記憶域が有限であるため、要素の個数も有限である</li>
+      <li>識別子を構成しうる文字、すなわち英字と数字の集合である</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          言語は文字列の集合であり、識別子の言語は規則を満たす全ての文字列からなる。
+          <code>x</code>, <code>x1</code>, <code>x11</code>, … と長さに上限がないため、要素は無数にある。
+          だからこそ、列挙ではなく有限の記述で定める手段が必要になる。
+        </p>
+        <p>
+          (B) は、言語と、特定のソースコードにおける出現とを混同している。言語は、まだ書かれていない語も含めて定まる。
+          (C) は、記憶域の制約を言語の性質の原因と考えた誤りである。言語は数学的な集合であり、計算機の資源とは独立に定まる。
+          (D) は、言語とアルファベットを取り違えている。英字と数字の集合は文字の集合であって、文字列の集合ではない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 正規表現 — 連接・選択・繰り返し ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>正規表現 — 連接・選択・繰り返し</h2>
+
+  <p>
+    <span class="term">正規表現</span><span class="en">(regular expression)</span> は、言語を式の形で表す記法である。
+    小さな正規表現を組み合わせて大きな正規表現を作る形で定義される。
+  </p>
+
+  <ul>
+    <li>文字 <code>a</code> は、文字列 <code>a</code> だけを含む言語 {a} を表す</li>
+    <li><code>ε</code> は、空文字列だけを含む言語 {ε} を表す</li>
+    <li><code>r</code> と <code>s</code> が正規表現であれば、次の三つもまた正規表現である
+      <ul>
+        <li><span class="term">連接</span><span class="en">(concatenation)</span> <code>rs</code> — <code>r</code> の文字列の後に <code>s</code> の文字列を続けたもの全体</li>
+        <li><span class="term">選択</span><span class="en">(alternation)</span> <code>r|s</code> — <code>r</code> の文字列と <code>s</code> の文字列を合わせたもの全体</li>
+        <li><span class="term">繰り返し</span><span class="en">(Kleene star)</span> <code>r*</code> — <code>r</code> の文字列を 0 回以上連接したもの全体。0 回の場合は空文字列 ε になる</li>
+      </ul>
+    </li>
+  </ul>
+
+  <p>
+    このように、基本となる要素と、要素から新たな要素を作る規則とで対象を定める方法を
+    <span class="term">帰納的定義</span><span class="en">(inductive definition)</span> と呼ぶ。
+    <strong>どの正規表現も、文字と ε から出発し、連接・選択・繰り返しを有限回適用して作られる。</strong>
+    式そのものは有限の長さでありながら、繰り返しによって無数の文字列を含む言語を表せる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　正規表現の演算と、それが表す言語。繰り返しを含む正規表現は、有限の長さで無数の文字列からなる言語を表す。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>演算</th><th>書き方</th><th>例</th><th>例が表す言語</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>連接</td><td><code>rs</code></td><td><code>ab</code></td><td>{ab}</td></tr>
+        <tr><td>選択</td><td><code>r|s</code></td><td><code>a|b</code></td><td>{a, b}</td></tr>
+        <tr><td>繰り返し</td><td><code>r*</code></td><td><code>a*</code></td><td>{ε, a, aa, aaa, …}</td></tr>
+        <tr><td>組合せ</td><td>—</td><td><code>(a|b)*abb</code></td><td>{abb, aabb, babb, aaabb, …}<br>a と b からなり、abb で終わる文字列の全体</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    ある文字列が正規表現の言語に属することは、その文字列を正規表現の各部分に割り当てられることを意味する。
+    図 2-1 は、文字列 <code>aababb</code> を <code>(a|b)*abb</code> の各部分に割り当てた例である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 150" role="img" aria-label="文字列 aababb の六文字のうち、先頭の三文字 aab が (a|b)* の三回の繰り返しに、末尾の三文字 abb が連接 abb に割り当てられることを示す図">
+      <path d="M 112 92 L 112 100 L 288 100 L 288 92" class="svg-line"/>
+      <path d="M 292 92 L 292 100 L 468 100 L 468 92" class="svg-line"/>
+
+      <text x="290" y="24" class="svg-small">文字列 aababb</text>
+
+      <rect x="110" y="40" width="60" height="44" class="svg-cell"/>
+      <rect x="170" y="40" width="60" height="44" class="svg-cell"/>
+      <rect x="230" y="40" width="60" height="44" class="svg-cell"/>
+      <rect x="290" y="40" width="60" height="44" class="svg-hl"/>
+      <rect x="350" y="40" width="60" height="44" class="svg-hl"/>
+      <rect x="410" y="40" width="60" height="44" class="svg-hl"/>
+
+      <text x="140" y="67" class="svg-text">a</text>
+      <text x="200" y="67" class="svg-text">a</text>
+      <text x="260" y="67" class="svg-text">b</text>
+      <text x="320" y="67" class="svg-text">a</text>
+      <text x="380" y="67" class="svg-text">b</text>
+      <text x="440" y="67" class="svg-text">b</text>
+
+      <text x="200" y="122" class="svg-mono">(a|b)*</text>
+      <text x="200" y="140" class="svg-small">a か b を 3 回選ぶ</text>
+      <text x="380" y="122" class="svg-mono">abb</text>
+      <text x="380" y="140" class="svg-small">a, b, b をこの順に連接する</text>
+    </svg>
+    <figcaption>
+      図 2-1　文字列 aababb は (a|b)*abb の言語に属する。前半の三文字を繰り返しが、後半の三文字を連接が受け持つ。
+      割り当て方が一つでも存在すれば、その文字列は言語に属する。
+    </figcaption>
+  </figure>
+
+  <h3>演算の優先順位</h3>
+
+  <p>
+    括弧を省いた正規表現は、<strong>繰り返し、連接、選択の順に強く結び付く</strong>ものとして読む。
+    算術式で、べき乗・乗算・加算の順に結び付くのと同じ関係である。
+    たとえば <code>ab*|c</code> は <code>(a(b*))|c</code> と読み、<code>a</code> の後に <code>b</code> が 0 個以上続く文字列と、文字列 <code>c</code> とからなる言語を表す。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      繰り返し <code>*</code> は直前の一要素だけに掛かる。<code>ab*</code> は <code>a</code>, <code>ab</code>, <code>abb</code>, … であり、
+      <code>ab</code> を繰り返した <code>abab</code> は含まない。<code>ab</code> を繰り返すには <code>(ab)*</code> と括弧で囲む。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      正規表現 <code>ab*|c</code> が表す言語に含まれる文字列はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>abab</code></li>
+      <li><code>a</code></li>
+      <li><code>ac</code></li>
+      <li>空文字列 ε</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          <code>ab*|c</code> は <code>(a(b*))|c</code> と読む。<code>b*</code> は 0 回の繰り返しを許すため、
+          <code>a</code> の後に <code>b</code> が一つも続かない文字列 <code>a</code> は、左側の選択肢に属する。
+        </p>
+        <p>
+          (A) は、<code>*</code> が <code>ab</code> 全体に掛かると読んだ誤りである。<code>*</code> は直前の <code>b</code> だけに掛かる。
+          (C) は、選択 <code>|</code> が連接より強く結び付くと考え、<code>a(b*|c)</code> と読んだ誤りである。選択は最も弱く結び付く。
+          (D) は、<code>*</code> が式全体に掛かると考えた誤りである。左側は必ず <code>a</code> を含み、右側は <code>c</code> であるため、どちらも空文字列にはならない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-2</span>
+    <p class="q-body">
+      正規表現 <code>(0|1)*0</code> が表す言語の説明として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>0 と 1 からなり、0 で始まる文字列の全体</li>
+      <li>0 と 1 からなり、0 で終わる長さ 1 以上の文字列の全体</li>
+      <li>0 と 1 を交互に並べ、0 で終わる文字列の全体</li>
+      <li>0 と 1 からなり、0 で終わる文字列の全体に空文字列を加えたもの</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          <code>(0|1)*</code> は 0 と 1 からなる任意の文字列（空文字列を含む）を表し、その後に必ず <code>0</code> が一つ連接される。
+          したがって 0 で終わり、少なくとも末尾の <code>0</code> の一文字を含む。
+        </p>
+        <p>
+          (A) は、末尾に連接された <code>0</code> を先頭のものと取り違えている。
+          (C) は、選択 <code>0|1</code> を連接 <code>01</code> と混同している。選択は 0 か 1 の一方を選ぶ演算であり、交互に並べることを要求しない。
+          (D) は、<code>*</code> の 0 回の繰り返しが式全体を空にすると考えた誤りである。0 回になるのは <code>(0|1)*</code> の部分だけであり、末尾の <code>0</code> は省けない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 略記法とトークンの定義 ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>略記法とトークンの定義</h2>
+
+  <p>
+    連接・選択・繰り返しだけで書くと、実用上の正規表現は長くなる。数字一文字を表すだけでも
+    <code>0|1|2|3|4|5|6|7|8|9</code> と書かなければならない。そこで、次の略記法が広く用いられる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　正規表現の略記法と、連接・選択・繰り返しによる書き換え。略記法は記述を短くするだけで、表せる言語の範囲を広げない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>略記</th><th>意味</th><th>連接・選択・繰り返しでの書き方</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>r+</code></td><td><code>r</code> を 1 回以上繰り返す</td><td><code>rr*</code></td></tr>
+        <tr><td><code>r?</code></td><td><code>r</code> が 0 回または 1 回現れる</td><td><code>r|ε</code></td></tr>
+        <tr><td><code>[abc]</code></td><td>括弧内のいずれか一文字</td><td><code>a|b|c</code></td></tr>
+        <tr><td><code>[a-z]</code></td><td>範囲内のいずれか一文字</td><td><code>a|b|…|z</code></td></tr>
+        <tr><td><code>[0-9]</code></td><td>数字一文字</td><td><code>0|1|…|9</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    どの略記も連接・選択・繰り返しに書き直せる。<strong>略記法を加えても、表せる言語の範囲は変わらない。</strong>
+    このため、正規表現の性質を論じるときは、基本の三演算だけを考えれば足りる。
+  </p>
+
+  <h3>トークンを正規表現で定める</h3>
+
+  <p>
+    略記法を用いると、トークンの種別を短く正確に定義できる。表 3-2 は、多くの言語に見られる規則を正規表現で書いた例である。
+    識別子に用いてよい文字などの細部は言語によって異なる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-2　トークンの種別と、それを定める正規表現の例。言葉による定義で曖昧だった 007 や .5 の扱いが、正規表現では一意に定まる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>種別</th><th>正規表現</th><th>属する例</th><th>属さない例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>識別子</td><td><code>[A-Za-z_][A-Za-z0-9_]*</code></td><td><code>x</code>, <code>x1</code>, <code>_tmp</code></td><td><code>1x</code>, <code>x-1</code></td></tr>
+        <tr><td>整数</td><td><code>0|[1-9][0-9]*</code></td><td><code>0</code>, <code>42</code>, <code>100</code></td><td><code>007</code>, <code>00</code></td></tr>
+        <tr><td>小数</td><td><code>[0-9]+\.[0-9]+</code></td><td><code>3.14</code>, <code>0.5</code></td><td><code>.5</code>, <code>3.</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    <code>007</code> を整数と認めるか、<code>.5</code> を小数と認めるかは言語の設計者が決める事柄である。
+    正規表現が保証するのは、決めた内容が読み手によって食い違わないことである。
+  </p>
+
+  <div class="note caution">
+    <span class="label">注意</span>
+    <p>
+      多くのツールでは、<code>.</code> が「任意の一文字」を表す記号として予約されている。
+      文字としてのピリオドを表すには、表 3-2 の小数のように <code>\.</code> と書く。
+      このように、記号から特別な意味を外す操作を <span class="term">エスケープ</span><span class="en">(escape)</span> と呼ぶ。
+      予約されている記号の種類はツールによって異なる。
+    </p>
+  </div>
+
+  <h3>パターンマッチング</h3>
+
+  <p>
+    文字列が正規表現に適合するかを調べる処理を <span class="term">パターンマッチング</span><span class="en">(pattern matching)</span> と呼ぶ。
+    これには二つの問い方がある。
+  </p>
+
+  <ul>
+    <li><span class="term">全体一致</span><span class="en">(full match)</span> — 文字列の全体が正規表現の言語に属するか</li>
+    <li><span class="term">部分一致</span><span class="en">(partial match)</span> — 文字列の中に、正規表現の言語に属する部分があるか</li>
+  </ul>
+
+  <p>
+    正規表現 <code>[0-9]+</code> と文字列 <code>abc123def</code> であれば、部分一致では <code>123</code> が見つかり、全体一致では適合しない。
+    多くのツールは既定で部分一致を行い、<code>^</code> と <code>$</code> で文字列の先頭と末尾を指定して全体一致を求める。
+    字句解析は、読み進めている位置から始まる部分が、どの種別の正規表現に適合するかを調べる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      先頭に余分な 0 を付けない整数を表したい。<code>0</code>, <code>7</code>, <code>42</code>, <code>100</code> は属し、
+      <code>007</code> や <code>00</code> は属さないようにする。適切な正規表現はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>[0-9]+</code></li>
+      <li><code>[1-9][0-9]*</code></li>
+      <li><code>[1-9]*[0-9]</code></li>
+      <li><code>0|[1-9][0-9]*</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          0 だけからなる <code>0</code> と、0 以外の数字で始まる数字列 <code>[1-9][0-9]*</code> とを選択で合わせる。
+          二桁目以降には 0 が現れてよいため、<code>100</code> も属する。
+        </p>
+        <p>
+          (A) は範囲が広すぎる。数字の並びであれば何でも属するため、<code>007</code> や <code>00</code> も含んでしまう。
+          (B) は境界の扱いを誤っている。先頭を <code>[1-9]</code> に限ったため、0 そのものが属さなくなる。
+          (C) は、0 を許す位置を取り違えている。末尾の一文字だけが <code>[0-9]</code> であるため、
+          <code>100</code> のように 0 が二つ以上続く整数が属さない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      略記を用いた正規表現 <code>[ab]+</code> を、連接・選択・繰り返しだけで書き直したものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>(a|b)*</code></li>
+      <li><code>ab(ab)*</code></li>
+      <li><code>(a|b)(a|b)*</code></li>
+      <li><code>aa*|bb*</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          <code>[ab]</code> は <code>a|b</code> であり、<code>r+</code> は <code>rr*</code> である。
+          両者を組み合わせると <code>(a|b)(a|b)*</code> となり、a と b からなる長さ 1 以上の文字列の全体を表す。
+        </p>
+        <p>
+          (A) は、1 回以上と 0 回以上を混同している。<code>(a|b)*</code> は空文字列を含む。
+          (B) は、<code>[ab]</code> を文字列 <code>ab</code> の連接と混同している。括弧 <code>[ ]</code> は一文字を選ぶ記法である。
+          (D) は、繰り返しのたびに同じ文字を選ばなければならないと考えた誤りである。<code>[ab]+</code> は繰り返すごとに a か b を選び直せるため、<code>ab</code> や <code>ba</code> も属する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 有限オートマトン — 状態と遷移による判定 ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>有限オートマトン — 状態と遷移による判定</h2>
+
+  <p>
+    正規表現は言語を定めるが、与えられた文字列がその言語に属するかを判定する手順は示さない。
+    判定の手順を与えるのが <span class="term">有限オートマトン</span><span class="en">(finite automaton)</span> である。
+    有限オートマトンは次の要素からなる。
+  </p>
+
+  <ul>
+    <li><span class="term">状態</span><span class="en">(state)</span> — 有限個の状態の集合。ある時点で、オートマトンはそのうちの一つにある</li>
+    <li><span class="term">初期状態</span><span class="en">(initial state)</span> — 文字を読み始める時点の状態。一つだけ定める</li>
+    <li><span class="term">受理状態</span><span class="en">(accepting state)</span> — 読み終えた時点でそこにあれば、文字列を言語に属するものと判定する状態。一つ以上定める</li>
+    <li><span class="term">遷移</span><span class="en">(transition)</span> — 「状態 p で文字 c を読んだら状態 q へ移る」という規則の集まり</li>
+  </ul>
+
+  <p>
+    動作は次のとおりである。初期状態から出発し、入力を先頭から一文字ずつ読む。
+    一文字読むたびに、現在の状態とその文字に対応する遷移に従って状態を移る。
+    全ての文字を読み終えた時点で受理状態にあれば、その文字列を <span class="term">受理</span><span class="en">(accept)</span> する。
+    受理状態になければ、あるいは途中で対応する遷移が無ければ、受理しない。
+  </p>
+
+  <p>
+    状態と遷移を、円と矢印で描いたものを <span class="term">状態遷移図</span><span class="en">(state transition diagram)</span> と呼ぶ。
+    図 4-1 は、識別子 <code>[A-Za-z_][A-Za-z0-9_]*</code> を判定する有限オートマトンの状態遷移図である。
+    受理状態は二重の円で示す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 166" role="img" aria-label="二つの状態 q0 と q1 からなる状態遷移図。初期状態 q0 から英字または下線を読むと受理状態 q1 へ移り、q1 では英字、数字、下線のいずれを読んでも q1 に留まる。">
+      <path d="M 110 110 L 172 110" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 224 110 L 347 110" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 367 84 C 350 36, 410 36, 393 84" class="svg-arrow" marker-end="url(#ah1)"/>
+
+      <circle cx="200" cy="110" r="22" class="svg-cell"/>
+      <circle cx="380" cy="110" r="27" class="svg-cell"/>
+      <circle cx="380" cy="110" r="21" class="svg-cell"/>
+
+      <text x="136" y="100" class="svg-small">開始</text>
+      <text x="286" y="100" class="svg-mono">英字, _</text>
+      <text x="380" y="30" class="svg-mono">英字, 数字, _</text>
+      <text x="200" y="115" class="svg-mono">q0</text>
+      <text x="380" y="115" class="svg-mono">q1</text>
+      <text x="200" y="156" class="svg-small">初期状態</text>
+      <text x="380" y="156" class="svg-small">受理状態</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　識別子を判定する有限オートマトン。最初の一文字が英字か下線であれば受理状態 q1 に入り、以降は英字・数字・下線を読む限り q1 に留まる。
+      q0 には数字に対する遷移が無いため、数字で始まる文字列は最初の一文字で受理されないことが確定する。
+    </figcaption>
+  </figure>
+
+  <p>
+    同じ内容を表の形で書いたものを <span class="term">遷移表</span><span class="en">(transition table)</span> と呼ぶ。
+    行が現在の状態、列が読んだ文字、各欄が移り先である。機械に実装する際は、この表を引く操作を一文字ごとに繰り返せばよい。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　図 4-1 の有限オートマトンの遷移表。「—」は遷移が無いこと、すなわちその時点で受理されないことが確定することを示す。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>現在の状態</th><th>英字・_ を読む</th><th>数字を読む</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>q0（初期状態）</td><td>q1</td><td>—</td></tr>
+        <tr><td>q1（受理状態）</td><td>q1</td><td>q1</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    図 4-2 は、このオートマトンに二つの文字列を読ませた様子である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 160" role="img" aria-label="入力 x1 では q0 から x を読んで q1、1 を読んで q1 に移り、読み終えて受理される。入力 1x では q0 で 1 を読んだ時点で移り先が無く、受理されない。">
+      <path d="M 162 50 L 236 50" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 282 50 L 356 50" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 162 130 L 236 130" class="svg-arrow" marker-end="url(#ah2)"/>
+
+      <circle cx="140" cy="50" r="18" class="svg-cell"/>
+      <circle cx="260" cy="50" r="18" class="svg-cell"/>
+      <circle cx="380" cy="50" r="18" class="svg-hl"/>
+      <circle cx="140" cy="130" r="18" class="svg-cell"/>
+      <circle cx="260" cy="130" r="18" class="svg-cell-plain" stroke-dasharray="5 4"/>
+
+      <text x="24" y="55" class="svg-small" style="text-anchor:start">入力 x1</text>
+      <text x="24" y="135" class="svg-small" style="text-anchor:start">入力 1x</text>
+
+      <text x="140" y="55" class="svg-mono">q0</text>
+      <text x="260" y="55" class="svg-mono">q1</text>
+      <text x="380" y="55" class="svg-mono">q1</text>
+      <text x="140" y="135" class="svg-mono">q0</text>
+      <text x="260" y="134" class="svg-small">なし</text>
+
+      <text x="200" y="40" class="svg-mono">x</text>
+      <text x="320" y="40" class="svg-mono">1</text>
+      <text x="200" y="120" class="svg-mono">1</text>
+
+      <text x="414" y="55" class="svg-small" style="text-anchor:start">読み終えた → 受理</text>
+      <text x="294" y="135" class="svg-small" style="text-anchor:start">移り先が無い → 受理しない</text>
+
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-2　有限オートマトンは入力を一文字ずつ読み、そのたびに状態を一つ移る。x1 は読み終えた時点で受理状態 q1 にあるため受理される。
+      1x は最初の文字で移り先が無くなり、残りの文字を読む前に受理されないことが確定する。
+    </figcaption>
+  </figure>
+
+  <p>
+    判定の途中でオートマトンが覚えているのは、<strong>現在どの状態にあるかだけ</strong>である。
+    これまでに読んだ文字そのものは保持しない。状態の個数が有限であることが「有限」オートマトンの名の由来である。
+  </p>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      本講で扱う有限オートマトンは、どの状態でどの文字を読んでも、移り先が高々一つに定まる。
+      この性質をもつ有限オートマトンを <span class="term">決定性有限オートマトン</span><span class="en">(deterministic finite automaton, DFA)</span> と呼ぶ。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      次の遷移をもつ有限オートマトンがある。初期状態は A、受理状態は B である。
+      このオートマトンに入力 <code>1001</code> を読ませたときの結果として正しいものはどれか。
+    </p>
+    <pre><code>状態 A: 0 を読むと B へ、1 を読むと A へ移る
+状態 B: 0 を読むと B へ、1 を読むと A へ移る</code></pre>
+    <ol class="choices">
+      <li>状態 A で読み終え、受理しない</li>
+      <li>状態 B で読み終え、受理する</li>
+      <li>途中で受理状態 B に入った時点で、受理が確定する</li>
+      <li>状態 A で読み終えるが、A は初期状態であるため受理する</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          状態は A から出発し、<code>1</code> で A、<code>0</code> で B、<code>0</code> で B、<code>1</code> で A と移る。
+          読み終えた時点の状態 A は受理状態ではないため、受理しない。
+          このオートマトンは、最後に読んだ文字が 0 のときに限り B にあるため、0 で終わる文字列を受理する。
+        </p>
+        <p>
+          (B) は、最後の一文字を読む前の状態を答えている。<code>100</code> まで読んだ時点では B にあるが、判定は全ての文字を読み終えた時点で行う。
+          (C) は、途中の状態で判定が確定すると考えた誤りである。受理状態を通過しても、その後の文字で別の状態へ移りうる。
+          (D) は、初期状態と受理状態を混同している。両者は別々に定める要素であり、初期状態が受理状態を兼ねるのはそのように定めた場合に限られる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 正規表現と有限オートマトンの対応 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>正規表現と有限オートマトンの対応</h2>
+
+  <p>
+    正規表現は言語を記述し、有限オートマトンは言語を判定する。両者が扱える言語の範囲については、次の事実が知られている。
+  </p>
+
+  <p>
+    <strong>正規表現で表せる言語と、有限オートマトンで受理できる言語は一致する。</strong>
+    この事実を <span class="term">クリーネの定理</span><span class="en">(Kleene's theorem)</span> と呼び、
+    この範囲に属する言語を <span class="term">正規言語</span><span class="en">(regular language)</span> と呼ぶ。
+    どの正規表現にも同じ言語を受理する有限オートマトンが存在し、逆も成り立つ。
+  </p>
+
+  <p>
+    正規表現の演算は、状態遷移図の形と次のように対応する。
+  </p>
+
+  <ul>
+    <li>連接 — 状態を一列につなぐ。前の部分を読み終えた状態から、次の部分を読み始める</li>
+    <li>選択 — 一つの状態から、読む文字に応じて別々の経路に分かれる</li>
+    <li>繰り返し — 経路の終わりから始まりへ戻る遷移を設ける。同じ状態に戻るループはその最も単純な形である</li>
+  </ul>
+
+  <p>
+    図 5-1 は、符号のない小数を表す正規表現 <code>[0-9]+(\.[0-9]+)?</code> と、同じ言語を受理する有限オートマトンである。
+    この正規表現は、<code>42</code> のような整数部だけの文字列と、<code>3.14</code> のように小数部を伴う文字列の両方を表す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 198" role="img" aria-label="四つの状態 q0, q1, q2, q3 を一列に並べた状態遷移図。q0 から数字で q1、q1 は数字でループ、q1 からピリオドで q2、q2 から数字で q3、q3 は数字でループする。q1 と q3 が受理状態である。下部に、q0 から q1 までが [0-9]+ に、q1 から q3 までが省略可能な (\.[0-9]+)? に対応することを示す。">
+      <path d="M 40 100 L 94 100" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 144 100 L 209 100" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 269 100 L 334 100" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 384 100 L 449 100" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 227 74 C 210 26, 270 26, 253 74" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 467 74 C 450 26, 510 26, 493 74" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 102 140 L 102 148 L 252 148 L 252 140" class="svg-line"/>
+      <path d="M 258 140 L 258 148 L 504 148 L 504 140" class="svg-line"/>
+
+      <circle cx="120" cy="100" r="22" class="svg-cell"/>
+      <circle cx="240" cy="100" r="27" class="svg-cell"/>
+      <circle cx="240" cy="100" r="21" class="svg-cell"/>
+      <circle cx="360" cy="100" r="22" class="svg-cell"/>
+      <circle cx="480" cy="100" r="27" class="svg-cell"/>
+      <circle cx="480" cy="100" r="21" class="svg-cell"/>
+
+      <text x="62" y="90" class="svg-small">開始</text>
+      <text x="176" y="90" class="svg-mono">数字</text>
+      <text x="302" y="90" class="svg-mono">「.」</text>
+      <text x="416" y="90" class="svg-mono">数字</text>
+      <text x="240" y="22" class="svg-mono">数字</text>
+      <text x="480" y="22" class="svg-mono">数字</text>
+
+      <text x="120" y="105" class="svg-mono">q0</text>
+      <text x="240" y="105" class="svg-mono">q1</text>
+      <text x="360" y="105" class="svg-mono">q2</text>
+      <text x="480" y="105" class="svg-mono">q3</text>
+
+      <text x="177" y="170" class="svg-mono">[0-9]+</text>
+      <text x="177" y="188" class="svg-small">数字を 1 個以上</text>
+      <text x="381" y="170" class="svg-mono">(\.[0-9]+)?</text>
+      <text x="381" y="188" class="svg-small">省略可: q1 で読み終えても受理</text>
+
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　正規表現 [0-9]+(\.[0-9]+)? と、同じ言語を受理する有限オートマトン。連接は状態の直列に、繰り返しはループに対応する。
+      省略可能な部分は ? すなわち選択 r|ε であり、その手前の状態 q1 を受理状態とすることで「省略する」側の経路を表す。
+    </figcaption>
+  </figure>
+
+  <h3>記述と判定の役割分担</h3>
+
+  <p>
+    同じ言語を表すとしても、正規表現と有限オートマトンは向いている用途が異なる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　正規表現と有限オートマトンの役割の比較。人が書いて保守するには正規表現が、機械が判定するには有限オートマトンが向く。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>正規表現</th><th>有限オートマトン</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>主な読み手</td>
+          <td>人。仕様として書き、読む</td>
+          <td>機械。一文字ごとに遷移表を引く</td>
+        </tr>
+        <tr>
+          <td>判定の手順</td>
+          <td>式だけでは手順が定まらない</td>
+          <td>一文字につき遷移一回。入力の長さに比例する時間で判定が終わる</td>
+        </tr>
+        <tr>
+          <td>規則の変更</td>
+          <td>式の一部を書き換えれば済む</td>
+          <td>状態と遷移を組み直す必要がある。手作業で保守できるのは状態が少ない場合に限られる</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    この分担を利用するのが <span class="term">字句解析器生成系</span><span class="en">(lexer generator)</span> である。
+    字句解析器生成系は、トークンの種別ごとの正規表現を受け取り、それらをまとめて判定する有限オートマトンを自動で組み立てる。
+    人は正規表現だけを保守すればよく、規則を変更しても有限オートマトンは機械的に作り直される。
+    事前に機械語へ変換する処理系か逐次解釈して実行する処理系かを問わず、字句解析の工程はこの仕組みの上に成り立つ。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      図 5-1 の有限オートマトンで、q1 を受理状態から外し、通常の状態とした。遷移は変えない。
+      変更後のオートマトンが受理する言語を表す正規表現はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>[0-9]+(\.[0-9]+)?</code></li>
+      <li><code>\.[0-9]+</code></li>
+      <li><code>[0-9]+\.[0-9]*</code></li>
+      <li><code>[0-9]+\.[0-9]+</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          受理状態は q3 だけになる。q3 に達するには、q0 から数字を 1 個以上読んで q1 に入り、ピリオドで q2 に移り、数字を 1 個以上読む必要がある。
+          q1 で読み終える経路、すなわち小数部を省略する側の経路が受理されなくなるため、省略可能を表す <code>?</code> が外れる。
+        </p>
+        <p>
+          (A) は、言語が遷移だけで決まり、受理状態の置き方に依存しないと考えた誤りである。どこで読み終えてよいかを定めるのが受理状態である。
+          (B) は、q1 を受理状態から外すと、q1 に至るまでの整数部も不要になると考えた誤りである。遷移は変えていないため、q3 へ至るには引き続き q0 から q1 を通る。
+          (C) は、q3 のループと q2 から q3 への遷移を取り違えている。q2 は受理状態ではないため、ピリオドの後に少なくとも一つの数字を読まなければならない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 有限の状態で判定できない言語 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>有限の状態で判定できない言語</h2>
+
+  <p>
+    有限オートマトンが覚えていられるのは現在の状態だけであり、状態の個数は有限である。
+    この制約のため、正規表現と有限オートマトンでは表せない言語が存在する。
+  </p>
+
+  <h3>括弧の対応</h3>
+
+  <p>
+    <code>(</code> と <code>)</code> からなり、括弧が正しく対応している文字列の言語を考える。
+    <code>(())</code> は属し、<code>(()</code> は属さない。
+    これを判定するには、その時点で開いたままの括弧の個数、すなわち入れ子の深さを覚えておく必要がある。
+    <code>)</code> を読んだとき、閉じてよい括弧が残っているかは深さで決まるためである。
+  </p>
+
+  <p>
+    有限オートマトンで深さを覚えるには、深さごとに別々の状態を用意するほかない。図 6-1 はその試みである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 136" role="img" aria-label="深さ 0 から深さ 3 までの状態を横に並べ、開き括弧で右隣へ、閉じ括弧で左隣へ移る状態遷移図。深さ 0 が初期状態かつ受理状態である。右端は省略記号で続き、深さに上限がなければ状態がいくらあっても足りないことを示す。">
+      <path d="M 14 50 L 48 50" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 107 38 L 178 38" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 180 62 L 108 62" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 221 38 L 298 38" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 299 62 L 222 62" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 341 38 L 418 38" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 419 62 L 342 62" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 461 38 L 510 38" class="svg-arrow" stroke-dasharray="5 4" marker-end="url(#ah4)"/>
+      <path d="M 512 62 L 462 62" class="svg-arrow" stroke-dasharray="5 4" marker-end="url(#ah4)"/>
+
+      <circle cx="80" cy="50" r="27" class="svg-cell"/>
+      <circle cx="80" cy="50" r="21" class="svg-cell"/>
+      <circle cx="200" cy="50" r="22" class="svg-cell"/>
+      <circle cx="320" cy="50" r="22" class="svg-cell"/>
+      <circle cx="440" cy="50" r="22" class="svg-cell"/>
+
+      <text x="28" y="32" class="svg-small">開始</text>
+      <text x="142" y="29" class="svg-mono">(</text>
+      <text x="260" y="29" class="svg-mono">(</text>
+      <text x="380" y="29" class="svg-mono">(</text>
+      <text x="486" y="29" class="svg-mono">(</text>
+      <text x="142" y="81" class="svg-mono">)</text>
+      <text x="260" y="81" class="svg-mono">)</text>
+      <text x="380" y="81" class="svg-mono">)</text>
+      <text x="486" y="81" class="svg-mono">)</text>
+      <text x="538" y="55" class="svg-text">…</text>
+
+      <text x="80" y="55" class="svg-mono">d0</text>
+      <text x="200" y="55" class="svg-mono">d1</text>
+      <text x="320" y="55" class="svg-mono">d2</text>
+      <text x="440" y="55" class="svg-mono">d3</text>
+
+      <text x="80" y="102" class="svg-small">深さ 0（受理）</text>
+      <text x="200" y="102" class="svg-small">深さ 1</text>
+      <text x="320" y="102" class="svg-small">深さ 2</text>
+      <text x="440" y="102" class="svg-small">深さ 3</text>
+      <text x="290" y="128" class="svg-small">深さに上限がなければ、状態をいくつ用意しても足りない</text>
+
+      <defs>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-1　括弧の対応を判定するには、開いたままの括弧の個数（深さ）ごとに別の状態が要る。
+      深さに上限がなければ必要な状態は限りなく増え、有限個の状態では表しきれない。
+    </figcaption>
+  </figure>
+
+  <p>
+    状態を k 個しか持たないオートマトンに、<code>(</code> を k 個より多く並べた文字列を読ませると、
+    異なる二つの深さで同じ状態に入ることが避けられない。
+    k 個の箱に k 個より多くの物を入れれば、どこかの箱に二つ以上が入るという論法であり、これを
+    <span class="term">鳩の巣原理</span><span class="en">(pigeonhole principle)</span> と呼ぶ。
+    同じ状態に入った二つの深さをオートマトンは区別できないため、括弧が対応した文字列と対応していない文字列のどちらかで判定を誤る。
+  </p>
+
+  <h3>字句解析と構文解析の分担</h3>
+
+  <p>
+    プログラムには、括弧で囲んだ式、ブロックの入れ子など、深さに上限のない構造が現れる。
+    <strong>これらの構造は正規表現では定められないため、語の並び方の検査は別の仕組みである文脈自由文法が担う。</strong>
+    語の綴りを正規表現で、語の並びを文脈自由文法で扱うという字句解析と構文解析の分担は、この限界に由来する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　正規表現と有限オートマトンの得意・不得意と、それが判断を左右する条件。入れ子の構造を扱えないことは、計算機の性能によらない原理上の限界である。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>区分</th><th>性質</th><th>判断を左右する条件</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>得意</td>
+          <td>語の綴りの検査</td>
+          <td>綴りの規則が入れ子や個数の対応を含まない限り、有限の状態で足りる。多くの言語のトークンはこの条件を満たす</td>
+        </tr>
+        <tr>
+          <td>得意</td>
+          <td>入力の長さに比例する時間での判定</td>
+          <td>一文字につき遷移一回で、読み戻しを要しない。字句解析はソースコードの全文字を読む工程であるため、プログラムの規模によらず効く</td>
+        </tr>
+        <tr>
+          <td>不得意</td>
+          <td>入れ子・個数の対応</td>
+          <td>深さや個数に上限がない場合に限る。上限が決まっていれば状態を並べて判定できるが、上限に比例して状態が増える</td>
+        </tr>
+        <tr>
+          <td>不得意</td>
+          <td>長い正規表現の読みやすさ</td>
+          <td>規則が複雑になるほど式が読みにくくなり、誤りに気付きにくい。計算機の性能とは無関係に残る</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="note caution">
+    <span class="label">注意</span>
+    <p>
+      ツールに備わる「正規表現」には、本講の連接・選択・繰り返しでは書けない機能を含むものがある。
+      前に一致した部分と同じ文字列を再び要求する <span class="term">後方参照</span><span class="en">(backreference)</span> はその代表である。
+      このような機能を用いた式は有限オートマトンに変換できず、入力の長さに比例する時間で判定が終わる保証も失われる。
+      備わる機能は処理系によって異なるが、字句解析で用いるのは連接・選択・繰り返しで書ける範囲である。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      次の言語のうち、有限オートマトンでは受理できないものはどれか。
+    </p>
+    <ol class="choices">
+      <li>0 と 1 からなり、0 の個数が偶数である文字列の全体</li>
+      <li>a を n 個並べた後に b を同じ n 個並べた文字列の全体（n は 1 以上の任意の整数）</li>
+      <li>英字だけからなり、長さが 100 以下である文字列の全体</li>
+      <li>英字で始まり英字または数字が続く文字列のうち、長さに上限を設けないものの全体</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          a と b の個数が等しいかを確かめるには、読んだ a の個数を覚えておく必要がある。
+          n に上限がないため、個数ごとに状態を用意すると限りなく状態が要る。括弧の対応と同じ構造であり、有限オートマトンでは受理できない。
+        </p>
+        <p>
+          (A) は個数を数えているように見えるが、覚える必要があるのは偶数か奇数かの二通りだけである。状態二つで受理できる。
+          (C) は長さ 100 という大きな数を扱うが、上限が決まっているため、読んだ文字数ごとに状態を並べれば有限個で足りる。
+          (D) は、長さに上限がないことと、覚える情報に上限がないことを混同している。図 4-1 のとおり、二つの状態で受理できる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 総括 ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>総括</h2>
+
+  <ul>
+    <li>
+      <strong>語の形を有限の記述で定める</strong> — トークンの種別は文字列の集合である言語であり、要素は無数にありうる。
+      言葉による定義は曖昧になり、列挙もできないため、有限の長さで過不足なく定める記法が要る。
+    </li>
+    <li>
+      <strong>正規表現</strong> — 文字と ε から出発し、連接・選択・繰り返しで組み立てる。
+      括弧を省いた式は、繰り返し、連接、選択の順に強く結び付く。
+    </li>
+    <li>
+      <strong>略記法とトークンの定義</strong> — <code>+</code>, <code>?</code>, <code>[ ]</code> などの略記は基本の演算に書き直せ、表せる言語を広げない。
+      正規表現で定めたトークンの規則は、読み手によって食い違わない。
+    </li>
+    <li>
+      <strong>有限オートマトン</strong> — 初期状態から一文字ずつ遷移し、読み終えた時点で受理状態にあれば受理する。
+      判定の途中で覚えているのは現在の状態だけである。
+    </li>
+    <li>
+      <strong>正規表現と有限オートマトンの対応</strong> — 両者が扱える言語は一致し、正規言語と呼ばれる。
+      人は正規表現で書き、機械は有限オートマトンで判定するという分担が、字句解析器生成系の基礎である。
+    </li>
+    <li>
+      <strong>有限の状態で判定できない言語</strong> — 括弧の対応のように、上限のない個数を覚える必要がある言語は受理できない。
+      このため、語の並び方の検査は構文解析が担う。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／正規表現とオートマトン理論<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
