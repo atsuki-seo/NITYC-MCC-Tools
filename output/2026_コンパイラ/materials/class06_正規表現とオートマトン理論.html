@@ -41,6 +41,73 @@
   </p>
 
   <p>
+    図 1-1 は、11 文字からなるソースコード <code>x1 = 42 + y</code> を字句解析した結果である。
+    空白は語の区切りとして読み捨てられ、残る文字が五つのトークン <code>x1</code>, <code>=</code>, <code>42</code>, <code>+</code>, <code>y</code> にまとめられる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 184" role="img" aria-label="11 文字のソースコード x1 = 42 + y を一文字ずつセルに並べ、その下に切り出したトークンを示す図。x と 1 が識別子 x1 に、= が代入演算子に、4 と 2 が整数 42 に、+ が加算演算子に、y が識別子にまとめられ、四つの空白はどのトークンにも含まれない。">
+      <path d="M 160 78 L 160 106" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 260 78 L 260 106" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 360 78 L 360 106" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 460 78 L 460 106" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 540 78 L 540 106" class="svg-arrow" marker-end="url(#ah5)"/>
+
+      <text x="16" y="59" class="svg-small" style="text-anchor:start">文字</text>
+      <text x="16" y="137" class="svg-small" style="text-anchor:start">トークン</text>
+      <text x="16" y="174" class="svg-small" style="text-anchor:start">種別</text>
+
+      <rect x="200" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="280" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="400" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="480" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="120" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="160" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="240" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="320" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="360" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="440" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="520" y="34" width="40" height="40" class="svg-cell"/>
+
+      <text x="140" y="59" class="svg-mono">x</text>
+      <text x="180" y="59" class="svg-mono">1</text>
+      <text x="260" y="59" class="svg-mono">=</text>
+      <text x="340" y="59" class="svg-mono">4</text>
+      <text x="380" y="59" class="svg-mono">2</text>
+      <text x="460" y="59" class="svg-mono">+</text>
+      <text x="540" y="59" class="svg-mono">y</text>
+
+      <rect x="120" y="112" width="80" height="40" class="svg-hl"/>
+      <rect x="240" y="112" width="40" height="40" class="svg-hl"/>
+      <rect x="320" y="112" width="80" height="40" class="svg-hl"/>
+      <rect x="440" y="112" width="40" height="40" class="svg-hl"/>
+      <rect x="520" y="112" width="40" height="40" class="svg-hl"/>
+
+      <text x="160" y="137" class="svg-mono">x1</text>
+      <text x="260" y="137" class="svg-mono">=</text>
+      <text x="360" y="137" class="svg-mono">42</text>
+      <text x="460" y="137" class="svg-mono">+</text>
+      <text x="540" y="137" class="svg-mono">y</text>
+
+      <text x="160" y="174" class="svg-small">識別子</text>
+      <text x="260" y="174" class="svg-small">代入演算子</text>
+      <text x="360" y="174" class="svg-small">整数</text>
+      <text x="460" y="174" class="svg-small">加算演算子</text>
+      <text x="540" y="174" class="svg-small">識別子</text>
+
+      <defs>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　ソースコード x1 = 42 + y の字句解析。枠線だけのセルは空白であり、どのトークンにも含まれない。
+      x と 1 は一つの識別子 x1 にまとめられ、4 と 2 は一つの整数 42 にまとめられる。どこで区切り、どの種別とするかを決める規則が要る。
+    </figcaption>
+  </figure>
+
+  <p>
     種別を与えるには、各種別に属する語の形をあらかじめ決めておく必要がある。
     <code>x1</code> は識別子であり、<code>1x</code> は識別子ではない。この判断の根拠となる規則が要る。
   </p>
@@ -70,6 +137,65 @@
     <li><span class="term">文字列</span><span class="en">(string)</span> — アルファベットの文字を有限個並べたもの。一文字も含まない文字列を <span class="term">空文字列</span><span class="en">(empty string)</span> と呼び、ε で表す</li>
     <li><span class="term">言語</span><span class="en">(language)</span> — 文字列の集合。「識別子の全体」「整数の全体」は、それぞれ一つの言語である</li>
   </ul>
+
+  <p>
+    アルファベットを {0, 1} の二文字とすると、長さ 0 の文字列は ε の一つ、長さ 1 は <code>0</code>, <code>1</code> の二つ、
+    長さ 2 は <code>00</code>, <code>01</code>, <code>10</code>, <code>11</code> の四つと、長さが一つ増えるごとに個数が倍になる。
+    図 1-2 は、長さ 3 までの 15 個の文字列を全て並べ、言語「<code>1</code> をちょうど一つ含む文字列の全体」に属するものを強調した例である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 240" role="img" aria-label="アルファベット 0 と 1 の上の、長さ 0 から 3 までの文字列 15 個を長さごとに一行ずつ並べた図。1 をちょうど一つ含む 1, 01, 10, 001, 010, 100 の六つが強調され、ε, 0, 00, 11 などは強調されていない。">
+      <text x="290" y="18" class="svg-small">アルファベット {0, 1} の上の文字列（長さ 3 まで）</text>
+
+      <text x="16" y="53" class="svg-small" style="text-anchor:start">長さ 0</text>
+      <text x="16" y="99" class="svg-small" style="text-anchor:start">長さ 1</text>
+      <text x="16" y="145" class="svg-small" style="text-anchor:start">長さ 2</text>
+      <text x="16" y="191" class="svg-small" style="text-anchor:start">長さ 3</text>
+
+      <rect x="110" y="30" width="50" height="36" class="svg-cell-plain"/>
+
+      <rect x="110" y="76" width="50" height="36" class="svg-cell-plain"/>
+      <rect x="166" y="76" width="50" height="36" class="svg-hl"/>
+
+      <rect x="110" y="122" width="50" height="36" class="svg-cell-plain"/>
+      <rect x="166" y="122" width="50" height="36" class="svg-hl"/>
+      <rect x="222" y="122" width="50" height="36" class="svg-hl"/>
+      <rect x="278" y="122" width="50" height="36" class="svg-cell-plain"/>
+
+      <rect x="110" y="168" width="50" height="36" class="svg-cell-plain"/>
+      <rect x="166" y="168" width="50" height="36" class="svg-hl"/>
+      <rect x="222" y="168" width="50" height="36" class="svg-hl"/>
+      <rect x="278" y="168" width="50" height="36" class="svg-cell-plain"/>
+      <rect x="334" y="168" width="50" height="36" class="svg-hl"/>
+      <rect x="390" y="168" width="50" height="36" class="svg-cell-plain"/>
+      <rect x="446" y="168" width="50" height="36" class="svg-cell-plain"/>
+      <rect x="502" y="168" width="50" height="36" class="svg-cell-plain"/>
+
+      <text x="135" y="53" class="svg-mono">ε</text>
+      <text x="135" y="99" class="svg-mono">0</text>
+      <text x="191" y="99" class="svg-mono">1</text>
+      <text x="135" y="145" class="svg-mono">00</text>
+      <text x="191" y="145" class="svg-mono">01</text>
+      <text x="247" y="145" class="svg-mono">10</text>
+      <text x="303" y="145" class="svg-mono">11</text>
+      <text x="135" y="191" class="svg-mono">000</text>
+      <text x="191" y="191" class="svg-mono">001</text>
+      <text x="247" y="191" class="svg-mono">010</text>
+      <text x="303" y="191" class="svg-mono">011</text>
+      <text x="359" y="191" class="svg-mono">100</text>
+      <text x="415" y="191" class="svg-mono">101</text>
+      <text x="471" y="191" class="svg-mono">110</text>
+      <text x="527" y="191" class="svg-mono">111</text>
+
+      <rect x="180" y="216" width="24" height="16" class="svg-hl"/>
+      <text x="214" y="229" class="svg-small" style="text-anchor:start">言語「1 をちょうど一つ含む文字列の全体」に属する</text>
+    </svg>
+    <figcaption>
+      図 1-2　アルファベット {0, 1} の上の文字列と、その一部を集めた言語。長さ 3 までの 15 個のうち、強調した 6 個がこの言語に属する。
+      長さの上限を外すと、文字列も、この言語に属する文字列も限りなく存在する。
+    </figcaption>
+  </figure>
 
   <p>
     この用語で言い直すと、字句解析で必要になるのは次の二つである。
@@ -168,8 +294,62 @@
   </div>
 
   <p>
+    繰り返しは、同じ文字列を何度も並べる演算ではない。<strong>繰り返すたびに、中の選択を選び直せる。</strong>
+    図 2-1 は、<code>(a|b)*</code> が表す文字列を繰り返しの回数ごとに展開したものである。
+    2 回の繰り返しからは <code>aa</code> と <code>bb</code> だけでなく、<code>ab</code> と <code>ba</code> も得られる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 216" role="img" aria-label="(a|b)* の文字列を木の形に展開した図。根は繰り返し 0 回の ε であり、そこから a か b を選んで a と b に分かれ、さらにそれぞれから a か b を選んで aa, ab, ba, bb の四つに分かれる。その下は省略記号で続く。右側に、繰り返し 0 回で 1 通り、1 回で 2 通り、2 回で 4 通り、3 回で 8 通りと記す。">
+      <path d="M 230 46 L 130 80" class="svg-line"/>
+      <path d="M 230 46 L 330 80" class="svg-line"/>
+      <path d="M 130 110 L 80 144" class="svg-line"/>
+      <path d="M 130 110 L 180 144" class="svg-line"/>
+      <path d="M 330 110 L 280 144" class="svg-line"/>
+      <path d="M 330 110 L 380 144" class="svg-line"/>
+      <path d="M 80 174 L 80 190" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 180 174 L 180 190" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 280 174 L 280 190" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 380 174 L 380 190" class="svg-line" stroke-dasharray="4 4"/>
+
+      <text x="168" y="60" class="svg-mono">a</text>
+      <text x="292" y="60" class="svg-mono">b</text>
+      <text x="94" y="130" class="svg-mono">a</text>
+      <text x="166" y="130" class="svg-mono">b</text>
+      <text x="294" y="130" class="svg-mono">a</text>
+      <text x="366" y="130" class="svg-mono">b</text>
+
+      <rect x="202" y="16" width="56" height="30" class="svg-cell"/>
+      <rect x="102" y="80" width="56" height="30" class="svg-cell"/>
+      <rect x="302" y="80" width="56" height="30" class="svg-cell"/>
+      <rect x="52" y="144" width="56" height="30" class="svg-cell"/>
+      <rect x="152" y="144" width="56" height="30" class="svg-cell"/>
+      <rect x="252" y="144" width="56" height="30" class="svg-cell"/>
+      <rect x="352" y="144" width="56" height="30" class="svg-cell"/>
+
+      <text x="230" y="36" class="svg-mono">ε</text>
+      <text x="130" y="100" class="svg-mono">a</text>
+      <text x="330" y="100" class="svg-mono">b</text>
+      <text x="80" y="164" class="svg-mono">aa</text>
+      <text x="180" y="164" class="svg-mono">ab</text>
+      <text x="280" y="164" class="svg-mono">ba</text>
+      <text x="380" y="164" class="svg-mono">bb</text>
+      <text x="230" y="206" class="svg-text">…</text>
+
+      <text x="500" y="35" class="svg-small">0 回: 1 通り</text>
+      <text x="500" y="99" class="svg-small">1 回: 2 通り</text>
+      <text x="500" y="163" class="svg-small">2 回: 4 通り</text>
+      <text x="500" y="206" class="svg-small">3 回: 8 通り …</text>
+    </svg>
+    <figcaption>
+      図 2-1　(a|b)* の文字列を、繰り返しの回数ごとに展開した木。枝の文字は、その回の繰り返しで選択 a|b から選んだ文字である。
+      繰り返すたびに a と b を選び直せるため、a と b からなるあらゆる文字列が、ある回数の繰り返しで得られる。
+    </figcaption>
+  </figure>
+
+  <p>
     ある文字列が正規表現の言語に属することは、その文字列を正規表現の各部分に割り当てられることを意味する。
-    図 2-1 は、文字列 <code>aababb</code> を <code>(a|b)*abb</code> の各部分に割り当てた例である。
+    図 2-2 は、文字列 <code>aababb</code> を <code>(a|b)*abb</code> の各部分に割り当てた例である。
   </p>
 
   <figure>
@@ -199,8 +379,54 @@
       <text x="380" y="140" class="svg-small">a, b, b をこの順に連接する</text>
     </svg>
     <figcaption>
-      図 2-1　文字列 aababb は (a|b)*abb の言語に属する。前半の三文字を繰り返しが、後半の三文字を連接が受け持つ。
+      図 2-2　文字列 aababb は (a|b)*abb の言語に属する。前半の三文字を繰り返しが、後半の三文字を連接が受け持つ。
       割り当て方が一つでも存在すれば、その文字列は言語に属する。
+    </figcaption>
+  </figure>
+
+  <p>
+    逆に、どう割り当てても余りや食い違いが出る文字列は、言語に属さない。
+    <code>(a|b)*abb</code> では末尾が連接 <code>abb</code> であるため、文字列の最後の三文字は必ず <code>abb</code> に割り当てられる。
+    図 2-3 の <code>aabab</code> は、最後の三文字が <code>bab</code> であり、この割り当てができない。
+    <code>abba</code> や <code>ab</code> も同じ理由で属さない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 176" role="img" aria-label="文字列 aabab の五文字のうち、先頭の二文字 aa を (a|b)* に割り当て、末尾の三文字 bab を連接 abb と比べる図。三文字のうち一文字目と二文字目が食い違い、三文字目だけが一致する。">
+      <path d="M 142 92 L 142 100 L 258 100 L 258 92" class="svg-line"/>
+
+      <text x="290" y="24" class="svg-small">文字列 aabab</text>
+
+      <rect x="140" y="40" width="60" height="44" class="svg-cell"/>
+      <rect x="200" y="40" width="60" height="44" class="svg-cell"/>
+      <rect x="380" y="40" width="60" height="44" class="svg-cell"/>
+      <rect x="260" y="40" width="60" height="44" class="svg-hl"/>
+      <rect x="320" y="40" width="60" height="44" class="svg-hl"/>
+
+      <text x="170" y="67" class="svg-text">a</text>
+      <text x="230" y="67" class="svg-text">a</text>
+      <text x="290" y="67" class="svg-text">b</text>
+      <text x="350" y="67" class="svg-text">a</text>
+      <text x="410" y="67" class="svg-text">b</text>
+
+      <text x="200" y="122" class="svg-mono">(a|b)*</text>
+      <text x="200" y="140" class="svg-small">a か b を 2 回選ぶ</text>
+
+      <rect x="260" y="104" width="60" height="36" class="svg-cell-plain"/>
+      <rect x="320" y="104" width="60" height="36" class="svg-cell-plain"/>
+      <rect x="380" y="104" width="60" height="36" class="svg-cell-plain"/>
+      <text x="290" y="127" class="svg-mono">a</text>
+      <text x="350" y="127" class="svg-mono">b</text>
+      <text x="410" y="127" class="svg-mono">b</text>
+      <text x="452" y="127" class="svg-small" style="text-anchor:start">連接 abb</text>
+
+      <text x="290" y="162" class="svg-small">不一致</text>
+      <text x="350" y="162" class="svg-small">不一致</text>
+      <text x="410" y="162" class="svg-small">一致</text>
+    </svg>
+    <figcaption>
+      図 2-3　文字列 aabab は (a|b)*abb の言語に属さない。最後の三文字 bab を連接 abb に割り当てようとすると、強調した二文字が食い違う。
+      (a|b)* に割り当てる文字数をどう変えても、末尾の三文字は変わらないため、割り当て方は一つも存在しない。
     </figcaption>
   </figure>
 
@@ -212,6 +438,47 @@
     たとえば <code>ab*|c</code> は <code>(a(b*))|c</code> と読み、<code>a</code> の後に <code>b</code> が 0 個以上続く文字列と、文字列 <code>c</code> とからなる言語を表す。
   </p>
 
+  <p>
+    結び付きの順は、式を木の形に書くと見て取れる。図 2-4 は、同じ規則で <code>a|bc*</code> を読んだ構造である。
+    繰り返しは <code>c</code> だけに掛かり、連接が <code>b</code> と <code>c*</code> を結び、最後に選択が <code>a</code> と <code>bc*</code> を結ぶ。
+    下の演算ほど先に結び付き、各演算が表す言語は、その下にある部分の言語から組み立てられる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 232" role="img" aria-label="正規表現 a|bc* を木の形に描いた図。根は選択であり、その左の子は文字 a、右の子は連接である。連接の子は文字 b と繰り返しであり、繰り返しの子は文字 c である。各節点の横に、その部分が表す言語を記す。繰り返しは {ε, c, cc, …}、連接は {b, bc, bcc, …}、選択は {a, b, bc, bcc, …} である。">
+      <path d="M 250 45 L 150 75" class="svg-line"/>
+      <path d="M 250 45 L 350 75" class="svg-line"/>
+      <path d="M 350 105 L 290 135" class="svg-line"/>
+      <path d="M 350 105 L 410 135" class="svg-line"/>
+      <path d="M 410 165 L 410 195" class="svg-line"/>
+
+      <rect x="208" y="15" width="84" height="30" class="svg-cell-plain"/>
+      <rect x="308" y="75" width="84" height="30" class="svg-cell-plain"/>
+      <rect x="368" y="135" width="84" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="75" width="60" height="30" class="svg-cell"/>
+      <rect x="260" y="135" width="60" height="30" class="svg-cell"/>
+      <rect x="380" y="195" width="60" height="30" class="svg-cell"/>
+
+      <text x="250" y="35" class="svg-small">選択 |</text>
+      <text x="350" y="95" class="svg-small">連接</text>
+      <text x="410" y="155" class="svg-small">繰り返し *</text>
+      <text x="150" y="95" class="svg-mono">a</text>
+      <text x="290" y="155" class="svg-mono">b</text>
+      <text x="410" y="215" class="svg-mono">c</text>
+
+      <text x="302" y="35" class="svg-small" style="text-anchor:start">{a, b, bc, bcc, …}</text>
+      <text x="402" y="95" class="svg-small" style="text-anchor:start">{b, bc, bcc, …}</text>
+      <text x="462" y="155" class="svg-small" style="text-anchor:start">{ε, c, cc, …}</text>
+      <text x="150" y="122" class="svg-small">{a}</text>
+      <text x="290" y="182" class="svg-small">{b}</text>
+      <text x="450" y="215" class="svg-small" style="text-anchor:start">{c}</text>
+    </svg>
+    <figcaption>
+      図 2-4　正規表現 a|bc* の構造。繰り返しが最も下で c だけに掛かり、選択が最も上で式全体を二つに分ける。
+      このため bc は属するが、bcbc は属さない。bc を繰り返すには (bc)* と括弧で囲む必要がある。
+    </figcaption>
+  </figure>
+
   <div class="note caution">
     <span class="label">誤りやすい点</span>
     <p>
@@ -219,6 +486,35 @@
       <code>ab</code> を繰り返した <code>abab</code> は含まない。<code>ab</code> を繰り返すには <code>(ab)*</code> と括弧で囲む。
     </p>
   </div>
+
+  <p>
+    同じ文字を同じ順に並べた式でも、括弧の位置によって表す言語は変わる。表 2-2 は、その例を具体的な文字列で比べたものである。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-2　括弧の位置による言語の違い。括弧は、どの部分を一つの要素として繰り返し・選択の対象にするかを定める。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>正規表現</th><th>結び付きを括弧で示すと</th><th>属する例</th><th>属さない例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>ab*</code></td><td><code>a(b*)</code></td><td><code>a</code>, <code>ab</code>, <code>abbb</code></td><td>ε, <code>abab</code>, <code>b</code></td></tr>
+        <tr><td><code>(ab)*</code></td><td><code>(ab)*</code></td><td>ε, <code>ab</code>, <code>abab</code></td><td><code>a</code>, <code>abb</code>, <code>aba</code></td></tr>
+        <tr><td><code>a|bc</code></td><td><code>a|(bc)</code></td><td><code>a</code>, <code>bc</code></td><td><code>ac</code>, <code>abc</code></td></tr>
+        <tr><td><code>(a|b)c</code></td><td><code>(a|b)c</code></td><td><code>ac</code>, <code>bc</code></td><td><code>a</code>, <code>abc</code></td></tr>
+        <tr><td><code>(a|bc)*</code></td><td><code>(a|(bc))*</code></td><td>ε, <code>a</code>, <code>bc</code>, <code>abca</code>, <code>bcbc</code></td><td><code>b</code>, <code>ac</code>, <code>cb</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    最後の行の <code>abca</code> は、繰り返しの 1 回目に <code>a</code>、2 回目に <code>bc</code>、3 回目に <code>a</code> を選んだものである。
+    <code>ac</code> は、<code>c</code> を単独で選ぶ選択肢が無いため属さない。
+  </p>
 
   <div class="quiz">
     <span class="quiz-label">確認問題 2-1</span>
@@ -331,10 +627,19 @@
         <tr><td>識別子</td><td><code>[A-Za-z_][A-Za-z0-9_]*</code></td><td><code>x</code>, <code>x1</code>, <code>_tmp</code></td><td><code>1x</code>, <code>x-1</code></td></tr>
         <tr><td>整数</td><td><code>0|[1-9][0-9]*</code></td><td><code>0</code>, <code>42</code>, <code>100</code></td><td><code>007</code>, <code>00</code></td></tr>
         <tr><td>小数</td><td><code>[0-9]+\.[0-9]+</code></td><td><code>3.14</code>, <code>0.5</code></td><td><code>.5</code>, <code>3.</code></td></tr>
+        <tr><td>16 進整数</td><td><code>0[xX][0-9a-fA-F]+</code></td><td><code>0x1F</code>, <code>0XFF</code>, <code>0x0</code></td><td><code>0x</code>, <code>x1F</code>, <code>0x1G</code></td></tr>
+        <tr><td>指数付き小数</td><td><code>[0-9]+\.[0-9]+([eE]-?[0-9]+)?</code></td><td><code>2.5</code>, <code>6.02e23</code>, <code>1.0E-3</code></td><td><code>1e5</code>, <code>1.0e</code>, <code>1.0e-</code></td></tr>
       </tbody>
     </table>
     </div>
   </div>
+
+  <p>
+    指数付き小数の正規表現は、小数の正規表現に、省略できる指数部 <code>([eE]-?[0-9]+)?</code> を連接したものである。
+    <code>6.02e23</code> は、<code>6.02</code> が小数の部分に、<code>e23</code> が指数部に割り当てられる。
+    <code>1.0e</code> は指数部の <code>[0-9]+</code> に割り当てる数字が無く、<code>1e5</code> は小数点が無いため、どちらも属さない。
+    属さない例を考えると、正規表現が何を要求しているかが明確になる。
+  </p>
 
   <p>
     <code>007</code> を整数と認めるか、<code>.5</code> を小数と認めるかは言語の設計者が決める事柄である。
@@ -364,10 +669,68 @@
   </ul>
 
   <p>
-    正規表現 <code>[0-9]+</code> と文字列 <code>abc123def</code> であれば、部分一致では <code>123</code> が見つかり、全体一致では適合しない。
+    正規表現 <code>[0-9]+</code> と文字列 <code>abc123def</code> であれば、部分一致では <code>123</code> が見つかり、全体一致では適合しない（図 3-1）。
     多くのツールは既定で部分一致を行い、<code>^</code> と <code>$</code> で文字列の先頭と末尾を指定して全体一致を求める。
+    <code>^[0-9]+$</code> は、<code>123</code> には適合し、<code>abc123def</code> や <code>12 3</code> には適合しない。
     字句解析は、読み進めている位置から始まる部分が、どの種別の正規表現に適合するかを調べる。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 216" role="img" aria-label="文字列 abc123def を二段に並べた図。上段の部分一致では、四文字目から六文字目の 123 が [0-9]+ に適合する部分として強調される。下段の全体一致では、九文字全体を [0-9]+ に割り当てる必要があり、先頭の a が数字でないため適合しない。">
+      <path d="M 244 64 L 244 72 L 372 72 L 372 64" class="svg-line"/>
+      <path d="M 112 164 L 112 172 L 504 172 L 504 164" class="svg-line"/>
+
+      <text x="16" y="45" class="svg-small" style="text-anchor:start">部分一致</text>
+      <text x="16" y="145" class="svg-small" style="text-anchor:start">全体一致</text>
+
+      <rect x="110" y="20" width="44" height="40" class="svg-cell-plain"/>
+      <rect x="154" y="20" width="44" height="40" class="svg-cell-plain"/>
+      <rect x="198" y="20" width="44" height="40" class="svg-cell-plain"/>
+      <rect x="374" y="20" width="44" height="40" class="svg-cell-plain"/>
+      <rect x="418" y="20" width="44" height="40" class="svg-cell-plain"/>
+      <rect x="462" y="20" width="44" height="40" class="svg-cell-plain"/>
+      <rect x="242" y="20" width="44" height="40" class="svg-hl"/>
+      <rect x="286" y="20" width="44" height="40" class="svg-hl"/>
+      <rect x="330" y="20" width="44" height="40" class="svg-hl"/>
+
+      <text x="132" y="45" class="svg-mono">a</text>
+      <text x="176" y="45" class="svg-mono">b</text>
+      <text x="220" y="45" class="svg-mono">c</text>
+      <text x="264" y="45" class="svg-mono">1</text>
+      <text x="308" y="45" class="svg-mono">2</text>
+      <text x="352" y="45" class="svg-mono">3</text>
+      <text x="396" y="45" class="svg-mono">d</text>
+      <text x="440" y="45" class="svg-mono">e</text>
+      <text x="484" y="45" class="svg-mono">f</text>
+      <text x="308" y="90" class="svg-small">[0-9]+ に適合する部分 123 が見つかる → 適合する</text>
+
+      <rect x="154" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="198" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="242" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="286" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="330" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="374" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="418" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="462" y="120" width="44" height="40" class="svg-cell"/>
+      <rect x="110" y="120" width="44" height="40" class="svg-hl"/>
+
+      <text x="132" y="145" class="svg-mono">a</text>
+      <text x="176" y="145" class="svg-mono">b</text>
+      <text x="220" y="145" class="svg-mono">c</text>
+      <text x="264" y="145" class="svg-mono">1</text>
+      <text x="308" y="145" class="svg-mono">2</text>
+      <text x="352" y="145" class="svg-mono">3</text>
+      <text x="396" y="145" class="svg-mono">d</text>
+      <text x="440" y="145" class="svg-mono">e</text>
+      <text x="484" y="145" class="svg-mono">f</text>
+      <text x="308" y="190" class="svg-small">九文字の全体を [0-9]+ に割り当てる必要がある</text>
+      <text x="308" y="208" class="svg-small">先頭の a が数字ではない → 適合しない</text>
+    </svg>
+    <figcaption>
+      図 3-1　同じ正規表現 [0-9]+ と文字列 abc123def でも、問い方によって結果が分かれる。
+      部分一致は適合する部分が一か所でもあればよく、全体一致は文字列の全ての文字が正規表現に割り当てられることを要求する。
+    </figcaption>
+  </figure>
 
   <div class="quiz">
     <span class="quiz-label">確認問題 3-1</span>
@@ -511,36 +874,48 @@
   </div>
 
   <p>
-    図 4-2 は、このオートマトンに二つの文字列を読ませた様子である。
+    図 4-2 は、このオートマトンに三つの文字列を読ませた様子である。
   </p>
 
   <figure>
-    <svg viewBox="0 0 580 160" role="img" aria-label="入力 x1 では q0 から x を読んで q1、1 を読んで q1 に移り、読み終えて受理される。入力 1x では q0 で 1 を読んだ時点で移り先が無く、受理されない。">
+    <svg viewBox="0 0 580 236" role="img" aria-label="入力 x1 では q0 から x を読んで q1、1 を読んで q1 に移り、読み終えて受理される。入力 1x では q0 で 1 を読んだ時点で移り先が無く、受理されない。入力 x-1 では q0 から x を読んで q1 に移るが、q1 でハイフンを読んだ時点で移り先が無く、受理されない。">
       <path d="M 162 50 L 236 50" class="svg-arrow" marker-end="url(#ah2)"/>
       <path d="M 282 50 L 356 50" class="svg-arrow" marker-end="url(#ah2)"/>
       <path d="M 162 130 L 236 130" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 162 210 L 236 210" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 282 210 L 356 210" class="svg-arrow" marker-end="url(#ah2)"/>
 
       <circle cx="140" cy="50" r="18" class="svg-cell"/>
       <circle cx="260" cy="50" r="18" class="svg-cell"/>
       <circle cx="380" cy="50" r="18" class="svg-hl"/>
       <circle cx="140" cy="130" r="18" class="svg-cell"/>
       <circle cx="260" cy="130" r="18" class="svg-cell-plain" stroke-dasharray="5 4"/>
+      <circle cx="140" cy="210" r="18" class="svg-cell"/>
+      <circle cx="260" cy="210" r="18" class="svg-cell"/>
+      <circle cx="380" cy="210" r="18" class="svg-cell-plain" stroke-dasharray="5 4"/>
 
       <text x="24" y="55" class="svg-small" style="text-anchor:start">入力 x1</text>
       <text x="24" y="135" class="svg-small" style="text-anchor:start">入力 1x</text>
+      <text x="24" y="215" class="svg-small" style="text-anchor:start">入力 x-1</text>
 
       <text x="140" y="55" class="svg-mono">q0</text>
       <text x="260" y="55" class="svg-mono">q1</text>
       <text x="380" y="55" class="svg-mono">q1</text>
       <text x="140" y="135" class="svg-mono">q0</text>
       <text x="260" y="134" class="svg-small">なし</text>
+      <text x="140" y="215" class="svg-mono">q0</text>
+      <text x="260" y="215" class="svg-mono">q1</text>
+      <text x="380" y="214" class="svg-small">なし</text>
 
       <text x="200" y="40" class="svg-mono">x</text>
       <text x="320" y="40" class="svg-mono">1</text>
       <text x="200" y="120" class="svg-mono">1</text>
+      <text x="200" y="200" class="svg-mono">x</text>
+      <text x="320" y="200" class="svg-mono">「-」</text>
 
       <text x="414" y="55" class="svg-small" style="text-anchor:start">読み終えた → 受理</text>
       <text x="294" y="135" class="svg-small" style="text-anchor:start">移り先が無い → 受理しない</text>
+      <text x="414" y="215" class="svg-small" style="text-anchor:start">移り先が無い → 受理しない</text>
 
       <defs>
         <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
@@ -550,13 +925,104 @@
     </svg>
     <figcaption>
       図 4-2　有限オートマトンは入力を一文字ずつ読み、そのたびに状態を一つ移る。x1 は読み終えた時点で受理状態 q1 にあるため受理される。
-      1x は最初の文字で移り先が無くなり、残りの文字を読む前に受理されないことが確定する。
+      1x は最初の文字で、x-1 は二文字目のハイフンで移り先が無くなり、残りの文字を読む前に受理されないことが確定する。
     </figcaption>
   </figure>
 
   <p>
     判定の途中でオートマトンが覚えているのは、<strong>現在どの状態にあるかだけ</strong>である。
     これまでに読んだ文字そのものは保持しない。状態の個数が有限であることが「有限」オートマトンの名の由来である。
+  </p>
+
+  <h3>複数の種別を一つのオートマトンで判定する</h3>
+
+  <p>
+    受理状態を複数設け、受理状態ごとに異なる種別を対応させれば、一つのオートマトンで複数の種別を判定できる。
+    図 4-3 は、比較演算子 <code>&lt;</code>, <code>&lt;=</code>, <code>=</code>, <code>&gt;</code>, <code>&gt;=</code> を判定する有限オートマトンである。
+    どの受理状態で読み終えたかによって、どの演算子であったかが分かる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="初期状態 q0 から三方向に分かれる状態遷移図。q0 から小なり記号で q1、q1 から等号で q2 へ移る。q0 から等号で q3 へ移る。q0 から大なり記号で q4、q4 から等号で q5 へ移る。q1 から q5 はいずれも受理状態であり、それぞれ演算子 小なり、小なりイコール、イコール、大なり、大なりイコール を受理する。">
+      <path d="M 30 130 L 82 130" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 129.4 119.6 L 230.9 65.5" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 132 130 L 227 130" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 129.4 140.4 L 230.9 194.5" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 287 50 L 397 50" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 287 210 L 397 210" class="svg-arrow" marker-end="url(#ah6)"/>
+
+      <circle cx="110" cy="130" r="22" class="svg-cell"/>
+      <circle cx="260" cy="50" r="27" class="svg-cell"/>
+      <circle cx="260" cy="50" r="21" class="svg-cell"/>
+      <circle cx="430" cy="50" r="27" class="svg-cell"/>
+      <circle cx="430" cy="50" r="21" class="svg-cell"/>
+      <circle cx="260" cy="130" r="27" class="svg-cell"/>
+      <circle cx="260" cy="130" r="21" class="svg-cell"/>
+      <circle cx="260" cy="210" r="27" class="svg-cell"/>
+      <circle cx="260" cy="210" r="21" class="svg-cell"/>
+      <circle cx="430" cy="210" r="27" class="svg-cell"/>
+      <circle cx="430" cy="210" r="21" class="svg-cell"/>
+
+      <text x="52" y="116" class="svg-small">開始</text>
+      <text x="172" y="84" class="svg-mono">&lt;</text>
+      <text x="180" y="122" class="svg-mono">=</text>
+      <text x="172" y="186" class="svg-mono">&gt;</text>
+      <text x="342" y="42" class="svg-mono">=</text>
+      <text x="342" y="202" class="svg-mono">=</text>
+
+      <text x="110" y="135" class="svg-mono">q0</text>
+      <text x="260" y="55" class="svg-mono">q1</text>
+      <text x="430" y="55" class="svg-mono">q2</text>
+      <text x="260" y="135" class="svg-mono">q3</text>
+      <text x="260" y="215" class="svg-mono">q4</text>
+      <text x="430" y="215" class="svg-mono">q5</text>
+
+      <text x="260" y="93" class="svg-small">受理: &lt;</text>
+      <text x="430" y="93" class="svg-small">受理: &lt;=</text>
+      <text x="260" y="173" class="svg-small">受理: =</text>
+      <text x="260" y="253" class="svg-small">受理: &gt;</text>
+      <text x="430" y="253" class="svg-small">受理: &gt;=</text>
+
+      <defs>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-3　比較演算子を判定する有限オートマトン。q0 以外の五つの状態が受理状態であり、それぞれが一つの演算子に対応する。
+      &lt; と &lt;= は一文字目が共通であるため、q1 までは同じ経路をたどり、二文字目の有無で q1 と q2 に分かれる。
+    </figcaption>
+  </figure>
+
+  <p>
+    表 4-2 は、このオートマトンに四つの文字列を読ませた結果である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-2　図 4-3 の有限オートマトンによる判定の追跡。読み終えた受理状態が、文字列がどの演算子であるかを決める。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>入力</th><th>状態の移り変わり</th><th>読み終えた状態</th><th>結果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>&lt;</code></td><td>q0 →(<code>&lt;</code>) q1</td><td>q1</td><td>受理。演算子 <code>&lt;</code></td></tr>
+        <tr><td><code>&lt;=</code></td><td>q0 →(<code>&lt;</code>) q1 →(<code>=</code>) q2</td><td>q2</td><td>受理。演算子 <code>&lt;=</code></td></tr>
+        <tr><td><code>&gt;=</code></td><td>q0 →(<code>&gt;</code>) q4 →(<code>=</code>) q5</td><td>q5</td><td>受理。演算子 <code>&gt;=</code></td></tr>
+        <tr><td><code>=&lt;</code></td><td>q0 →(<code>=</code>) q3 →(<code>&lt;</code>) 移り先なし</td><td>—</td><td>受理しない</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    <code>&lt;=</code> を読む途中、一文字目の <code>&lt;</code> を読んだ時点で受理状態 q1 に入る。ここで止めれば <code>&lt;</code> と <code>=</code> の二つに区切ることもできる。
+    字句解析では、受理できる限り長く読み進め、最後に受理状態にあった位置までを一つのトークンとする。
+    この規則を <span class="term">最長一致</span><span class="en">(longest match)</span> と呼ぶ。
+    最長一致により、<code>&lt;=</code> は一つのトークンとなり、<code>=&lt;</code> は <code>=</code> と <code>&lt;</code> の二つのトークンに分かれる。
   </p>
 
   <div class="note">
@@ -626,7 +1092,76 @@
   </ul>
 
   <p>
-    図 5-1 は、符号のない小数を表す正規表現 <code>[0-9]+(\.[0-9]+)?</code> と、同じ言語を受理する有限オートマトンである。
+    図 5-1 は、最も小さな例 <code>ab</code>, <code>a|b</code>, <code>a*</code> について、この対応を示したものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 334" role="img" aria-label="三段からなる図。上段は連接 ab であり、s0 から a で s1、s1 から b で受理状態 s2 へ一列に移り、ab だけを受理する。中段は選択 a|b であり、s0 から a で受理状態 s1、b で受理状態 s2 へ分かれ、a と b を受理する。下段は繰り返し a* であり、初期状態 s0 が受理状態を兼ね、a で s0 自身に戻るループをもち、ε, a, aa, aaa などを受理する。">
+      <path d="M 140 44 L 172 44" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 222 44 L 272 44" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 322 44 L 367 44" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <path d="M 140 150 L 172 150" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 221.2 144 L 288.3 125" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 221.2 156 L 288.3 175" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <path d="M 135 300 L 167 300" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 187 276 C 170 228, 230 228, 213 276" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <circle cx="200" cy="44" r="22" class="svg-cell"/>
+      <circle cx="300" cy="44" r="22" class="svg-cell"/>
+      <circle cx="400" cy="44" r="27" class="svg-cell"/>
+      <circle cx="400" cy="44" r="21" class="svg-cell"/>
+
+      <circle cx="200" cy="150" r="22" class="svg-cell"/>
+      <circle cx="320" cy="116" r="27" class="svg-cell"/>
+      <circle cx="320" cy="116" r="21" class="svg-cell"/>
+      <circle cx="320" cy="184" r="27" class="svg-cell"/>
+      <circle cx="320" cy="184" r="21" class="svg-cell"/>
+
+      <circle cx="200" cy="300" r="27" class="svg-cell"/>
+      <circle cx="200" cy="300" r="21" class="svg-cell"/>
+
+      <text x="60" y="40" class="svg-text">連接</text>
+      <text x="60" y="60" class="svg-mono">ab</text>
+      <text x="60" y="146" class="svg-text">選択</text>
+      <text x="60" y="166" class="svg-mono">a|b</text>
+      <text x="60" y="296" class="svg-text">繰り返し</text>
+      <text x="60" y="316" class="svg-mono">a*</text>
+
+      <text x="247" y="34" class="svg-mono">a</text>
+      <text x="345" y="34" class="svg-mono">b</text>
+      <text x="251" y="127" class="svg-mono">a</text>
+      <text x="251" y="181" class="svg-mono">b</text>
+      <text x="200" y="234" class="svg-mono">a</text>
+
+      <text x="200" y="49" class="svg-mono">s0</text>
+      <text x="300" y="49" class="svg-mono">s1</text>
+      <text x="400" y="49" class="svg-mono">s2</text>
+      <text x="200" y="155" class="svg-mono">s0</text>
+      <text x="320" y="121" class="svg-mono">s1</text>
+      <text x="320" y="189" class="svg-mono">s2</text>
+      <text x="200" y="305" class="svg-mono">s0</text>
+
+      <text x="442" y="48" class="svg-small" style="text-anchor:start">受理: ab</text>
+      <text x="362" y="120" class="svg-small" style="text-anchor:start">受理: a</text>
+      <text x="362" y="188" class="svg-small" style="text-anchor:start">受理: b</text>
+      <text x="244" y="304" class="svg-small" style="text-anchor:start">受理: ε, a, aa, aaa, …</text>
+
+      <defs>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　連接・選択・繰り返しと、状態遷移図の形の対応。連接は直列、選択は分岐、繰り返しはループになる。
+      a* では、0 回の繰り返しである ε を受理するため、初期状態 s0 が受理状態を兼ねる。
+    </figcaption>
+  </figure>
+
+  <p>
+    図 5-2 は、符号のない小数を表す正規表現 <code>[0-9]+(\.[0-9]+)?</code> と、同じ言語を受理する有限オートマトンである。
     この正規表現は、<code>42</code> のような整数部だけの文字列と、<code>3.14</code> のように小数部を伴う文字列の両方を表す。
   </p>
 
@@ -672,8 +1207,91 @@
       </defs>
     </svg>
     <figcaption>
-      図 5-1　正規表現 [0-9]+(\.[0-9]+)? と、同じ言語を受理する有限オートマトン。連接は状態の直列に、繰り返しはループに対応する。
+      図 5-2　正規表現 [0-9]+(\.[0-9]+)? と、同じ言語を受理する有限オートマトン。連接は状態の直列に、繰り返しはループに対応する。
       省略可能な部分は ? すなわち選択 r|ε であり、その手前の状態 q1 を受理状態とすることで「省略する」側の経路を表す。
+    </figcaption>
+  </figure>
+
+  <p>
+    図 5-3 は、このオートマトンに四つの文字列を読ませた結果である。
+    正規表現の側で <code>42</code> と <code>3.14</code> が属し、<code>3.</code> と <code>.5</code> が属さないことと、判定の結果が一致する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 236" role="img" aria-label="図 5-2 のオートマトンに四つの入力を読ませた図。42 は q0, q1, q1 と移って受理される。3.14 は q0, q1, q2, q3, q3 と移って受理される。3. は q0, q1, q2 と移るが、q2 は受理状態でないため受理されない。.5 は q0 でピリオドを読んだ時点で移り先が無く、受理されない。">
+      <path d="M 136 30 L 186 30" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 232 30 L 282 30" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <path d="M 136 90 L 186 90" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 232 90 L 282 90" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 328 90 L 378 90" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 424 90 L 474 90" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <path d="M 136 150 L 186 150" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 232 150 L 282 150" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <path d="M 136 210 L 186 210" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <circle cx="116" cy="30" r="18" class="svg-cell"/>
+      <circle cx="212" cy="30" r="18" class="svg-cell"/>
+      <circle cx="308" cy="30" r="18" class="svg-hl"/>
+
+      <circle cx="116" cy="90" r="18" class="svg-cell"/>
+      <circle cx="212" cy="90" r="18" class="svg-cell"/>
+      <circle cx="308" cy="90" r="18" class="svg-cell"/>
+      <circle cx="404" cy="90" r="18" class="svg-cell"/>
+      <circle cx="500" cy="90" r="18" class="svg-hl"/>
+
+      <circle cx="116" cy="150" r="18" class="svg-cell"/>
+      <circle cx="212" cy="150" r="18" class="svg-cell"/>
+      <circle cx="308" cy="150" r="18" class="svg-cell"/>
+
+      <circle cx="116" cy="210" r="18" class="svg-cell"/>
+      <circle cx="212" cy="210" r="18" class="svg-cell-plain" stroke-dasharray="5 4"/>
+
+      <text x="16" y="35" class="svg-small" style="text-anchor:start">入力 42</text>
+      <text x="16" y="95" class="svg-small" style="text-anchor:start">入力 3.14</text>
+      <text x="16" y="155" class="svg-small" style="text-anchor:start">入力 3.</text>
+      <text x="16" y="215" class="svg-small" style="text-anchor:start">入力 .5</text>
+
+      <text x="116" y="35" class="svg-mono">q0</text>
+      <text x="212" y="35" class="svg-mono">q1</text>
+      <text x="308" y="35" class="svg-mono">q1</text>
+      <text x="116" y="95" class="svg-mono">q0</text>
+      <text x="212" y="95" class="svg-mono">q1</text>
+      <text x="308" y="95" class="svg-mono">q2</text>
+      <text x="404" y="95" class="svg-mono">q3</text>
+      <text x="500" y="95" class="svg-mono">q3</text>
+      <text x="116" y="155" class="svg-mono">q0</text>
+      <text x="212" y="155" class="svg-mono">q1</text>
+      <text x="308" y="155" class="svg-mono">q2</text>
+      <text x="116" y="215" class="svg-mono">q0</text>
+      <text x="212" y="214" class="svg-small">なし</text>
+
+      <text x="160" y="20" class="svg-mono">4</text>
+      <text x="256" y="20" class="svg-mono">2</text>
+      <text x="160" y="80" class="svg-mono">3</text>
+      <text x="256" y="80" class="svg-mono">「.」</text>
+      <text x="352" y="80" class="svg-mono">1</text>
+      <text x="448" y="80" class="svg-mono">4</text>
+      <text x="160" y="140" class="svg-mono">3</text>
+      <text x="256" y="140" class="svg-mono">「.」</text>
+      <text x="160" y="200" class="svg-mono">「.」</text>
+
+      <text x="338" y="35" class="svg-small" style="text-anchor:start">読み終えた → 受理</text>
+      <text x="530" y="95" class="svg-small" style="text-anchor:start">受理</text>
+      <text x="338" y="155" class="svg-small" style="text-anchor:start">q2 は受理状態でない → 受理しない</text>
+      <text x="242" y="215" class="svg-small" style="text-anchor:start">「.」の移り先が無い → 受理しない</text>
+
+      <defs>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-3　小数を受理する有限オートマトンによる四つの入力の判定。42 と 3.14 は受理状態で読み終える。
+      3. は全ての文字を読めるが、読み終えた q2 が受理状態でないため受理されない。.5 は q0 に「.」の遷移が無く、一文字目で受理されないことが確定する。
     </figcaption>
   </figure>
 
@@ -723,7 +1341,7 @@
   <div class="quiz">
     <span class="quiz-label">確認問題 5-1</span>
     <p class="q-body">
-      図 5-1 の有限オートマトンで、q1 を受理状態から外し、通常の状態とした。遷移は変えない。
+      図 5-2 の有限オートマトンで、q1 を受理状態から外し、通常の状態とした。遷移は変えない。
       変更後のオートマトンが受理する言語を表す正規表現はどれか。
     </p>
     <ol class="choices">
@@ -763,9 +1381,16 @@
 
   <p>
     <code>(</code> と <code>)</code> からなり、括弧が正しく対応している文字列の言語を考える。
-    <code>(())</code> は属し、<code>(()</code> は属さない。
+    <code>()</code>, <code>(())</code>, <code>()()</code>, <code>(()())</code> は属し、<code>)(</code>, <code>(()</code>, <code>())(</code> は属さない。
     これを判定するには、その時点で開いたままの括弧の個数、すなわち入れ子の深さを覚えておく必要がある。
     <code>)</code> を読んだとき、閉じてよい括弧が残っているかは深さで決まるためである。
+  </p>
+
+  <p>
+    深さは、<code>(</code> で 1 増え、<code>)</code> で 1 減る。<code>(()())</code> を読むと、深さは 1, 2, 1, 2, 1, 0 と変わり、
+    途中で負にならず、読み終えた時点で 0 になるため属する。
+    <code>())(</code> は三文字目の <code>)</code> で深さが −1 になる。閉じる相手の無い括弧が現れたため、属さない。
+    <code>(()</code> は読み終えた時点で深さが 1 であり、閉じられていない括弧が残るため属さない。
   </p>
 
   <p>
@@ -831,6 +1456,58 @@
     <span class="term">鳩の巣原理</span><span class="en">(pigeonhole principle)</span> と呼ぶ。
     同じ状態に入った二つの深さをオートマトンは区別できないため、括弧が対応した文字列と対応していない文字列のどちらかで判定を誤る。
   </p>
+
+  <p>
+    図 6-2 は、状態を A, B, C の三つしか持たないオートマトンの例である。
+    <code>((</code> と <code>(((</code> を読んだ後に同じ状態 C にあるとすると、続けて <code>))</code> を読んだ結果も同じになる。
+    ところが <code>(())</code> は属し、<code>((())</code> は属さない。どちらか一方の判定は必ず誤る。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 254" role="img" aria-label="上段に、深さ 0 から 3 に対応する四つの入力 ε, (, ((, ((( を並べ、下段に三つの状態 A, B, C を並べた図。ε は A に、( は B に、(( と ((( はどちらも C に入る。下に、(( に )) を続けた (()) は受理すべき文字列であり、((( に )) を続けた ((()) は受理すべきでない文字列であるが、どちらも状態 C から同じ )) を読むため判定が一致してしまうことを記す。">
+      <path d="M 100 62 L 141 129" class="svg-arrow" marker-end="url(#ah9)"/>
+      <path d="M 220 62 L 272.6 128.1" class="svg-arrow" marker-end="url(#ah9)"/>
+      <path d="M 340 62 L 401.2 129.3" class="svg-arrow" marker-end="url(#ah9)"/>
+      <path d="M 460 62 L 431.6 124.5" class="svg-arrow" marker-end="url(#ah9)"/>
+
+      <text x="100" y="16" class="svg-small">深さ 0</text>
+      <text x="220" y="16" class="svg-small">深さ 1</text>
+      <text x="340" y="16" class="svg-small">深さ 2</text>
+      <text x="460" y="16" class="svg-small">深さ 3</text>
+
+      <rect x="56" y="24" width="88" height="36" class="svg-cell"/>
+      <rect x="176" y="24" width="88" height="36" class="svg-cell"/>
+      <rect x="296" y="24" width="88" height="36" class="svg-hl"/>
+      <rect x="416" y="24" width="88" height="36" class="svg-hl"/>
+
+      <text x="100" y="47" class="svg-mono">ε</text>
+      <text x="220" y="47" class="svg-mono">(</text>
+      <text x="340" y="47" class="svg-mono">((</text>
+      <text x="460" y="47" class="svg-mono">(((</text>
+
+      <circle cx="160" cy="150" r="22" class="svg-cell"/>
+      <circle cx="290" cy="150" r="22" class="svg-cell"/>
+      <circle cx="420" cy="150" r="22" class="svg-hl"/>
+
+      <text x="160" y="155" class="svg-mono">A</text>
+      <text x="290" y="155" class="svg-mono">B</text>
+      <text x="420" y="155" class="svg-mono">C</text>
+
+      <text x="290" y="200" class="svg-small">(( に )) を続けた (()) は、受理すべき文字列</text>
+      <text x="290" y="220" class="svg-small">((( に )) を続けた ((()) は、受理すべきでない文字列</text>
+      <text x="290" y="244" class="svg-small">どちらも状態 C から同じ )) を読むため、判定は必ず一致してしまう</text>
+
+      <defs>
+        <marker id="ah9" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-2　状態が三つのオートマトンに、深さ 0〜3 の四通りを区別させることはできない。鳩の巣原理により、どこかで二つの深さが同じ状態に入る。
+      ここでは (( と ((( が状態 C に入り、その後に同じ文字を読んだときの判定を分けられなくなる。状態をいくつに増やしても、それより深い入れ子で同じことが起きる。
+    </figcaption>
+  </figure>
 
   <h3>字句解析と構文解析の分担</h3>
 
