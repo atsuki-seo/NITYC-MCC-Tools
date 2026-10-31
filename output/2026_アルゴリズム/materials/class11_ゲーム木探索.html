@@ -547,6 +547,96 @@
     </div>
   </div>
 
+  <h3>評価値の計算例</h3>
+
+  <p>
+    マスの位置の観点は、各マスに点数を定めた表で表す。
+    自分の石があるマスの点数の合計から、相手の石があるマスの点数の合計を引いた値を
+    <strong>位置の重みの差</strong>とする。
+    盤は上下・左右・対角線について対称であるから、表は盤の4分の1を定めれば足りる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 248" role="img" aria-label="盤の左上4×4のマスの点数表。隅は100、隅の縦横の隣はマイナス40、隅の斜め隣はマイナス80と大きな負の値で、その他のマスは20、5、1、0、マイナス1などの小さな値である">
+      <text x="40" y="28" class="svg-small" style="text-anchor:start">盤の左上 4 × 4（残りは上下・左右・対角線に対称）</text>
+      <rect x="136" y="44" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="184" y="44" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="136" y="92" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="184" y="92" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="40" y="140" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="88" y="140" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="136" y="140" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="184" y="140" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="40" y="188" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="88" y="188" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="136" y="188" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="184" y="188" width="48" height="48" class="svg-cell-plain"/>
+      <rect x="88" y="44" width="48" height="48" class="svg-cell"/>
+      <rect x="40" y="92" width="48" height="48" class="svg-cell"/>
+      <rect x="88" y="92" width="48" height="48" class="svg-cell"/>
+      <rect x="40" y="44" width="48" height="48" class="svg-hl"/>
+      <text x="64" y="73" class="svg-text">100</text>
+      <text x="112" y="73" class="svg-text">−40</text>
+      <text x="160" y="73" class="svg-text">20</text>
+      <text x="208" y="73" class="svg-text">5</text>
+      <text x="64" y="121" class="svg-text">−40</text>
+      <text x="112" y="121" class="svg-text">−80</text>
+      <text x="160" y="121" class="svg-text">−1</text>
+      <text x="208" y="121" class="svg-text">−1</text>
+      <text x="64" y="169" class="svg-text">20</text>
+      <text x="112" y="169" class="svg-text">−1</text>
+      <text x="160" y="169" class="svg-text">5</text>
+      <text x="208" y="169" class="svg-text">1</text>
+      <text x="64" y="217" class="svg-text">5</text>
+      <text x="112" y="217" class="svg-text">−1</text>
+      <text x="160" y="217" class="svg-text">1</text>
+      <text x="208" y="217" class="svg-text">0</text>
+      <rect x="280" y="74" width="28" height="22" class="svg-hl"/>
+      <text x="320" y="90" class="svg-small" style="text-anchor:start">隅：一度置けば返されない</text>
+      <rect x="280" y="124" width="28" height="22" class="svg-cell"/>
+      <text x="320" y="140" class="svg-small" style="text-anchor:start">隅の隣：相手に隅を与えやすい</text>
+      <rect x="280" y="174" width="28" height="22" class="svg-cell-plain"/>
+      <text x="320" y="190" class="svg-small" style="text-anchor:start">その他：小さな値</text>
+    </svg>
+    <figcaption>
+      図 4-1　マスの点数表の一例（盤の左上の4分の1）。隅に大きな正の値、隅の隣に負の値を与え、
+      隅の斜め隣は特に大きな負の値とする。値そのものに正解はなく、対戦の結果を見ながら調整する。
+    </figcaption>
+  </figure>
+
+  <p>
+    評価関数は、表 4-2 の各観点の値に重みを掛けて足し合わせる。
+    次の例では、中盤を想定して石の数の重みを 0 とし、
+    <code>評価値 ← 1 × 位置の重みの差 + 10 × 着手可能数の差</code> とした。
+    局面 P は自分が隅の斜め隣に打った後、局面 Q は辺の近くに打った後の局面である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-3　二つの局面の評価値の計算。石の数だけで比べれば P が上回るが、
+      位置と着手可能数を加えた重み付きの和では Q が大きく上回り、選ぶ手が逆転する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>重み</th><th>P の値</th><th>P の寄与</th><th>Q の値</th><th>Q の寄与</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>石の数の差</td><td class="num-cell">0</td><td class="num-cell">+4</td><td class="num-cell">0</td><td class="num-cell">−2</td><td class="num-cell">0</td></tr>
+        <tr><td>位置の重みの差</td><td class="num-cell">1</td><td class="num-cell">−70</td><td class="num-cell">−70</td><td class="num-cell">+15</td><td class="num-cell">+15</td></tr>
+        <tr><td>着手可能数の差</td><td class="num-cell">10</td><td class="num-cell">−3</td><td class="num-cell">−30</td><td class="num-cell">+4</td><td class="num-cell">+40</td></tr>
+        <tr><td><strong>評価値（寄与の合計）</strong></td><td></td><td></td><td class="num-cell"><strong>−100</strong></td><td></td><td class="num-cell"><strong>+55</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    P の位置の重みの差 −70 は、斜め隣の −80 が大半を占める。
+    重みの比は観点どうしの単位をそろえる役割も持つ。着手可能数の差は数手分の値にしかならないため、
+    位置の点数と同じ重みでは評価にほとんど効かない。
+  </p>
+
   <h3>深さと精度のトレードオフ</h3>
 
   <p>
@@ -557,16 +647,77 @@
   </p>
 
   <p>
-    なお、リバーシは打つたびに空きマスが1つ減るため、残りの空きマスが少なくなった終盤では
-    終局まで読み切れる。残り 10 マス程度であれば分岐数も小さく、
-    評価関数に頼らず最終的な石の差で正確に手を選べる。
+    量で見ると、1局面の評価に 10 倍の時間をかけると、同じ時間で評価できる局面の数は 10 分の 1 になる。
+    分岐数 10 のゲーム木では、深さが 1 増えるごとに局面の数が 10 倍になるため、
+    <strong>評価が 10 倍遅くなると読める深さがちょうど 1 浅くなる</strong>。
+    表 4-1 で 1 秒以内に深さ 6 まで読めていた CPU は、深さ 5 までしか読めなくなる。
+    評価の精度の向上が 1 手分の読みの損を上回るかどうかが、観点を加えるかの判断基準になる。
   </p>
+
+  <h3>終盤は読み切れる</h3>
+
+  <p>
+    リバーシは打つたびに空きマスが1つ減り、打てる手の数は空きマスの数を超えない。
+    残りの空きマスが <var>n</var> 個の局面から終局までのゲーム木は、
+    1手目の分岐が <var>n</var> 以下、2手目が <var>n</var> − 1 以下、という具合に狭まるため、
+    葉の数は <var>n</var>! 以下に収まる（パスは子が1つしかないため、葉を増やさない）。
+    残り 10 マスであれば 10! ≈ 363 万以下であり、表 4-1 と同じく 1 秒に 100 万局面を評価できるとすれば、
+    多く見積もっても 4 秒程度で終局まで読み切れる。
+    実際の合法手は空きマスよりはるかに少なく、αβ法でさらに減るため、これより速く終わる。
+    この段階では評価関数に頼らず、最終的な石の差で正確に手を選べる。
+  </p>
+
+  <h3>読みの境界の向こう側</h3>
+
+  <figure>
+    <svg viewBox="0 0 580 332" role="img" aria-label="深さ3で読みを打ち切ったゲーム木の主な進行。手Aの進行は深さ3の局面で評価値+8、手Bの進行は+3であり、手Aが選ばれる。しかし打ち切りの線の1手先では、手Aの進行で相手が角を取り評価値は−20に下がり、手Bの進行は+5となる。読みの打ち切りの向こう側にある損を見落とすことを示す図">
+      <text x="10" y="40" class="svg-small" style="text-anchor:start">現局面</text>
+      <text x="10" y="100" class="svg-small" style="text-anchor:start">自分の手</text>
+      <text x="10" y="160" class="svg-small" style="text-anchor:start">相手の応手</text>
+      <text x="10" y="220" class="svg-small" style="text-anchor:start">自分の手（末端）</text>
+      <text x="10" y="260" class="svg-small" style="text-anchor:start">読みの打ち切り（深さ 3）</text>
+      <text x="10" y="290" class="svg-small" style="text-anchor:start">相手の手（読まない）</text>
+      <path d="M 150 256 L 570 256" class="svg-line" stroke-dasharray="8 5"/>
+      <path d="M 385 52 L 300 80" class="svg-line"/>
+      <path d="M 385 52 L 470 80" class="svg-line"/>
+      <path d="M 300 112 L 300 140" class="svg-line"/>
+      <path d="M 470 112 L 470 140" class="svg-line"/>
+      <path d="M 300 172 L 300 200" class="svg-line"/>
+      <path d="M 470 172 L 470 200" class="svg-line"/>
+      <path d="M 300 232 L 300 270" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 470 232 L 470 270" class="svg-line" stroke-dasharray="4 4"/>
+      <rect x="349" y="20" width="72" height="32" class="svg-cell"/>
+      <text x="385" y="41" class="svg-text">現局面</text>
+      <rect x="410" y="80" width="120" height="32" class="svg-cell"/>
+      <text x="470" y="101" class="svg-text">手 B</text>
+      <rect x="410" y="140" width="120" height="32" class="svg-cell"/>
+      <text x="470" y="161" class="svg-text">応手</text>
+      <rect x="410" y="200" width="120" height="32" class="svg-cell"/>
+      <text x="470" y="221" class="svg-text">+3</text>
+      <rect x="240" y="80" width="120" height="32" class="svg-hl"/>
+      <text x="300" y="101" class="svg-text">手 A</text>
+      <rect x="240" y="140" width="120" height="32" class="svg-hl"/>
+      <text x="300" y="161" class="svg-text">応手</text>
+      <rect x="240" y="200" width="120" height="32" class="svg-hl"/>
+      <text x="300" y="221" class="svg-text">+8</text>
+      <rect x="240" y="270" width="120" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="300" y="291" class="svg-text">−20</text>
+      <rect x="410" y="270" width="120" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="470" y="291" class="svg-text">+5</text>
+      <text x="300" y="322" class="svg-small">相手が角を取る</text>
+    </svg>
+    <figcaption>
+      図 4-2　深さ 3 で読みを打ち切った場合の、双方の最善の進行だけを描いた図。
+      末端の評価値では手 A（+8）が手 B（+3）を上回るため手 A を選ぶが、
+      打ち切りの線の1手先で相手が角を取り、手 A の進行は −20 に転じる。破線の局面は探索が見ていない。
+    </figcaption>
+  </figure>
 
   <div class="note caution">
     <span class="label">誤りやすい点</span>
     <p>
       読みを打ち切った直後に大きな損が待っている局面では、評価関数はその損を見落とす。
-      例えば打ち切った深さの1手先で角を取られる局面を、石の数だけを見て有利と判断してしまう。
+      図 4-2 のように、打ち切った深さの1手先で角を取られる局面を、石の数だけを見て有利と判断してしまう。
       読みの境界の向こう側が見えないことから生じるこの現象を
       <span class="term">水平線効果</span><span class="en">(horizon effect)</span> と呼ぶ。
       深さを1増やしても境界が1手先へ移るだけであり、評価関数の観点で補う必要がある。
@@ -626,6 +777,35 @@
           (C) は αβ法などの枝刈りの役割であり、評価関数とは別の仕組みである。
           (D) 終局した局面では石の数で勝敗が確定しており、推定する必要がない。
           評価関数が必要になるのは、終局前に読みを打ち切った局面である。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-3</span>
+    <p class="q-body">
+      評価関数を <code>評価値 ← 1 × 位置の重みの差 + 10 × 着手可能数の差</code> と定めた。
+      ある局面で、位置の重みの差が +30、着手可能数の差が −2 であった。この局面の評価値はいくつか。
+    </p>
+    <ol class="choices">
+      <li>10</li>
+      <li>28</li>
+      <li>50</li>
+      <li>298</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          各観点の値に対応する重みを掛けて足し合わせる。1 × 30 + 10 × (−2) = 30 − 20 = 10 である。
+        </p>
+        <p>
+          (B) は 30 − 2 であり、着手可能数の差に重みを掛けていない。
+          (C) は 30 + 20 であり、着手可能数の差の符号を落としている。
+          相手の打てる手が多い局面は自分に不利であり、評価値を下げる向きに働く。
+          (D) は 10 × 30 − 2 であり、重みと観点の対応を取り違えている。
         </p>
       </div>
     </details>
@@ -708,9 +888,110 @@
   <p>
     相手の手番の節点で、子の値が α 以下になった時点で、その節点の残りの子は調べない。
     この節点の値は α 以下に決まり、その上にある自分の手番の節点では選ばれないためである（図 5-1 の B）。
+    これを<span class="term">α カット</span><span class="en">(alpha cutoff)</span> と呼ぶ。
     自分の手番の節点で子の値が β 以上になった場合も、対称な理由で残りの子を打ち切る。
+    この節点の値は β 以上に決まり、その上にある相手の手番の節点では選ばれないためである。
+    これを<span class="term">β カット</span><span class="en">(beta cutoff)</span> と呼ぶ。
     刈り取った枝の値はいずれも根の値に影響しないため、
     <strong>αβ法はミニマックス法と同じ根の値を、より少ない局面の評価で求める</strong>。
+  </p>
+
+  <h3>α・β の受け渡しと β カット</h3>
+
+  <p>
+    α は自分の手番の節点で、β は相手の手番の節点で更新される。
+    子を調べるときは、その時点の (α, β) の組をそのまま子へ渡す。
+    こうして、根に近い節点で確定した下限・上限が、深い節点での打ち切りの判断に使われる。
+    β カットが起きるのは深さ 3 以上の木であるため、深さ 3・分岐数 2 の木で推移を追う。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 300" role="img" aria-label="深さ3、分岐数2のゲーム木をαβ法で左から調べる。A1は葉3と5から値5となり、Aのβは5になる。A2は最初の葉6がβの5以上なので残りの葉を打ち切るβカットが起き、Aの値は5になる。根のαは5になり、B1は葉1と2から値2となる。Bの値は2以下でαの5以下なのでB2以下を打ち切るαカットが起き、根の値は5となることを示す図">
+      <text x="10" y="44" class="svg-small" style="text-anchor:start">自分の手番：最大</text>
+      <text x="10" y="114" class="svg-small" style="text-anchor:start">相手の手番：最小</text>
+      <text x="10" y="184" class="svg-small" style="text-anchor:start">自分の手番：最大</text>
+      <text x="10" y="254" class="svg-small" style="text-anchor:start">葉：評価値</text>
+      <path d="M 359 56 L 251 94" class="svg-line"/>
+      <path d="M 359 56 L 467 94" class="svg-line"/>
+      <path d="M 251 126 L 197 164" class="svg-line"/>
+      <path d="M 251 126 L 305 164" class="svg-line"/>
+      <path d="M 467 126 L 413 164" class="svg-line"/>
+      <path d="M 467 126 L 521 164" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 197 196 L 170 234" class="svg-line"/>
+      <path d="M 197 196 L 224 234" class="svg-line"/>
+      <path d="M 305 196 L 278 234" class="svg-line"/>
+      <path d="M 305 196 L 332 234" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 413 196 L 386 234" class="svg-line"/>
+      <path d="M 413 196 L 440 234" class="svg-line"/>
+      <path d="M 521 196 L 494 234" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 521 196 L 548 234" class="svg-line" stroke-dasharray="4 4"/>
+      <rect x="331" y="24" width="56" height="32" class="svg-cell"/>
+      <text x="359" y="45" class="svg-text">5</text>
+      <rect x="215" y="94" width="72" height="32" class="svg-cell"/>
+      <text x="251" y="115" class="svg-text">A：5</text>
+      <rect x="161" y="164" width="72" height="32" class="svg-cell"/>
+      <text x="197" y="185" class="svg-text">A1：5</text>
+      <rect x="377" y="164" width="72" height="32" class="svg-cell"/>
+      <text x="413" y="185" class="svg-text">B1：2</text>
+      <rect x="485" y="164" width="72" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="521" y="185" class="svg-small">B2</text>
+      <rect x="150" y="234" width="40" height="32" class="svg-cell"/>
+      <text x="170" y="255" class="svg-text">3</text>
+      <rect x="204" y="234" width="40" height="32" class="svg-cell"/>
+      <text x="224" y="255" class="svg-text">5</text>
+      <rect x="258" y="234" width="40" height="32" class="svg-cell"/>
+      <text x="278" y="255" class="svg-text">6</text>
+      <rect x="312" y="234" width="40" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="332" y="255" class="svg-small">?</text>
+      <rect x="366" y="234" width="40" height="32" class="svg-cell"/>
+      <text x="386" y="255" class="svg-text">1</text>
+      <rect x="420" y="234" width="40" height="32" class="svg-cell"/>
+      <text x="440" y="255" class="svg-text">2</text>
+      <rect x="474" y="234" width="40" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="494" y="255" class="svg-small">?</text>
+      <rect x="528" y="234" width="40" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="548" y="255" class="svg-small">?</text>
+      <rect x="269" y="164" width="72" height="32" class="svg-hl"/>
+      <text x="305" y="185" class="svg-text">A2：≥6</text>
+      <rect x="431" y="94" width="72" height="32" class="svg-hl"/>
+      <text x="467" y="115" class="svg-text">B：≤2</text>
+      <text x="305" y="290" class="svg-small">6 ≥ β = 5 → β カット</text>
+      <text x="480" y="290" class="svg-small">2 ≤ α = 5 → α カット</text>
+    </svg>
+    <figcaption>
+      図 5-2　深さ 3・分岐数 2 の木を左から αβ法で調べた結果。強調した A2 で β カット、B で α カットが起き、
+      破線の局面は調べずに済む。葉 8 個のうち評価するのは 5 個であり、根の値 5 はミニマックス法と一致する。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　図 5-2 の探索で、各節点を調べる時点の (α, β) と起きたことを、調べる順に並べた。
+      α・β は親から子へそのまま渡され、自分の手番では α、相手の手番では β だけが動く。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>順</th><th>節点</th><th>(α, β)</th><th>起きたこと</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td>A1</td><td>(−∞, +∞)</td><td>葉 3・5 を調べ、最大の 5 を返す</td></tr>
+        <tr><td class="num-cell">2</td><td>A</td><td>(−∞, 5)</td><td>A1 の値 5 で β を 5 に下げ、A2 へ渡す</td></tr>
+        <tr><td class="num-cell">3</td><td>A2</td><td>(−∞, 5)</td><td>最初の葉 6 が β 以上。A2 は 6 以上に決まり、相手は A1 を選ぶので残りの葉を打ち切る（β カット）</td></tr>
+        <tr><td class="num-cell">4</td><td>根</td><td>(5, +∞)</td><td>A の値 5 で α を 5 に上げ、B へ渡す</td></tr>
+        <tr><td class="num-cell">5</td><td>B1</td><td>(5, +∞)</td><td>葉 1・2 を調べ、最大の 2 を返す</td></tr>
+        <tr><td class="num-cell">6</td><td>B</td><td>(5, +∞)</td><td>B1 の値 2 が α 以下。B は 2 以下に決まり、自分は A を選ぶので B2 以下を打ち切る（α カット）</td></tr>
+        <tr><td class="num-cell">7</td><td>根</td><td>(5, +∞)</td><td>子をすべて調べ終え、値 5 の手 A を選ぶ</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    順 3 の β カットでは、A2 の残りの葉が 9 であっても 0 であっても A の値は 5 のまま変わらない。
+    A2 は 6 以上と決まった時点で、最小値を選ぶ A にとって A1 の 5 より大きい選択肢であることが確定しているためである。
+    順 6 の α カットは、根で確定した下限 α = 5 が B に渡されていたことで判断できた。
+    渡されていなければ、B は B2 の下まで調べてから根へ値を返すことになる。
   </p>
 
   <h3>調べる順序が刈り取る量を決める</h3>
@@ -722,10 +1003,91 @@
     早く α・β が絞り込まれ、多くの枝を刈り取れる</strong>。
   </p>
 
+  <figure>
+    <svg viewBox="0 0 580 252" role="img" aria-label="図3-1と同じゲーム木で、手Cの下の葉を2、5、14の順に並べ替えて調べる。手Bでは最初の葉2で、手Cでも最初の葉2でαカットが起き、BとCの残りの葉はそれぞれ2つずつ調べずに済む。調べる葉は3+1+1の5個になることを示す図">
+      <text x="10" y="44" class="svg-small" style="text-anchor:start">自分の手番：最大</text>
+      <text x="10" y="124" class="svg-small" style="text-anchor:start">相手の手番：最小</text>
+      <text x="10" y="204" class="svg-small" style="text-anchor:start">葉：評価値</text>
+      <path d="M 366 56 L 228 104" class="svg-line"/>
+      <path d="M 366 56 L 366 104" class="svg-line"/>
+      <path d="M 366 56 L 504 104" class="svg-line"/>
+      <path d="M 228 136 L 182 184" class="svg-line"/>
+      <path d="M 228 136 L 228 184" class="svg-line"/>
+      <path d="M 228 136 L 274 184" class="svg-line"/>
+      <path d="M 366 136 L 320 184" class="svg-line"/>
+      <path d="M 366 136 L 366 184" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 366 136 L 412 184" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 504 136 L 458 184" class="svg-line"/>
+      <path d="M 504 136 L 504 184" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 504 136 L 550 184" class="svg-line" stroke-dasharray="4 4"/>
+      <rect x="338" y="24" width="56" height="32" class="svg-cell"/>
+      <text x="366" y="45" class="svg-text">3</text>
+      <rect x="200" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="228" y="125" class="svg-text">A：3</text>
+      <rect x="163" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="182" y="205" class="svg-text">3</text>
+      <rect x="209" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="228" y="205" class="svg-text">12</text>
+      <rect x="255" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="274" y="205" class="svg-text">8</text>
+      <rect x="347" y="184" width="38" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="366" y="205" class="svg-small">?</text>
+      <rect x="393" y="184" width="38" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="412" y="205" class="svg-small">?</text>
+      <rect x="485" y="184" width="38" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="504" y="205" class="svg-small">?</text>
+      <rect x="531" y="184" width="38" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="550" y="205" class="svg-small">?</text>
+      <rect x="338" y="104" width="56" height="32" class="svg-hl"/>
+      <text x="366" y="125" class="svg-text">B：≤2</text>
+      <rect x="476" y="104" width="56" height="32" class="svg-hl"/>
+      <text x="504" y="125" class="svg-text">C：≤2</text>
+      <rect x="301" y="184" width="38" height="32" class="svg-hl"/>
+      <text x="320" y="205" class="svg-text">2</text>
+      <rect x="439" y="184" width="38" height="32" class="svg-hl"/>
+      <text x="458" y="205" class="svg-text">2</text>
+      <text x="366" y="242" class="svg-small">調べる葉は 3 + 1 + 1 = 5 個（図 5-1 の順序では 7 個）</text>
+    </svg>
+    <figcaption>
+      図 5-3　図 3-1 と同じ木で、手 C の下の葉を 2・5・14 の順に並べ替えて調べた場合。
+      B と C はいずれも最初の葉で α カットが起き、評価する葉は 5 個まで減る。
+      逆に根の子を B・C・A の順に、各手の下の葉を図 3-1 の順に調べると、α が 2 にとどまって1本も刈り取れず、9 個すべてを評価する。
+    </figcaption>
+  </figure>
+
   <p>
-    最も都合の良い順序で調べられた場合、評価する葉の数はおよそ
-    <var>b</var><sup><var>d</var>/2</sup> まで減る。同じ時間でおよそ 2 倍の深さまで読めることになる。
+    一般に、分岐数 <var>b</var>・深さ <var>d</var> の木を最も都合の良い順序で調べた場合、
+    評価する葉の数は <var>b</var><sup>⌈<var>d</var>/2⌉</sup> + <var>b</var><sup>⌊<var>d</var>/2⌋</sup> − 1 個、
+    すなわちおよそ 2 × <var>b</var><sup><var>d</var>/2</sup> まで減ることが知られている。
+    図 5-3 は <var>b</var> = 3・<var>d</var> = 2 であり、3 + 3 − 1 = 5 個と一致する。
     逆に最も悪い順序では1本も刈り取れず、ミニマックス法と同じ数の葉を評価する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-2　分岐数 10 のときの、ミニマックス法と最良の順序の αβ法が評価する葉の数。
+      所要時間は表 4-1 と同じく 1 秒に 100 万局面を評価できるとした目安である。
+      実際の順序は最良にはならないため、αβ法の値は両者の間に入る。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>深さ <var>d</var></th><th>ミニマックス法</th><th>αβ法（最良の順序）</th><th>所要時間（ミニマックス法 ／ αβ法）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">4</td><td class="num-cell">1 万</td><td class="num-cell">199</td><td>0.01 秒 ／ 0.0002 秒</td></tr>
+        <tr><td class="num-cell">6</td><td class="num-cell">100 万</td><td class="num-cell">1,999</td><td>1 秒 ／ 0.002 秒</td></tr>
+        <tr><td class="num-cell">8</td><td class="num-cell">1 億</td><td class="num-cell">約 2 万</td><td>約 2 分 ／ 0.02 秒</td></tr>
+        <tr><td class="num-cell">16</td><td class="num-cell">10<sup>16</sup></td><td class="num-cell">約 2 億</td><td>約 300 年 ／ 約 3 分</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    ミニマックス法で深さ 8 を読む時間（約 2 分）とほぼ同じ時間で、
+    最良の順序の αβ法は深さ 16 まで届く。<strong>同じ時間でおよそ 2 倍の深さまで読める</strong>ことが、
+    調べる順序を工夫する理由である。
   </p>
 
   <p>
@@ -763,7 +1125,7 @@
     </p>
     <div class="table-block">
       <p class="table-caption">
-        表 5-1　各手の下の葉の評価値。葉の名前は手の名前と左からの順番を表す。
+        表 5-3　各手の下の葉の評価値。葉の名前は手の名前と左からの順番を表す。
       </p>
       <div class="table-scroll">
       <table>
@@ -807,6 +1169,38 @@
   <div class="quiz">
     <span class="quiz-label">確認問題 5-2</span>
     <p class="q-body">
+      根を自分の手番とする深さ 3 のゲーム木を、αβ法で左から調べている。
+      相手の手番の節点 A の最初の子 A1（自分の手番）の値が 4 と確定した。
+      続いて A の2番目の子 A2（自分の手番）を調べ、A2 の最初の子の値が 7 であった。
+      この時点の判断として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>A2 の残りの子は調べない。A2 の値は 7 以上に決まり、相手は A2 より A1 を選ぶから</li>
+      <li>A2 の残りの子をすべて調べ、A2 の値を確定させてから A に返す</li>
+      <li>A の値を 7 に更新し、根の α を 7 に上げる</li>
+      <li>A の残りの子も含めて、A の下をすべて打ち切る</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          A1 の値によって A の β は 4 になっており、A2 にはこの β が渡されている。
+          A2 は自分の手番なので値は最初の子の 7 以上であり、β = 4 以上になった時点で
+          最小値を選ぶ A に選ばれないことが確定する。これが β カットである。
+        </p>
+        <p>
+          (B) A2 の残りの子がどのような値でも A2 は 7 以上であり、A の値は変わらない。調べても結果に影響しない。
+          (C) は A が最小値を選ぶ節点であることを見落としている。A の値は 4 以下であり、7 にはならない。
+          (D) 打ち切れるのは A2 の残りの子だけである。A の3番目以降の子は 4 より小さい値を持ちうるため、調べる必要がある。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-3</span>
+    <p class="q-body">
       同じゲーム木に αβ法を適用するとき、各節点で子を調べる順序を変えた。順序によって変わりうるものはどれか。
     </p>
     <ol class="choices">
@@ -834,7 +1228,7 @@
   </div>
 
   <div class="quiz">
-    <span class="quiz-label">確認問題 5-3</span>
+    <span class="quiz-label">確認問題 5-4</span>
     <p class="q-body">
       置換表から、今調べている盤面に対応する格納位置の記録を取り出した。
       記録された値を使う前に確かめる必要がある事柄として、最も適切なものはどれか。
@@ -1068,11 +1462,13 @@
     </li>
     <li>
       探索量は深さに対して指数関数的に増えるため、読みを途中で打ち切り、
-      打ち切った局面を評価関数で採点する。CPU の強さは、読みの深さと評価関数の精度の両方で決まる。
+      打ち切った局面を評価関数で採点する。評価関数は、位置の点数や着手可能数などの観点に重みを掛けた和である。
+      CPU の強さは、読みの深さと評価関数の精度の両方で決まり、評価を 10 倍重くすると分岐数 10 では読める深さが 1 減る。
     </li>
     <li>
       αβ法は、根の値に影響しない枝を刈り取り、ミニマックス法と同じ値をより少ない評価で求める。
-      刈り取れる量は調べる順序に依存し、良い手から調べるほど多くなる。
+      相手の手番で α 以下になれば α カット、自分の手番で β 以上になれば β カットとして残りの子を打ち切る。
+      刈り取れる量は調べる順序に依存し、最良の順序では同じ時間でおよそ 2 倍の深さまで読める。
       同じ局面の再探索は、盤面をキーとするハッシュ表で省ける。
     </li>
     <li>
