@@ -913,24 +913,384 @@
           <td>挟めない方向まで返す誤り</td>
         </tr>
         <tr>
-          <td>盤の端・隅に石が並ぶ局面</td>
-          <td>盤外を参照せずに判定でき、反対側の端の石が影響しない</td>
+          <td>図 5-1 (a)：h4 に白、その左の g4 に黒がある局面（黒番）</td>
+          <td>黒の合法手は c5 のみ。a5 を合法手に含めない</td>
           <td>範囲確認の漏れ、端での回り込み</td>
         </tr>
         <tr>
-          <td>一方の手番だけ合法手が無い局面</td>
-          <td>パスとなり、盤面を変えずに相手の手番になる</td>
+          <td>図 5-1 (b)：黒番で、黒だけ合法手が無い局面</td>
+          <td>パスとなり、盤面を変えずに白の手番になる。白の合法手は c3・d3・e3</td>
           <td>パスの扱い漏れ（停止・無限の繰り返し）</td>
         </tr>
         <tr>
-          <td>両者とも合法手が無い局面（盤が埋まる前のものを含む）</td>
-          <td>終局と判定され、石数が数えられる</td>
+          <td>図 5-1 (c)(d)：空きが残っているが、両者とも合法手が無い局面</td>
+          <td>終局と判定される。(c) は黒 5 個・白 0 個、(d) は黒 3 個・白 3 個で引き分け</td>
           <td>終局判定を盤の埋まり具合で行う誤り</td>
         </tr>
       </tbody>
     </table>
     </div>
   </div>
+
+  <p>
+    盤の端やパスに関するケースは、言葉で条件を述べるだけでは局面を用意しにくい。
+    図 5-1 に具体的な盤面を示す。いずれも対局で現れるかどうかは問わず、
+    検証のために石を配置した局面である。検証用のコードでは、空の盤面にこれらの石を置いてから判定を呼び出す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 452" role="img" aria-label="検証用の4つの盤面。(a) h4に白、g4に黒、c6に白、c7に黒がある黒番の局面で、合法手はc5のみ、強調したa5は合法手でない。(b) c1、d1、e1に白、d2に黒がある黒番の局面で、黒に合法手が無くパスとなり、白の合法手はc3、d3、e3。(c) 黒が5個だけ残り白が全滅した局面。(d) 左上の隅に黒3個、右下の隅に白3個が離れて置かれ、空きが残っていても両者とも打てない局面">
+      <text x="50" y="24" class="svg-small">a</text>
+      <text x="70" y="24" class="svg-small">b</text>
+      <text x="90" y="24" class="svg-small">c</text>
+      <text x="110" y="24" class="svg-small">d</text>
+      <text x="130" y="24" class="svg-small">e</text>
+      <text x="150" y="24" class="svg-small">f</text>
+      <text x="170" y="24" class="svg-small">g</text>
+      <text x="190" y="24" class="svg-small">h</text>
+      <text x="30" y="44" class="svg-small">1</text>
+      <text x="30" y="64" class="svg-small">2</text>
+      <text x="30" y="84" class="svg-small">3</text>
+      <text x="30" y="104" class="svg-small">4</text>
+      <text x="30" y="124" class="svg-small">5</text>
+      <text x="30" y="144" class="svg-small">6</text>
+      <text x="30" y="164" class="svg-small">7</text>
+      <text x="30" y="184" class="svg-small">8</text>
+      <rect x="40" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="110" width="20" height="20" class="svg-cell"/>
+      <rect x="40" y="110" width="20" height="20" class="svg-hl"/>
+      <circle cx="170.0" cy="100.0" r="7" class="svg-text"/>
+      <circle cx="90.0" cy="160.0" r="7" class="svg-text"/>
+      <circle cx="190.0" cy="100.0" r="7" class="svg-bg"/><circle cx="190.0" cy="100.0" r="7" class="svg-line"/>
+      <circle cx="90.0" cy="140.0" r="7" class="svg-bg"/><circle cx="90.0" cy="140.0" r="7" class="svg-line"/>
+      <text x="120" y="212" class="svg-small">(a) 黒番。a5 は合法手でない</text>
+      <text x="340" y="24" class="svg-small">a</text>
+      <text x="360" y="24" class="svg-small">b</text>
+      <text x="380" y="24" class="svg-small">c</text>
+      <text x="400" y="24" class="svg-small">d</text>
+      <text x="420" y="24" class="svg-small">e</text>
+      <text x="440" y="24" class="svg-small">f</text>
+      <text x="460" y="24" class="svg-small">g</text>
+      <text x="480" y="24" class="svg-small">h</text>
+      <text x="320" y="44" class="svg-small">1</text>
+      <text x="320" y="64" class="svg-small">2</text>
+      <text x="320" y="84" class="svg-small">3</text>
+      <text x="320" y="104" class="svg-small">4</text>
+      <text x="320" y="124" class="svg-small">5</text>
+      <text x="320" y="144" class="svg-small">6</text>
+      <text x="320" y="164" class="svg-small">7</text>
+      <text x="320" y="184" class="svg-small">8</text>
+      <rect x="330" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="30" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="50" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="70" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="90" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="110" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="130" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="150" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="170" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="70" width="20" height="20" class="svg-cell"/>
+      <rect x="390" y="70" width="20" height="20" class="svg-cell"/>
+      <rect x="410" y="70" width="20" height="20" class="svg-cell"/>
+      <circle cx="400.0" cy="60.0" r="7" class="svg-text"/>
+      <circle cx="380.0" cy="40.0" r="7" class="svg-bg"/><circle cx="380.0" cy="40.0" r="7" class="svg-line"/>
+      <circle cx="400.0" cy="40.0" r="7" class="svg-bg"/><circle cx="400.0" cy="40.0" r="7" class="svg-line"/>
+      <circle cx="420.0" cy="40.0" r="7" class="svg-bg"/><circle cx="420.0" cy="40.0" r="7" class="svg-line"/>
+      <text x="410" y="212" class="svg-small">(b) 黒番。黒はパスとなる</text>
+      <text x="50" y="254" class="svg-small">a</text>
+      <text x="70" y="254" class="svg-small">b</text>
+      <text x="90" y="254" class="svg-small">c</text>
+      <text x="110" y="254" class="svg-small">d</text>
+      <text x="130" y="254" class="svg-small">e</text>
+      <text x="150" y="254" class="svg-small">f</text>
+      <text x="170" y="254" class="svg-small">g</text>
+      <text x="190" y="254" class="svg-small">h</text>
+      <text x="30" y="274" class="svg-small">1</text>
+      <text x="30" y="294" class="svg-small">2</text>
+      <text x="30" y="314" class="svg-small">3</text>
+      <text x="30" y="334" class="svg-small">4</text>
+      <text x="30" y="354" class="svg-small">5</text>
+      <text x="30" y="374" class="svg-small">6</text>
+      <text x="30" y="394" class="svg-small">7</text>
+      <text x="30" y="414" class="svg-small">8</text>
+      <rect x="40" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="40" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="60" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="80" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="100" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="120" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="140" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="160" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="180" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <circle cx="110.0" cy="330.0" r="7" class="svg-text"/>
+      <circle cx="130.0" cy="330.0" r="7" class="svg-text"/>
+      <circle cx="150.0" cy="330.0" r="7" class="svg-text"/>
+      <circle cx="110.0" cy="350.0" r="7" class="svg-text"/>
+      <circle cx="130.0" cy="350.0" r="7" class="svg-text"/>
+      <text x="120" y="442" class="svg-small">(c) 白が全滅して終局</text>
+      <text x="340" y="254" class="svg-small">a</text>
+      <text x="360" y="254" class="svg-small">b</text>
+      <text x="380" y="254" class="svg-small">c</text>
+      <text x="400" y="254" class="svg-small">d</text>
+      <text x="420" y="254" class="svg-small">e</text>
+      <text x="440" y="254" class="svg-small">f</text>
+      <text x="460" y="254" class="svg-small">g</text>
+      <text x="480" y="254" class="svg-small">h</text>
+      <text x="320" y="274" class="svg-small">1</text>
+      <text x="320" y="294" class="svg-small">2</text>
+      <text x="320" y="314" class="svg-small">3</text>
+      <text x="320" y="334" class="svg-small">4</text>
+      <text x="320" y="354" class="svg-small">5</text>
+      <text x="320" y="374" class="svg-small">6</text>
+      <text x="320" y="394" class="svg-small">7</text>
+      <text x="320" y="414" class="svg-small">8</text>
+      <rect x="330" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="260" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="280" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="300" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="320" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="340" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="360" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="380" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="370" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="390" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="410" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="430" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="450" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="400" width="20" height="20" class="svg-cell-plain"/>
+      <circle cx="340.0" cy="270.0" r="7" class="svg-text"/>
+      <circle cx="360.0" cy="270.0" r="7" class="svg-text"/>
+      <circle cx="340.0" cy="290.0" r="7" class="svg-text"/>
+      <circle cx="460.0" cy="410.0" r="7" class="svg-bg"/><circle cx="460.0" cy="410.0" r="7" class="svg-line"/>
+      <circle cx="480.0" cy="410.0" r="7" class="svg-bg"/><circle cx="480.0" cy="410.0" r="7" class="svg-line"/>
+      <circle cx="480.0" cy="390.0" r="7" class="svg-bg"/><circle cx="480.0" cy="390.0" r="7" class="svg-line"/>
+      <text x="410" y="442" class="svg-small">(d) 空きを残して終局</text>
+    </svg>
+    <figcaption>
+      図 5-1　表 5-1 の検証用の局面。(a) は幅 8 のまま1次元に並べた実装で、a5 の左隣が前の行の h4 になる誤りを露見させる。
+      その実装では、h4 の白を g4 の黒で挟めると判定し、a5 を合法手に含めてしまう。強調したマスが a5、色付きのマスが正しい合法手 c5 である。
+      (b) の色付きのマスは、パスの後に白が打てる c3・d3・e3 である。
+      (c) と (d) は盤に空きが残っているが、どちらの色にも合法手が無く、終局と判定すべき局面である。
+    </figcaption>
+  </figure>
 
   <h3>局面数による総合検証</h3>
 
@@ -1109,6 +1469,66 @@
     根以外の局面では手そのものは不要で、値だけを返せばよい。
   </p>
 
+  <p>
+    図 6-2 は、図 6-1 の木をネガマックス法の値で描き直し、相手がパスとなる手D を加えたものである。
+    各節点の値は、<strong>その局面の手番の側から見た値</strong>である。
+    相手の手番の節点 A は、子の値 3・5 の符号を反転した −3・−5 のうち最大の −3 をとる。
+    根はさらにその符号を反転した 3 を受け取る。図 6-1 で「相手は最小を選ぶ」として求めた値と、符号を除いて一致する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 220" role="img" aria-label="ネガマックス法で値を付けた深さ2のゲーム木。根から手A、B、C、Dに分かれる。相手の手番の節点の値はAがマイナス3、Bがマイナス2、Cがマイナス4、Dがマイナス1。手Dの先では相手に合法手が無くパスとなり、盤面を変えずに自分の手番の末端局面1へ進む。根は子の値の符号を反転した3、2、4、1の最大である4をとり、手Cを選ぶ">
+      <path d="M 348 60 L 172 100" class="svg-line"/>
+      <path d="M 348 60 L 300 100" class="svg-line"/>
+      <path d="M 348 60 L 428 100" class="svg-arrow"/>
+      <path d="M 348 60 L 524 100" class="svg-line"/>
+      <path d="M 172 130 L 140 180" class="svg-line"/>
+      <path d="M 172 130 L 204 180" class="svg-line"/>
+      <path d="M 300 130 L 268 180" class="svg-line"/>
+      <path d="M 300 130 L 332 180" class="svg-line"/>
+      <path d="M 428 130 L 396 180" class="svg-arrow"/>
+      <path d="M 428 130 L 460 180" class="svg-line"/>
+      <path d="M 524 130 L 524 180" class="svg-line"/>
+      <text x="8" y="48" class="svg-small" style="text-anchor:start">自分の手番</text>
+      <text x="8" y="118" class="svg-small" style="text-anchor:start">相手の手番</text>
+      <text x="8" y="192" class="svg-small" style="text-anchor:start">自分の手番</text>
+      <text x="8" y="208" class="svg-small" style="text-anchor:start">（末端）</text>
+      <text x="392" y="42" class="svg-small" style="text-anchor:start">子の値の符号を反転</text>
+      <text x="392" y="58" class="svg-small" style="text-anchor:start">3, 2, 4, 1 の最大</text>
+      <text x="532" y="158" class="svg-small" style="text-anchor:start">パス</text>
+      <rect x="144" y="100" width="56" height="30" class="svg-cell"/>
+      <text x="172" y="120" class="svg-text">A: −3</text>
+      <rect x="272" y="100" width="56" height="30" class="svg-cell"/>
+      <text x="300" y="120" class="svg-text">B: −2</text>
+      <rect x="496" y="100" width="56" height="30" class="svg-cell"/>
+      <text x="524" y="120" class="svg-text">D: −1</text>
+      <rect x="117" y="180" width="46" height="30" class="svg-cell"/>
+      <text x="140" y="200" class="svg-text">3</text>
+      <rect x="181" y="180" width="46" height="30" class="svg-cell"/>
+      <text x="204" y="200" class="svg-text">5</text>
+      <rect x="245" y="180" width="46" height="30" class="svg-cell"/>
+      <text x="268" y="200" class="svg-text">2</text>
+      <rect x="309" y="180" width="46" height="30" class="svg-cell"/>
+      <text x="332" y="200" class="svg-text">6</text>
+      <rect x="437" y="180" width="46" height="30" class="svg-cell"/>
+      <text x="460" y="200" class="svg-text">7</text>
+      <rect x="501" y="180" width="46" height="30" class="svg-cell"/>
+      <text x="524" y="200" class="svg-text">1</text>
+      <rect x="313" y="30" width="70" height="30" class="svg-hl"/>
+      <text x="348" y="50" class="svg-text">4</text>
+      <rect x="400" y="100" width="56" height="30" class="svg-hl"/>
+      <text x="428" y="120" class="svg-text">C: −4</text>
+      <rect x="373" y="180" width="46" height="30" class="svg-hl"/>
+      <text x="396" y="200" class="svg-text">4</text>
+    </svg>
+    <figcaption>
+      図 6-2　ネガマックス法で見た図 6-1 の木に、手D を加えた。各節点の値は、その局面で手番の側から見た値である。
+      親は子の値の符号を反転して最大をとるため、最大と最小を使い分ける必要がない。
+      手D の後は相手に合法手が無く、盤面を変えずに手番だけが自分へ戻る（パス）。
+      パスの節点も 1 手と数えて深さを 1 減らし、その先の局面の値 1 を、符号を反転して −1 として受け取る。
+    </figcaption>
+  </figure>
+
   <h3>実装で誤りやすい点</h3>
 
   <ul>
@@ -1131,8 +1551,210 @@
   <p>
     探索の手間は深さに対して急激に増える。中盤では合法手が10個前後あることが多く、
     深さを1増やすたびに調べる局面はおよそ合法手の個数倍になる。
-    合法手が11個ある中盤の局面で実際に数えると、深さ4で約1.8万、深さ6で約230万の局面を訪れる（表 7-1）。
+    合法手が11個ある中盤の局面で実際に数えると、深さ4で約1.8万、深さ6で約230万の局面を訪れる（図 7-3・表 7-2）。
     この増え方を指数関数的と呼ぶ。深さは、1手にかけられる時間から逆算して決める。
+  </p>
+
+  <h3>探索の検証 — 読み切れる終盤局面</h3>
+
+  <p>
+    探索が正しいかどうかは、対局の勝敗では判断できない。盤面処理と同じく、
+    <strong>手で値を計算できる局面を用意し、深さごとに選ぶ手と値を照合する</strong>。
+    空きが2マスの終盤局面であれば、すべての展開を書き出しても数通りで済む。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 276" role="img" aria-label="空きがf1とg6の2マスだけ残った終盤局面。黒番で、黒は26個、白は36個。黒の合法手はf1とg6の2つであり、g6に打つと白はf1に打てずパスとなる">
+      <text x="45" y="22" class="svg-small">a</text>
+      <text x="75" y="22" class="svg-small">b</text>
+      <text x="105" y="22" class="svg-small">c</text>
+      <text x="135" y="22" class="svg-small">d</text>
+      <text x="165" y="22" class="svg-small">e</text>
+      <text x="195" y="22" class="svg-small">f</text>
+      <text x="225" y="22" class="svg-small">g</text>
+      <text x="255" y="22" class="svg-small">h</text>
+      <text x="20" y="47" class="svg-small">1</text>
+      <text x="20" y="77" class="svg-small">2</text>
+      <text x="20" y="107" class="svg-small">3</text>
+      <text x="20" y="137" class="svg-small">4</text>
+      <text x="20" y="167" class="svg-small">5</text>
+      <text x="20" y="197" class="svg-small">6</text>
+      <text x="20" y="227" class="svg-small">7</text>
+      <text x="20" y="257" class="svg-small">8</text>
+      <rect x="30" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="28" width="30" height="30" class="svg-hl"/>
+      <rect x="210" y="178" width="30" height="30" class="svg-hl"/>
+      <circle cx="45.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="255.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="73.0" r="11" class="svg-text"/>
+      <circle cx="225.0" cy="73.0" r="11" class="svg-text"/>
+      <circle cx="255.0" cy="73.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="195.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="255.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="165.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="225.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="255.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="255.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="193.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="193.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="223.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="223.0" r="11" class="svg-text"/>
+      <circle cx="165.0" cy="223.0" r="11" class="svg-text"/>
+      <circle cx="195.0" cy="223.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="253.0" r="11" class="svg-text"/>
+      <circle cx="75.0" cy="43.0" r="11" class="svg-bg"/><circle cx="75.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="105.0" cy="43.0" r="11" class="svg-bg"/><circle cx="105.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="43.0" r="11" class="svg-bg"/><circle cx="135.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="43.0" r="11" class="svg-bg"/><circle cx="165.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="225.0" cy="43.0" r="11" class="svg-bg"/><circle cx="225.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="73.0" r="11" class="svg-bg"/><circle cx="75.0" cy="73.0" r="11" class="svg-line"/>
+      <circle cx="105.0" cy="73.0" r="11" class="svg-bg"/><circle cx="105.0" cy="73.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="73.0" r="11" class="svg-bg"/><circle cx="135.0" cy="73.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="73.0" r="11" class="svg-bg"/><circle cx="165.0" cy="73.0" r="11" class="svg-line"/>
+      <circle cx="195.0" cy="73.0" r="11" class="svg-bg"/><circle cx="195.0" cy="73.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="103.0" r="11" class="svg-bg"/><circle cx="75.0" cy="103.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="103.0" r="11" class="svg-bg"/><circle cx="165.0" cy="103.0" r="11" class="svg-line"/>
+      <circle cx="225.0" cy="103.0" r="11" class="svg-bg"/><circle cx="225.0" cy="103.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="133.0" r="11" class="svg-bg"/><circle cx="75.0" cy="133.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="133.0" r="11" class="svg-bg"/><circle cx="135.0" cy="133.0" r="11" class="svg-line"/>
+      <circle cx="195.0" cy="133.0" r="11" class="svg-bg"/><circle cx="195.0" cy="133.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="163.0" r="11" class="svg-bg"/><circle cx="75.0" cy="163.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="163.0" r="11" class="svg-bg"/><circle cx="165.0" cy="163.0" r="11" class="svg-line"/>
+      <circle cx="195.0" cy="163.0" r="11" class="svg-bg"/><circle cx="195.0" cy="163.0" r="11" class="svg-line"/>
+      <circle cx="225.0" cy="163.0" r="11" class="svg-bg"/><circle cx="225.0" cy="163.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="193.0" r="11" class="svg-bg"/><circle cx="75.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="193.0" r="11" class="svg-bg"/><circle cx="135.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="193.0" r="11" class="svg-bg"/><circle cx="165.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="195.0" cy="193.0" r="11" class="svg-bg"/><circle cx="195.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="255.0" cy="193.0" r="11" class="svg-bg"/><circle cx="255.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="223.0" r="11" class="svg-bg"/><circle cx="75.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="105.0" cy="223.0" r="11" class="svg-bg"/><circle cx="105.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="225.0" cy="223.0" r="11" class="svg-bg"/><circle cx="225.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="255.0" cy="223.0" r="11" class="svg-bg"/><circle cx="255.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="253.0" r="11" class="svg-bg"/><circle cx="75.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="105.0" cy="253.0" r="11" class="svg-bg"/><circle cx="105.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="253.0" r="11" class="svg-bg"/><circle cx="135.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="253.0" r="11" class="svg-bg"/><circle cx="165.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="195.0" cy="253.0" r="11" class="svg-bg"/><circle cx="195.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="225.0" cy="253.0" r="11" class="svg-bg"/><circle cx="225.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="255.0" cy="253.0" r="11" class="svg-bg"/><circle cx="255.0" cy="253.0" r="11" class="svg-line"/>
+      <text x="300" y="50" class="svg-text" style="text-anchor:start">黒番</text>
+      <text x="300" y="76" class="svg-small" style="text-anchor:start">空き: f1・g6 の 2 マス</text>
+      <text x="300" y="102" class="svg-small" style="text-anchor:start">黒 26 個 ／ 白 36 個</text>
+      <text x="300" y="128" class="svg-small" style="text-anchor:start">黒の合法手: f1・g6</text>
+      <text x="300" y="154" class="svg-small" style="text-anchor:start">g6 に打つと、白は f1 に</text>
+      <text x="300" y="180" class="svg-small" style="text-anchor:start">打てずパスとなる</text>
+    </svg>
+    <figcaption>
+      図 6-3　探索の検証に用いる終盤局面（黒番）。強調したマスが空きである。
+      黒は石数で 10 個負けているが、打つ順序によって終局の石数が大きく変わる。
+    </figcaption>
+  </figure>
+
+  <p>
+    この局面から起こりうる展開は次の2通りである。
+  </p>
+
+  <ul>
+    <li>黒が f1 に打つ — b1〜e1・g1・e2・f2 の 7 個を返して黒 34・白 29（+5）。白は g6 に打って f7 を返し、黒 33・白 31（+2）で盤が埋まる</li>
+    <li>黒が g6 に打つ — d6・e6・f6・f5・g5 の 5 個を返して黒 32・白 31（+1）。白は f1 に打てずパスとなり、黒が続けて f1 に打って 7 個を返し、黒 40・白 24（+16）で終わる</li>
+  </ul>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　図 6-3 の局面を、本ページの探索(B, c, n) で読んだときの各手の値と、選ばれる手。
+      評価関数・最終評価とも、手番の黒から見た石数の差とした。深さ 3 以上で終局まで読み切り、値が変わらなくなる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>深さ n</th><th>f1 の値</th><th>g6 の値</th><th>選ぶ手</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td class="num-cell">+5</td><td class="num-cell">+1</td><td>f1</td></tr>
+        <tr><td class="num-cell">2</td><td class="num-cell">+2</td><td class="num-cell">+1</td><td>f1</td></tr>
+        <tr><td class="num-cell">3</td><td class="num-cell">+2</td><td class="num-cell">+16</td><td>g6</td></tr>
+        <tr><td class="num-cell">4</td><td class="num-cell">+2</td><td class="num-cell">+16</td><td>g6</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    深さ 2 の g6 が +1 にとどまるのは、白のパスも 1 手として深さを消費するためである。
+    深さ 2 では「黒が g6、白がパス」まで進んだ時点で深さが尽き、黒が f1 に打つ前の局面が評価される。
+    パスで深さを消費しない作り方もあるが、その場合は表の値も変わる。
+    どちらの作り方であっても、<strong>終局まで読み切る深さでは g6 を選び、値は +16 になる</strong>。
+    自分の実装で表 6-1 の値が得られなければ、パスの扱いか符号の反転のどちらかに誤りがある。
   </p>
 
   <div class="quiz">
@@ -1236,6 +1858,93 @@
     ミニマックス法の版を残しておけば、両者の結果を比べて枝刈りの実装を検証できる。
   </p>
 
+  <h3>値を追って確かめる</h3>
+
+  <p>
+    図 6-1 と同じ木を、上の擬似コードで A・B・C の順に探索したときの様子を図 7-1 と表 7-1 に示す。
+    節点の値はネガマックス法の値（手番の側から見た値）であり、各節点の横または下に、
+    その節点が受け取った (α, β) を記した。子を呼ぶときは、自分の (α, β) を入れ替えて符号を反転した
+    <code>(−β, −α)</code> を渡す。根が A の値 3 を得て α = 3 となった後、B と C には
+    <code>(−∞, −3)</code> が渡り、「相手の側から見て −3 以上なら、根は選ばない」という情報が伝わる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 248" role="img" aria-label="図6-1と同じ木をαβ枝刈りで手A、B、Cの順に探索した図。根はマイナス無限大からプラス無限大の範囲を受け取り、値4を返す。Aは同じ範囲を受け取り値マイナス3、BとCはマイナス無限大からマイナス3を受け取る。Bは最初の子B1の値2を符号反転したマイナス2がβのマイナス3以上となって打ち切り、B2は刈られる。Cの子C1は3からプラス無限大、C2は3から4を受け取る">
+      <path d="M 340 60 L 190 100" class="svg-line"/>
+      <path d="M 190 130 L 155 190" class="svg-line"/>
+      <path d="M 190 130 L 225 190" class="svg-line"/>
+      <path d="M 340 60 L 340 100" class="svg-line"/>
+      <path d="M 340 130 L 305 190" class="svg-line"/>
+      <path d="M 340 130 L 375 190" class="svg-line" stroke-dasharray="5 4"/>
+      <path d="M 340 60 L 490 100" class="svg-arrow"/>
+      <path d="M 490 130 L 455 190" class="svg-arrow"/>
+      <path d="M 490 130 L 525 190" class="svg-line"/>
+      <text x="382" y="50" class="svg-mono" style="text-anchor:start">(−∞, +∞)</text>
+      <text x="154" y="120" class="svg-mono" style="text-anchor:end">(−∞, +∞)</text>
+      <text x="155" y="238" class="svg-small">(−∞, +∞)</text>
+      <text x="225" y="238" class="svg-small">(−∞, 3)</text>
+      <text x="304" y="120" class="svg-mono" style="text-anchor:end">(−∞, −3)</text>
+      <text x="305" y="238" class="svg-small">(3, +∞)</text>
+      <text x="375" y="238" class="svg-small">刈られる</text>
+      <text x="454" y="120" class="svg-mono" style="text-anchor:end">(−∞, −3)</text>
+      <text x="455" y="238" class="svg-small">(3, +∞)</text>
+      <text x="525" y="238" class="svg-small">(3, 4)</text>
+      <text x="8" y="50" class="svg-small" style="text-anchor:start">根（自分）</text>
+      <text x="8" y="120" class="svg-small" style="text-anchor:start">相手の局面</text>
+      <text x="8" y="210" class="svg-small" style="text-anchor:start">末端</text>
+      <rect x="349" y="190" width="52" height="30" class="svg-cell-plain" stroke-dasharray="5 4"/>
+      <text x="375" y="210" class="svg-small">B2: 6</text>
+      <rect x="160" y="100" width="60" height="30" class="svg-cell"/>
+      <text x="190" y="120" class="svg-text">A: −3</text>
+      <rect x="129" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="155" y="210" class="svg-text">A1: 3</text>
+      <rect x="199" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="225" y="210" class="svg-text">A2: 5</text>
+      <rect x="310" y="100" width="60" height="30" class="svg-cell"/>
+      <text x="340" y="120" class="svg-text">B: −2</text>
+      <rect x="279" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="305" y="210" class="svg-text">B1: 2</text>
+      <rect x="499" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="525" y="210" class="svg-text">C2: 7</text>
+      <rect x="305" y="30" width="70" height="30" class="svg-hl"/>
+      <text x="340" y="50" class="svg-text">根: 4</text>
+      <rect x="460" y="100" width="60" height="30" class="svg-hl"/>
+      <text x="490" y="120" class="svg-text">C: −4</text>
+      <rect x="429" y="190" width="52" height="30" class="svg-hl"/>
+      <text x="455" y="210" class="svg-text">C1: 4</text>
+    </svg>
+    <figcaption>
+      図 7-1　αβ枝刈りで A → B → C の順に探索した様子。各節点の値は手番の側から見た値、括弧内はその節点が受け取った (α, β) である。
+      B は最初の子 B1 から −2 を得た時点で α = −2 が β = −3 以上となり、B2 を調べずに戻る。破線の B2 が刈られた節点である。
+      根が得る値 4 と選ぶ手 C は、図 6-1 のミニマックス法と同じである。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　図 7-1 の探索を呼び出しの順に追跡したもの。「受け取る (α, β)」は親から渡された値、
+      「子の値」は子が返した値の符号を反転したものである。末端は (α, β) を使わずに評価値を返す。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>順</th><th>節点</th><th>受け取る (α, β)</th><th>起きること</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td>根</td><td>(−∞, +∞)</td><td>A を (−∞, +∞) で呼ぶ</td></tr>
+        <tr><td class="num-cell">2</td><td>A</td><td>(−∞, +∞)</td><td>A1 が 3 を返す。子の値 −3 で A の α = −3。A2 を (−∞, 3) で呼ぶ</td></tr>
+        <tr><td class="num-cell">3</td><td>A</td><td>—</td><td>A2 が 5 を返す。子の値 −5 は α を更新しない。A は −3 を返す</td></tr>
+        <tr><td class="num-cell">4</td><td>根</td><td>—</td><td>子の値 3 で根の α = 3。B を (−∞, −3) で呼ぶ</td></tr>
+        <tr><td class="num-cell">5</td><td>B</td><td>(−∞, −3)</td><td>B1 を (3, +∞) で呼び、2 が返る。子の値 −2 で α = −2。α ≥ β（−2 ≥ −3）なので打ち切り、B2 は調べない。B は −2 を返す</td></tr>
+        <tr><td class="num-cell">6</td><td>根</td><td>—</td><td>子の値 2 は α = 3 を更新しない。C を (−∞, −3) で呼ぶ</td></tr>
+        <tr><td class="num-cell">7</td><td>C</td><td>(−∞, −3)</td><td>C1 を (3, +∞) で呼び、4 が返る。子の値 −4 で α = −4。−4 &lt; −3 なので続ける。C2 を (3, 4) で呼ぶ</td></tr>
+        <tr><td class="num-cell">8</td><td>C</td><td>—</td><td>C2 が 7 を返す。子の値 −7 は α を更新しない。C は −4 を返す</td></tr>
+        <tr><td class="num-cell">9</td><td>根</td><td>—</td><td>子の値 4 で根の α = 4。最善手を C とする。根は 4 を返す</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
   <h3>有望な手から調べる</h3>
 
   <p>
@@ -1245,9 +1954,204 @@
     有望な順に並べ替える。これを<span class="term">手の並べ替え</span><span class="en">(move ordering)</span> と呼ぶ。
   </p>
 
+  <p>
+    図 7-2 は、同じ木を C → A → B の順に調べた場合である。最善の C を最初に調べると根の α が 4 になり、
+    A と B にはともに <code>(−∞, −4)</code> が渡る。A は A1 の子の値 −3 が β = −4 以上となって打ち切られ、
+    B も B1 の子の値 −2 で打ち切られる。A → B → C の順では刈られる末端が B2 の 1 個だったのに対し、
+    この順では A2 と B2 の 2 個になる。根の値 4 と選ぶ手 C は変わらない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 248" role="img" aria-label="同じ木を手C、A、Bの順に探索した図。Cを最初に調べて根のαが4となり、AとBはマイナス無限大からマイナス4を受け取る。AはA1、BはB1を調べた時点で打ち切られ、A2とB2が刈られる。根の値は4で手Cを選ぶ">
+      <path d="M 340 60 L 190 100" class="svg-arrow"/>
+      <path d="M 190 130 L 155 190" class="svg-arrow"/>
+      <path d="M 190 130 L 225 190" class="svg-line"/>
+      <path d="M 340 60 L 340 100" class="svg-line"/>
+      <path d="M 340 130 L 305 190" class="svg-line"/>
+      <path d="M 340 130 L 375 190" class="svg-line" stroke-dasharray="5 4"/>
+      <path d="M 340 60 L 490 100" class="svg-line"/>
+      <path d="M 490 130 L 455 190" class="svg-line"/>
+      <path d="M 490 130 L 525 190" class="svg-line" stroke-dasharray="5 4"/>
+      <text x="382" y="50" class="svg-mono" style="text-anchor:start">(−∞, +∞)</text>
+      <text x="154" y="120" class="svg-mono" style="text-anchor:end">(−∞, +∞)</text>
+      <text x="155" y="238" class="svg-small">(−∞, +∞)</text>
+      <text x="225" y="238" class="svg-small">(−∞, 4)</text>
+      <text x="304" y="120" class="svg-mono" style="text-anchor:end">(−∞, −4)</text>
+      <text x="305" y="238" class="svg-small">(4, +∞)</text>
+      <text x="375" y="238" class="svg-small">刈られる</text>
+      <text x="454" y="120" class="svg-mono" style="text-anchor:end">(−∞, −4)</text>
+      <text x="455" y="238" class="svg-small">(4, +∞)</text>
+      <text x="525" y="238" class="svg-small">刈られる</text>
+      <text x="8" y="50" class="svg-small" style="text-anchor:start">根（自分）</text>
+      <text x="8" y="120" class="svg-small" style="text-anchor:start">相手の局面</text>
+      <text x="8" y="210" class="svg-small" style="text-anchor:start">末端</text>
+      <rect x="349" y="190" width="52" height="30" class="svg-cell-plain" stroke-dasharray="5 4"/>
+      <text x="375" y="210" class="svg-small">A2: 5</text>
+      <rect x="499" y="190" width="52" height="30" class="svg-cell-plain" stroke-dasharray="5 4"/>
+      <text x="525" y="210" class="svg-small">B2: 6</text>
+      <rect x="199" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="225" y="210" class="svg-text">C2: 7</text>
+      <rect x="310" y="100" width="60" height="30" class="svg-cell"/>
+      <text x="340" y="120" class="svg-text">A: −3</text>
+      <rect x="279" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="305" y="210" class="svg-text">A1: 3</text>
+      <rect x="460" y="100" width="60" height="30" class="svg-cell"/>
+      <text x="490" y="120" class="svg-text">B: −2</text>
+      <rect x="429" y="190" width="52" height="30" class="svg-cell"/>
+      <text x="455" y="210" class="svg-text">B1: 2</text>
+      <rect x="305" y="30" width="70" height="30" class="svg-hl"/>
+      <text x="340" y="50" class="svg-text">根: 4</text>
+      <rect x="160" y="100" width="60" height="30" class="svg-hl"/>
+      <text x="190" y="120" class="svg-text">C: −4</text>
+      <rect x="129" y="190" width="52" height="30" class="svg-hl"/>
+      <text x="155" y="210" class="svg-text">C1: 4</text>
+    </svg>
+    <figcaption>
+      図 7-2　同じ木を C → A → B の順に探索した様子。最善の手を先に調べたことで、A2 と B2 の 2 個が刈られる。
+      調べる順序は根の値と選ぶ手を変えず、刈られる節点の数だけを変える。
+    </figcaption>
+  </figure>
+
+  <p>
+    並べ替えは、αβ枝刈りの擬似コードの手順 2 の直後に、次の処理を呼ぶ形で加えられる。
+    見積もりには、1手進めた局面を評価関数で評価した値を使うのが手軽である。
+  </p>
+
+  <pre><code>手を並べ替える(盤面 B, 手番 c, 手の一覧):
+1. 手の一覧の各手 p について、以下を繰り返す
+   1.1 返した石 ← 着手(B, p, c)
+   1.2 見積もり[p] ← 評価(B, c)
+   1.3 取り消し(B, p, c, 返した石)
+2. 手の一覧を、見積もりの大きい順に並べ替える
+3. 並べ替えた一覧を返す</code></pre>
+
+  <p>
+    手順 1.2 では、手番 c の側から見た評価値を求める。着手した後の局面は相手の手番になっているが、
+    比べたいのは c にとってどれだけ良いかであるため、<code>評価(B, −c)</code> と取り違えないようにする。
+    取り違えると、悪い手から順に調べることになり、枝刈りがかえって減る。
+    表 7-2 は、図 7-3 の中盤局面で、この並べ替えを全ての局面に適用した場合の局面数である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 276" role="img" aria-label="黒番の中盤局面。黒は11個、白は13個。黒の合法手11個、b2、b3、b8、c7、d8、f2、f3、f4、f5、f6、f8を色付きのマスで示している">
+      <text x="45" y="22" class="svg-small">a</text>
+      <text x="75" y="22" class="svg-small">b</text>
+      <text x="105" y="22" class="svg-small">c</text>
+      <text x="135" y="22" class="svg-small">d</text>
+      <text x="165" y="22" class="svg-small">e</text>
+      <text x="195" y="22" class="svg-small">f</text>
+      <text x="225" y="22" class="svg-small">g</text>
+      <text x="255" y="22" class="svg-small">h</text>
+      <text x="20" y="47" class="svg-small">1</text>
+      <text x="20" y="77" class="svg-small">2</text>
+      <text x="20" y="107" class="svg-small">3</text>
+      <text x="20" y="137" class="svg-small">4</text>
+      <text x="20" y="167" class="svg-small">5</text>
+      <text x="20" y="197" class="svg-small">6</text>
+      <text x="20" y="227" class="svg-small">7</text>
+      <text x="20" y="257" class="svg-small">8</text>
+      <rect x="30" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="58" width="30" height="30" class="svg-cell"/>
+      <rect x="60" y="88" width="30" height="30" class="svg-cell"/>
+      <rect x="60" y="238" width="30" height="30" class="svg-cell"/>
+      <rect x="90" y="208" width="30" height="30" class="svg-cell"/>
+      <rect x="120" y="238" width="30" height="30" class="svg-cell"/>
+      <rect x="180" y="58" width="30" height="30" class="svg-cell"/>
+      <rect x="180" y="88" width="30" height="30" class="svg-cell"/>
+      <rect x="180" y="118" width="30" height="30" class="svg-cell"/>
+      <rect x="180" y="148" width="30" height="30" class="svg-cell"/>
+      <rect x="180" y="178" width="30" height="30" class="svg-cell"/>
+      <rect x="180" y="238" width="30" height="30" class="svg-cell"/>
+      <circle cx="135.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="73.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="75.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="163.0" r="11" class="svg-text"/>
+      <circle cx="75.0" cy="193.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="193.0" r="11" class="svg-text"/>
+      <circle cx="195.0" cy="223.0" r="11" class="svg-text"/>
+      <circle cx="75.0" cy="43.0" r="11" class="svg-bg"/><circle cx="75.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="105.0" cy="73.0" r="11" class="svg-bg"/><circle cx="105.0" cy="73.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="103.0" r="11" class="svg-bg"/><circle cx="165.0" cy="103.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="133.0" r="11" class="svg-bg"/><circle cx="165.0" cy="133.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="163.0" r="11" class="svg-bg"/><circle cx="165.0" cy="163.0" r="11" class="svg-line"/>
+      <circle cx="105.0" cy="193.0" r="11" class="svg-bg"/><circle cx="105.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="193.0" r="11" class="svg-bg"/><circle cx="165.0" cy="193.0" r="11" class="svg-line"/>
+      <circle cx="45.0" cy="223.0" r="11" class="svg-bg"/><circle cx="45.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="75.0" cy="223.0" r="11" class="svg-bg"/><circle cx="75.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="223.0" r="11" class="svg-bg"/><circle cx="135.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="223.0" r="11" class="svg-bg"/><circle cx="165.0" cy="223.0" r="11" class="svg-line"/>
+      <circle cx="45.0" cy="253.0" r="11" class="svg-bg"/><circle cx="45.0" cy="253.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="253.0" r="11" class="svg-bg"/><circle cx="165.0" cy="253.0" r="11" class="svg-line"/>
+      <text x="300" y="50" class="svg-text" style="text-anchor:start">黒番</text>
+      <text x="300" y="76" class="svg-small" style="text-anchor:start">黒 11 個 ／ 白 13 個</text>
+      <text x="300" y="102" class="svg-small" style="text-anchor:start">黒の合法手 11 個</text>
+      <text x="300" y="128" class="svg-small" style="text-anchor:start">（色付きのマス）</text>
+    </svg>
+    <figcaption>
+      図 7-3　表 7-2 の計測に用いた中盤局面（黒番）。初期局面から両者が合法手をランダムに 20 手打って得た。
+      色付きの 11 マスが黒の合法手である。
+    </figcaption>
+  </figure>
+
   <div class="table-block">
     <p class="table-caption">
-      表 7-1　合法手が 11 個ある中盤の局面で、探索中に訪れた局面の数。3つの方法はどの深さでも同じ評価値を返した。
+      表 7-2　図 7-3 の局面（合法手 11 個）を探索したときに訪れた局面の数。評価関数は図 8-1 の位置の重みとした。3つの方法はどの深さでも同じ評価値を返した。
       枝刈りは深いほど効き、並べ替えを加えると深さ6で約370分の1になる。
     </p>
     <div class="table-scroll">
@@ -1345,6 +2249,38 @@
           (C) の交換回数は手間の違いであり、どの手法でも並べ替えた結果の順序は同じになる。
           (D) は入力の並びについて根拠のない仮定を置いている。合法手は盤面の走査順に得られるため、
           評価値について逆順に並ぶ理由はない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-3</span>
+    <p class="q-body">
+      図 7-1 と同じ木（A の先が 3・5、B の先が 2・6、C の先が 4・7。値は末端で手番の側から見た値）を、
+      αβ枝刈りで B → A → C の順に探索する。各節点の子は、図の左の子から順に調べる。刈られる末端の数はいくつか。
+    </p>
+    <ol class="choices">
+      <li>0 個</li>
+      <li>1 個</li>
+      <li>2 個</li>
+      <li>3 個</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          最初の B は (−∞, +∞) で呼ばれて刈られず、−2 を返す。根の α は 2 となり、A と C には (−∞, −2) が渡る。
+          A は A1 の子の値 −3 を得るが、−3 ≥ −2 は成り立たないため続けて A2 も調べ、−3 を返す。根の α は 3 となる。
+          C には (−∞, −3) が渡り、C1 の子の値 −4 も −4 ≥ −3 を満たさないため C2 まで調べる。
+          どの節点でも打ち切りが起こらず、刈られる末端は無い。
+        </p>
+        <p>
+          (B) は A → B → C の順に調べた図 7-1 の結果であり、順序が変わっても刈られる数は同じだと考えている。
+          (C) は最善の C から調べた図 7-2 の結果である。
+          (D) は、最初に調べる手以外の節点では、子を1つ調べれば必ず打ち切れると考えている。
+          打ち切りが起こるのは、子の値がその時点の β 以上になった場合に限られる。
         </p>
       </div>
     </details>
@@ -1534,6 +2470,116 @@
     石の値が 黒 = 1・白 = −1 であるから、この合計は黒から見た評価値となり、手番 c を掛ければ手番の側から見た値になる。
   </p>
 
+  <p>
+    図 8-2 の局面で、石数による評価と位置の重みによる評価を比べる。黒は石を 5 個持ち、白の 3 個より多い。
+    しかし白は隅の a1 を持ち、黒はその斜め隣の b2、すなわち X 打ちのマスに石を置いている。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 276" role="img" aria-label="黒がb2、c3、d3、d4、e4の5個、白がa1、d5、e6の3個を持つ局面。石数の差は黒から見てプラス2であるが、位置の重みの差は黒から見てマイナス175となる">
+      <text x="45" y="22" class="svg-small">a</text>
+      <text x="75" y="22" class="svg-small">b</text>
+      <text x="105" y="22" class="svg-small">c</text>
+      <text x="135" y="22" class="svg-small">d</text>
+      <text x="165" y="22" class="svg-small">e</text>
+      <text x="195" y="22" class="svg-small">f</text>
+      <text x="225" y="22" class="svg-small">g</text>
+      <text x="255" y="22" class="svg-small">h</text>
+      <text x="20" y="47" class="svg-small">1</text>
+      <text x="20" y="77" class="svg-small">2</text>
+      <text x="20" y="107" class="svg-small">3</text>
+      <text x="20" y="137" class="svg-small">4</text>
+      <text x="20" y="167" class="svg-small">5</text>
+      <text x="20" y="197" class="svg-small">6</text>
+      <text x="20" y="227" class="svg-small">7</text>
+      <text x="20" y="257" class="svg-small">8</text>
+      <rect x="30" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <circle cx="75.0" cy="73.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="165.0" cy="133.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="43.0" r="11" class="svg-bg"/><circle cx="45.0" cy="43.0" r="11" class="svg-line"/>
+      <circle cx="135.0" cy="163.0" r="11" class="svg-bg"/><circle cx="135.0" cy="163.0" r="11" class="svg-line"/>
+      <circle cx="165.0" cy="193.0" r="11" class="svg-bg"/><circle cx="165.0" cy="193.0" r="11" class="svg-line"/>
+      <text x="300" y="60" class="svg-small" style="text-anchor:start">石数の差（黒 − 白）</text>
+      <text x="300" y="88" class="svg-text" style="text-anchor:start">5 − 3 = +2</text>
+      <text x="300" y="116" class="svg-small" style="text-anchor:start">位置の重みの差（黒 − 白）</text>
+      <text x="300" y="144" class="svg-text" style="text-anchor:start">−74 − 101 = −175</text>
+    </svg>
+    <figcaption>
+      図 8-2　石数と位置の重みで評価が逆になる局面。石数では黒が 2 個多いが、図 8-1 の重みで評価すると、
+      隅を持つ白が大きく有利と判定される。どちらの評価関数を使うかで、探索が選ぶ手は変わる。
+    </figcaption>
+  </figure>
+
+  <pre><code>黒: b2 (−80) + c3 (5) + d3 (1) + d4 (0) + e4 (0) = −74
+白: a1 (100) + d5 (0) + e6 (1) = 101
+黒から見た評価値 = −74 − 101 = −175</code></pre>
+
   <h3>評価の要素を組み合わせる</h3>
 
   <div class="table-block">
@@ -1574,6 +2620,121 @@
     </table>
     </div>
   </div>
+
+  <p>
+    着手可能数は、合法手の一覧の長さを両者について求めて差をとる。
+    図 7-3 の局面では、黒の合法手が 11 個、白に手番があるとした場合の白の合法手が 12 個であり、
+    黒から見た着手可能数の差は 11 − 12 = −1 となる。
+    手番は黒であっても、相手の手番として合法手の一覧を呼び出せば白の数が得られる。
+  </p>
+
+  <p>
+    確定石の判定は、正確に行うと複雑になる。扱いやすい簡略化は、
+    <strong>隅の石と、隅から辺に沿って同じ色が切れ目なく続く石だけを確定石として数える</strong>ものである。
+    図 8-3 の b1 は、辺の方向では隅 a1 までの間に自分の石しか無く、他の方向では一方の側が盤外であるため、
+    どの方向にも挟まれることがない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 276" role="img" aria-label="左上の隅a1に黒があり、上の辺のb1とc1、左の辺のa2とa3にも黒が続いている。これら5個を確定石として強調している。d1には白、f1には黒があるが、f1は両隣が空きで確定石ではない">
+      <text x="45" y="22" class="svg-small">a</text>
+      <text x="75" y="22" class="svg-small">b</text>
+      <text x="105" y="22" class="svg-small">c</text>
+      <text x="135" y="22" class="svg-small">d</text>
+      <text x="165" y="22" class="svg-small">e</text>
+      <text x="195" y="22" class="svg-small">f</text>
+      <text x="225" y="22" class="svg-small">g</text>
+      <text x="255" y="22" class="svg-small">h</text>
+      <text x="20" y="47" class="svg-small">1</text>
+      <text x="20" y="77" class="svg-small">2</text>
+      <text x="20" y="107" class="svg-small">3</text>
+      <text x="20" y="137" class="svg-small">4</text>
+      <text x="20" y="167" class="svg-small">5</text>
+      <text x="20" y="197" class="svg-small">6</text>
+      <text x="20" y="227" class="svg-small">7</text>
+      <text x="20" y="257" class="svg-small">8</text>
+      <rect x="120" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="28" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="58" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="88" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="118" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="148" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="178" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="208" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="60" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="90" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="150" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="180" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="210" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="240" y="238" width="30" height="30" class="svg-cell-plain"/>
+      <rect x="30" y="28" width="30" height="30" class="svg-hl"/>
+      <rect x="30" y="58" width="30" height="30" class="svg-hl"/>
+      <rect x="30" y="88" width="30" height="30" class="svg-hl"/>
+      <rect x="60" y="28" width="30" height="30" class="svg-hl"/>
+      <rect x="90" y="28" width="30" height="30" class="svg-hl"/>
+      <circle cx="45.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="75.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="105.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="73.0" r="11" class="svg-text"/>
+      <circle cx="45.0" cy="103.0" r="11" class="svg-text"/>
+      <circle cx="195.0" cy="43.0" r="11" class="svg-text"/>
+      <circle cx="135.0" cy="43.0" r="11" class="svg-bg"/><circle cx="135.0" cy="43.0" r="11" class="svg-line"/>
+      <text x="300" y="60" class="svg-small" style="text-anchor:start">強調したマス: 確定石</text>
+      <text x="300" y="86" class="svg-small" style="text-anchor:start">隅 a1 から辺に沿って</text>
+      <text x="300" y="112" class="svg-small" style="text-anchor:start">黒が切れ目なく続く</text>
+      <text x="300" y="138" class="svg-small" style="text-anchor:start">f1 は両隣が空きであり、</text>
+      <text x="300" y="164" class="svg-small" style="text-anchor:start">確定石ではない</text>
+    </svg>
+    <figcaption>
+      図 8-3　隅から辺に沿って続く確定石。強調した a1・b1・c1・a2・a3 は、どう打たれても返されない。
+      d1 の白は、黒が e1 に打てば c1 の黒との間に挟まれる。f1 の黒も、両隣が空いているため、白が e1 と g1 を占めれば返される。
+    </figcaption>
+  </figure>
 
   <p>
     実際の評価関数は、これらの要素に係数を掛けて足し合わせた形で組み立てる。
@@ -1656,6 +2817,36 @@
       </div>
     </details>
   </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 8-3</span>
+    <p class="q-body">
+      図 8-1 の位置の重みで、次の局面を評価する。黒から見た評価値（黒の重みの合計 − 白の重みの合計）はいくつか。
+    </p>
+    <pre><code>黒: a1, c3, d4
+白: b2, b4, d5</code></pre>
+    <ol class="choices">
+      <li>186</li>
+      <li>24</li>
+      <li>105</li>
+      <li>−186</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          黒は a1 (100) + c3 (5) + d4 (0) = 105、白は b2 (−80) + b4 (−1) + d5 (0) = −81 である。
+          黒から見た評価値は 105 − (−81) = 186 となる。白が負の重みのマスに石を置いていることは、黒にとって有利に働く。
+        </p>
+        <p>
+          (B) は白の合計を 81 として引いており、負の重みの符号を落としている。
+          (C) は黒の重みの合計だけを求め、白の分を差し引いていない。
+          (D) は白から見た評価値であり、どちらの側から見た値かを取り違えている。
+        </p>
+      </div>
+    </details>
+  </div>
 </section>
 
 <!-- ============ 9. 開発の進め方と提出物 ============ -->
@@ -1682,8 +2873,8 @@
         <tr><td class="num-cell">3</td><td>パスと終局</td><td>人対人で終局まで対局でき、勝敗が表示される</td></tr>
         <tr><td class="num-cell">4</td><td>合法手からランダムに選ぶ CPU</td><td>CPU どうしで多数局を対戦させても、停止や不正な着手が起こらない</td></tr>
         <tr><td class="num-cell">5</td><td>深さ1の探索と評価関数</td><td>隅を取れる局面で隅を取り、ランダムな CPU に大きく勝ち越す</td></tr>
-        <tr><td class="num-cell">6</td><td>ミニマックス法（深さ n）</td><td>手で計算できる小さな局面で期待どおりの手を選び、深さ1の CPU に勝ち越す</td></tr>
-        <tr><td class="num-cell">7</td><td>αβ枝刈りと手の並べ替え</td><td>多数の局面でミニマックス法と同じ評価値を返し、訪れる局面数が減る</td></tr>
+        <tr><td class="num-cell">6</td><td>ミニマックス法（深さ n）</td><td>図 6-3 の終盤局面で表 6-1 のとおりの手と値を返し、深さ1の CPU に勝ち越す</td></tr>
+        <tr><td class="num-cell">7</td><td>αβ枝刈りと手の並べ替え</td><td>図 7-1 の木で表 7-1 の追跡と一致し、多数の局面でミニマックス法と同じ評価値を返して、訪れる局面数が減る</td></tr>
         <tr><td class="num-cell">8</td><td>評価関数の改良・完全読み</td><td>改良前の版との複数局の対戦で勝ち越す</td></tr>
       </tbody>
     </table>
@@ -1704,7 +2895,7 @@
 
   <ul>
     <li>実装したプログラムのソースコード</li>
-    <li>動作検証用のコード（表 5-1 の検証ケース、局面数の照合、αβ枝刈りとミニマックス法の比較など）</li>
+    <li>動作検証用のコード（表 5-1 の検証ケース、局面数の照合、表 6-1 の終盤局面、αβ枝刈りとミニマックス法の比較など）</li>
     <li>AI を利用した場合は、投入したプロンプトとやり取りの全ログが分かるテキストまたはスクリーンショット</li>
   </ul>
 
@@ -1768,7 +2959,7 @@
     <li>盤面は空き = 0・黒 = 1・白 = −1 の配列で持つ。番兵付きの 10×10 を1次元に並べると、8方向の移動が一定のオフセットになり、範囲確認が不要になる</li>
     <li>合法手は、ある方向に相手の石が1個以上続き、その直後に自分の石があるマスである。8方向それぞれを打ち切りのある線形探索で調べる</li>
     <li>着手では挟めた方向の石だけを返す。探索で局面を戻す方法には盤面の複製と差分の記録があり、まず複製で正しい版を作る</li>
-    <li>盤面処理は、誤りの種類ごとに用意した検証ケースと、初期局面からの局面数の照合で検証する</li>
+    <li>盤面処理は、誤りの種類ごとに用意した検証局面と、初期局面からの局面数の照合で検証する。探索は、手で読み切れる終盤局面で深さごとの手と値を照合する</li>
     <li>ミニマックス法は、符号の反転によって1つの再帰関数（ネガマックス法）で書ける。パスでは手番だけを渡し、両者とも打てなければ終局とする</li>
     <li>αβ枝刈りは評価値を変えずに局面数を減らし、手の並べ替えはその効果を高める。少数の合法手の並べ替えでは、ソート手法の計算量の差は問題にならない</li>
     <li>評価関数は石数・位置の重み・着手可能数・確定石などを組み合わせ、局面の段階で切り替える。終盤は完全読みで石数を直接比べる</li>
