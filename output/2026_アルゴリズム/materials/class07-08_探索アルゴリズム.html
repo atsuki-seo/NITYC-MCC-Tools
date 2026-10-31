@@ -1,0 +1,1497 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>探索アルゴリズム（線形探索・二分探索・ハッシュ法） | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>探索アルゴリズム（線形探索・二分探索・ハッシュ法）</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">探索 — 集合から目的の値を見つけ出す</a></li>
+    <li><a href="#s2">線形探索 — 先頭から順に照合する</a></li>
+    <li><a href="#s3">二分探索 — 整列済みの範囲を半分ずつ捨てる</a></li>
+    <li><a href="#s4">線形探索と二分探索を計算量で比べる</a></li>
+    <li><a href="#s5">ハッシュ法 — キーから格納位置を計算する</a></li>
+    <li><a href="#s6">衝突の解決 — チェイン法とオープンアドレス法</a></li>
+    <li><a href="#s7">線形探索・二分探索・ハッシュ法の使い分け</a></li>
+    <li><a href="#s8">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 探索 — 集合から目的の値を見つけ出す ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>探索 — 集合から目的の値を見つけ出す</h2>
+
+  <p>
+    10万人分の会員情報が配列に格納されているとする。窓口で会員番号を告げられるたびに、
+    その番号を持つ会員を取り出したい。取り出し方を決めないかぎり、
+    配列の要素を1件ずつ番号と照らし合わせるほかない。運が悪ければ10万回の照合を要し、
+    窓口に人が並ぶたびにこれを繰り返すことになる。
+  </p>
+
+  <p>
+    データの集合の中から、条件に合う要素を見つけ出す処理を
+    <span class="term">探索</span><span class="en">(search)</span> と呼ぶ。
+    探す手がかりとなる値を<span class="term">キー</span><span class="en">(key)</span> と呼び、
+    上の例では会員番号がキーにあたる。目的の要素が見つかった場合を探索の<strong>成功</strong>、
+    集合に存在しないと判明した場合を探索の<strong>失敗</strong>と呼ぶ。
+    失敗もまた探索の正しい結果であり、「存在しない」と言い切るまでに要する手数も評価の対象になる。
+  </p>
+
+  <p>
+    探索の手数は、1回の照合で候補をどれだけ減らせるかで決まる。
+    データについて何の前提も置かなければ、照合した要素が目的のものでないと分かっても、
+    外せる候補はその1件だけである。データの側に手がかりを持たせると、
+    1回の照合で外せる候補を増やしたり、照合そのものを省いたりできる。
+    本講では、データに持たせる手がかりの違いによって、次の三つの探索法を扱う。
+  </p>
+
+  <ul>
+    <li><span class="term">線形探索</span> — 手がかりを持たせず、先頭から順に照合する</li>
+    <li><span class="term">二分探索</span> — データを大小の順に並べておき、1回の照合で候補を半分に減らす</li>
+    <li><span class="term">ハッシュ法</span> — キーから格納位置を計算できるように格納しておき、照合をほぼ1回で済ませる</li>
+  </ul>
+
+  <p>
+    手数の比較には O 記法を用いる。要素数を n とし、探索に要する比較の回数が
+    n の増加に対してどの程度の割合で増えるかで評価する。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>線形探索の手順を擬似コードで示し、最良・平均・最悪の比較回数と計算量を述べられる</li>
+      <li>二分探索の手順を追跡し、適用の前提と計算量 O(log n) の根拠を説明できる</li>
+      <li>線形探索と二分探索を、整列の費用と探索の回数に基づいて使い分けられる</li>
+      <li>ハッシュ法の仕組みを、ハッシュ関数とハッシュ表の役割から説明できる</li>
+      <li>衝突の解決法としてチェイン法とオープンアドレス法を説明し、それぞれの注意点を述べられる</li>
+      <li>線形探索・二分探索・ハッシュ法を、前提と計算量に基づいて用途に応じて選べる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      並び順について何の前提もない n 個の値の集合から、目的の値を探す。
+      ある要素を1つ選び、目的の値と等しいかを調べたところ、等しくなかった。
+      この1回の照合によって、候補から確実に外せる要素として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>調べたその要素だけ</li>
+      <li>候補全体のおよそ半分</li>
+      <li>調べた要素と、それより後ろにあるすべての要素</li>
+      <li>調べた要素と、それに値の近いすべての要素</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          並び順に前提がなければ、ある要素の値はほかの要素の値について何の情報も与えない。
+          したがって外せるのは調べた要素そのものだけであり、最悪の場合は n 個すべてを調べることになる。
+        </p>
+        <p>
+          (B) は値が大小の順に並んでいる場合に、中央の要素と大小を比べて初めて成り立つ。
+          (C) は「後ろほど値が大きい」といった並びの前提を暗黙に置いている。
+          (D) は値の近さと格納位置の近さを結び付けているが、前提のない集合では両者に関係はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 線形探索 — 先頭から順に照合する ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>線形探索 — 先頭から順に照合する</h2>
+
+  <p>
+    <span class="term">線形探索</span><span class="en">(linear search)</span> は、
+    要素を先頭から順に1件ずつ目的の値と照合し、一致した時点で終了する探索法である。
+    <span class="term">逐次探索</span><span class="en">(sequential search)</span> とも呼ぶ。
+    末尾まで照合して一致するものがなければ、探索は失敗である。
+  </p>
+
+  <pre><code>線形探索（配列 a、要素数 n、目的の値 x）
+1. i ← 0
+2. i &lt; n である間、次の 3〜4 を繰り返す
+3.   もし a[i] = x ならば、i を返して終了する
+4.   i ← i + 1
+5. 「見つからない」を返して終了する</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 580 158" role="img" aria-label="8個の要素が並ぶ配列から値61を線形探索し、添字0から3までの4個と照合して不一致となった後、5回目の照合で添字4の61と一致して終了する様子を示す図。添字5以降は調べない">
+      <text x="34" y="22" class="svg-small" style="text-anchor:start">目的の値 61 を [0] から順に照合する</text>
+      <text x="66" y="50" class="svg-small">1 回目</text>
+      <text x="130" y="50" class="svg-small">2 回目</text>
+      <text x="194" y="50" class="svg-small">3 回目</text>
+      <text x="258" y="50" class="svg-small">4 回目</text>
+      <text x="322" y="50" class="svg-small">5 回目</text>
+      <rect x="354" y="58" width="64" height="44" class="svg-cell-plain"/>
+      <rect x="418" y="58" width="64" height="44" class="svg-cell-plain"/>
+      <rect x="482" y="58" width="64" height="44" class="svg-cell-plain"/>
+      <rect x="34" y="58" width="64" height="44" class="svg-cell"/>
+      <rect x="98" y="58" width="64" height="44" class="svg-cell"/>
+      <rect x="162" y="58" width="64" height="44" class="svg-cell"/>
+      <rect x="226" y="58" width="64" height="44" class="svg-cell"/>
+      <rect x="290" y="58" width="64" height="44" class="svg-hl"/>
+      <text x="66" y="86" class="svg-text">42</text>
+      <text x="130" y="86" class="svg-text">17</text>
+      <text x="194" y="86" class="svg-text">85</text>
+      <text x="258" y="86" class="svg-text">3</text>
+      <text x="322" y="86" class="svg-text">61</text>
+      <text x="386" y="86" class="svg-text">29</text>
+      <text x="450" y="86" class="svg-text">74</text>
+      <text x="514" y="86" class="svg-text">50</text>
+      <text x="66" y="122" class="svg-mono">[0]</text>
+      <text x="130" y="122" class="svg-mono">[1]</text>
+      <text x="194" y="122" class="svg-mono">[2]</text>
+      <text x="258" y="122" class="svg-mono">[3]</text>
+      <text x="322" y="122" class="svg-mono">[4]</text>
+      <text x="386" y="122" class="svg-mono">[5]</text>
+      <text x="450" y="122" class="svg-mono">[6]</text>
+      <text x="514" y="122" class="svg-mono">[7]</text>
+      <text x="34" y="148" class="svg-small" style="text-anchor:start">[0]〜[3] は不一致、[4] で一致して終了する。[5] 以降は調べない</text>
+    </svg>
+    <figcaption>
+      図 2-1　線形探索の進み方。照合は [0] から1つずつ進み、[4] で一致した時点で終了する。
+      目的の値が後ろにあるほど、また存在しない場合ほど、照合の回数が増える。
+    </figcaption>
+  </figure>
+
+  <h3>比較回数と計算量</h3>
+
+  <p>
+    線形探索の比較回数は、目的の値がどこにあるかで変わる。先頭にあれば1回で済み、
+    末尾にあれば n 回を要する。<strong>存在しない場合も、末尾まで照合し終えるまで
+    「ない」とは言えない</strong>ため、n 回を要する。
+    目的の値がどの位置にも等しい確からしさで存在するとき、成功時の平均は
+    (1 + 2 + … + n) ÷ n = (n + 1) ÷ 2 回である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　線形探索の比較回数（要素数を n とする）。平均と最悪では回数が約2倍異なるが、
+      いずれも n に比例して増えるため、計算量はともに O(n) となる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>場合</th><th>起こる状況</th><th>比較回数</th><th>計算量</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>最良</td>
+          <td>目的の値が先頭にある</td>
+          <td class="num-cell">1</td>
+          <td class="num-cell">O(1)</td>
+        </tr>
+        <tr>
+          <td>平均（成功時）</td>
+          <td>目的の値がどの位置にも等しい確からしさで存在する</td>
+          <td class="num-cell">(n + 1) ÷ 2</td>
+          <td class="num-cell">O(n)</td>
+        </tr>
+        <tr>
+          <td>最悪</td>
+          <td>目的の値が末尾にある、または存在しない</td>
+          <td class="num-cell">n</td>
+          <td class="num-cell">O(n)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      「平均」と「最悪」を取り違えやすい。n = 1000 であれば、平均は約500回、最悪は1000回である。
+      O 記法ではどちらも O(n) と書くため区別が消えるが、具体的な回数を問われたときは
+      どちらの場合を問われているかを確かめる必要がある。
+    </p>
+  </div>
+
+  <h3>線形探索の利点</h3>
+
+  <p>
+    線形探索は、<strong>データの並び順に何の前提も置かない</strong>。
+    要素を順にたどれさえすればよいため、整列されていない配列にも、
+    先頭から順にしかたどれないリストにも、そのまま適用できる。
+    要素の追加も末尾に置くだけで済み、並びを保つための手間がかからない。
+    要素数が数十件程度と小さい場合や、探索を1回しか行わない場合には、
+    準備を要しない線形探索が最も手数の少ない選択になる。
+  </p>
+
+  <h3>番兵による改良</h3>
+
+  <p>
+    上の手順は、繰り返しのたびに「i &lt; n か」と「a[i] = x か」の2つの判定を行う。
+    配列の末尾の次の位置に目的の値 x そのものを置いておけば、照合は必ずどこかで一致して止まるため、
+    範囲の判定を繰り返しの中から外せる。このように置く値を
+    <span class="term">番兵</span><span class="en">(sentinel)</span> と呼ぶ。
+  </p>
+
+  <pre><code>番兵を用いた線形探索（配列 a、要素数 n、目的の値 x）
+1. a[n] ← x   （末尾の次の位置に番兵を置く）
+2. i ← 0
+3. a[i] ≠ x である間、i ← i + 1 を繰り返す
+4. もし i &lt; n ならば i を返し、そうでなければ「見つからない」を返す</code></pre>
+
+  <p>
+    番兵が減らすのは1回の繰り返しあたりの判定の数であり、照合する要素の数は変わらない。
+    したがって効果は定数倍にとどまり、<strong>計算量は O(n) のままである</strong>。
+    また、配列に1要素分の余分な領域があり、それを書き換えてよいことが前提となる。
+    現在の処理系では最適化によって判定の差が小さくなる場合も多く、
+    番兵の効果が意味を持つのは、同じ探索を極めて多数回繰り返す処理に限られる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      整列されていない 400 個の要素を持つ配列に対して線形探索を行う。
+      目的の値が配列中に存在しない場合の比較回数と、
+      目的の値がどの位置にも等しい確からしさで存在する場合の平均の比較回数の組合せとして、
+      最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>存在しない場合: 400 回、存在する場合の平均: 約 200 回</li>
+      <li>存在しない場合: 約 200 回、存在する場合の平均: 約 200 回</li>
+      <li>存在しない場合: 400 回、存在する場合の平均: 400 回</li>
+      <li>存在しない場合: 1 回、存在する場合の平均: 約 200 回</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          存在しないことを確定させるには、全要素と照合して一致しないことを確かめる必要があり、400 回を要する。
+          存在する場合の平均は (400 + 1) ÷ 2 ≒ 200 回である。
+        </p>
+        <p>
+          (B) は失敗時の回数を平均と取り違えている。失敗は途中で打ち切れないため、常に最悪の回数になる。
+          (C) は平均と最悪を同一視している。O(n) という計算量が同じでも、具体的な回数は約2倍異なる。
+          (D) は「ない」ことがすぐに判明すると考えているが、並びに前提がない以上、
+          調べていない要素の中に目的の値がある可能性を排除できない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-2</span>
+    <p class="q-body">
+      線形探索に番兵を用いることで得られる効果として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>繰り返しの中から範囲の終わりの判定を省き、1回の繰り返しあたりの判定を減らせる</li>
+      <li>照合する要素の数が減り、計算量が O(log n) に下がる</li>
+      <li>整列されていない配列に対しても、二分探索を適用できるようになる</li>
+      <li>目的の値が存在しない場合に、1回の照合で失敗と判定できる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          末尾の次に目的の値を置くと、照合は必ずどこかで一致して止まる。
+          そのため「範囲の終わりに達したか」の判定が不要になり、繰り返しあたりの判定が2つから1つに減る。
+        </p>
+        <p>
+          (B) は定数倍の改善と計算量の改善を混同している。照合する要素の数は変わらず、計算量は O(n) のままである。
+          (C) の二分探索は整列済みであることを前提とし、番兵はその前提を満たさない。
+          (D) は逆であり、存在しない場合は末尾まで照合した後に番兵と一致して初めて失敗が分かる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 二分探索 — 整列済みの範囲を半分ずつ捨てる ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>二分探索 — 整列済みの範囲を半分ずつ捨てる</h2>
+
+  <p>
+    辞書で単語を引くとき、先頭のページから順にめくることはしない。
+    適当なページを開き、目的の単語がそれより前か後ろかを判断して、反対側をまとめて捨てる。
+    これが成り立つのは、辞書の単語が五十音順に並んでいるためである。
+  </p>
+
+  <p>
+    <span class="term">二分探索</span><span class="en">(binary search)</span> は、
+    この考え方を整列済みの配列に適用した探索法である。探索範囲の中央の要素と目的の値を比べ、
+    一致すれば終了する。目的の値のほうが大きければ中央より左側を、小さければ右側を、
+    まとめて候補から外す。<strong>1回の比較で、残る候補が半分になる。</strong>
+  </p>
+
+  <h3>前提となる条件</h3>
+
+  <p>二分探索が正しく、かつ速く動くには、次の二つの条件がともに必要である。</p>
+
+  <ul>
+    <li>
+      <strong>データが整列済みである</strong> — 中央より左の要素がすべて中央以下であるという保証があって初めて、
+      左側をまとめて捨てられる。整列されていなければ、捨てた側に目的の値が残りうるため、結果が誤る。
+    </li>
+    <li>
+      <strong>中央の要素へ直接到達できる</strong> — 配列は添字から位置を計算できるため、
+      中央の要素を一定の手数で参照できる。リストでは中央まで先頭から順にたどる必要があり、
+      それだけで n に比例する手数がかかるため、二分探索の利点が失われる。
+    </li>
+  </ul>
+
+  <h3>手順</h3>
+
+  <p>
+    探索範囲の左端と右端の添字を変数 <code>left</code>・<code>right</code> で保持し、
+    比較のたびに一方を動かして範囲を狭める。
+  </p>
+
+  <pre><code>二分探索（整列済みの配列 a、要素数 n、目的の値 x）
+1. left ← 0
+2. right ← n − 1
+3. left ≤ right である間、次の 4〜7 を繰り返す
+4.   mid ← (left + right) ÷ 2 の小数点以下を切り捨てた値
+5.   もし a[mid] = x ならば、mid を返して終了する
+6.   もし a[mid] &lt; x ならば、left ← mid + 1
+7.   そうでなければ、right ← mid − 1
+8. 「見つからない」を返して終了する</code></pre>
+
+  <p>
+    中央の添字は、範囲の要素数が偶数のとき2つの候補の間に来るため、切り捨てによって一方に決める。
+    切り上げを用いても探索は成り立つが、比較する要素の並びが変わる。
+    手順を追跡する際は、どちらの規約で中央を決めるかを先に定めておく必要がある。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 330" role="img" aria-label="添字0から14までの15個の整列済み配列から値63を二分探索する様子を4段で示した図。1回目は中央の添字7の36と比べて右半分へ、2回目は添字11の58と比べて右半分へ、3回目は添字13の71と比べて左半分へ進み、4回目に添字12の63と一致する">
+      <text x="38" y="22" class="svg-mono">[0]</text>
+      <text x="74" y="22" class="svg-mono">[1]</text>
+      <text x="110" y="22" class="svg-mono">[2]</text>
+      <text x="146" y="22" class="svg-mono">[3]</text>
+      <text x="182" y="22" class="svg-mono">[4]</text>
+      <text x="218" y="22" class="svg-mono">[5]</text>
+      <text x="254" y="22" class="svg-mono">[6]</text>
+      <text x="290" y="22" class="svg-mono">[7]</text>
+      <text x="326" y="22" class="svg-mono">[8]</text>
+      <text x="362" y="22" class="svg-mono">[9]</text>
+      <text x="398" y="22" class="svg-mono">[10]</text>
+      <text x="434" y="22" class="svg-mono">[11]</text>
+      <text x="470" y="22" class="svg-mono">[12]</text>
+      <text x="506" y="22" class="svg-mono">[13]</text>
+      <text x="542" y="22" class="svg-mono">[14]</text>
+      <text x="20" y="48" class="svg-small" style="text-anchor:start">1 回目　範囲 [0]〜[14]、中央 [7] は 36。63 &gt; 36 なので右半分へ</text>
+      <rect x="20" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="56" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="92" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="128" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="164" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="200" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="236" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="308" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="344" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="380" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="416" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="452" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="488" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="524" y="56" width="36" height="32" class="svg-cell"/>
+      <rect x="272" y="56" width="36" height="32" class="svg-hl"/>
+      <text x="38" y="77" class="svg-text">4</text>
+      <text x="74" y="77" class="svg-text">9</text>
+      <text x="110" y="77" class="svg-text">13</text>
+      <text x="146" y="77" class="svg-text">18</text>
+      <text x="182" y="77" class="svg-text">22</text>
+      <text x="218" y="77" class="svg-text">27</text>
+      <text x="254" y="77" class="svg-text">31</text>
+      <text x="290" y="77" class="svg-text">36</text>
+      <text x="326" y="77" class="svg-text">40</text>
+      <text x="362" y="77" class="svg-text">45</text>
+      <text x="398" y="77" class="svg-text">52</text>
+      <text x="434" y="77" class="svg-text">58</text>
+      <text x="470" y="77" class="svg-text">63</text>
+      <text x="506" y="77" class="svg-text">71</text>
+      <text x="542" y="77" class="svg-text">80</text>
+      <text x="20" y="126" class="svg-small" style="text-anchor:start">2 回目　範囲 [8]〜[14]、中央 [11] は 58。63 &gt; 58 なので右半分へ</text>
+      <rect x="20" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="56" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="92" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="128" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="164" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="200" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="236" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="272" y="134" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="308" y="134" width="36" height="32" class="svg-cell"/>
+      <rect x="344" y="134" width="36" height="32" class="svg-cell"/>
+      <rect x="380" y="134" width="36" height="32" class="svg-cell"/>
+      <rect x="452" y="134" width="36" height="32" class="svg-cell"/>
+      <rect x="488" y="134" width="36" height="32" class="svg-cell"/>
+      <rect x="524" y="134" width="36" height="32" class="svg-cell"/>
+      <rect x="416" y="134" width="36" height="32" class="svg-hl"/>
+      <text x="38" y="155" class="svg-small">4</text>
+      <text x="74" y="155" class="svg-small">9</text>
+      <text x="110" y="155" class="svg-small">13</text>
+      <text x="146" y="155" class="svg-small">18</text>
+      <text x="182" y="155" class="svg-small">22</text>
+      <text x="218" y="155" class="svg-small">27</text>
+      <text x="254" y="155" class="svg-small">31</text>
+      <text x="290" y="155" class="svg-small">36</text>
+      <text x="326" y="155" class="svg-text">40</text>
+      <text x="362" y="155" class="svg-text">45</text>
+      <text x="398" y="155" class="svg-text">52</text>
+      <text x="434" y="155" class="svg-text">58</text>
+      <text x="470" y="155" class="svg-text">63</text>
+      <text x="506" y="155" class="svg-text">71</text>
+      <text x="542" y="155" class="svg-text">80</text>
+      <text x="20" y="204" class="svg-small" style="text-anchor:start">3 回目　範囲 [12]〜[14]、中央 [13] は 71。63 &lt; 71 なので左半分へ</text>
+      <rect x="20" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="56" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="92" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="128" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="164" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="200" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="236" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="272" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="308" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="344" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="380" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="416" y="212" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="452" y="212" width="36" height="32" class="svg-cell"/>
+      <rect x="524" y="212" width="36" height="32" class="svg-cell"/>
+      <rect x="488" y="212" width="36" height="32" class="svg-hl"/>
+      <text x="38" y="233" class="svg-small">4</text>
+      <text x="74" y="233" class="svg-small">9</text>
+      <text x="110" y="233" class="svg-small">13</text>
+      <text x="146" y="233" class="svg-small">18</text>
+      <text x="182" y="233" class="svg-small">22</text>
+      <text x="218" y="233" class="svg-small">27</text>
+      <text x="254" y="233" class="svg-small">31</text>
+      <text x="290" y="233" class="svg-small">36</text>
+      <text x="326" y="233" class="svg-small">40</text>
+      <text x="362" y="233" class="svg-small">45</text>
+      <text x="398" y="233" class="svg-small">52</text>
+      <text x="434" y="233" class="svg-small">58</text>
+      <text x="470" y="233" class="svg-text">63</text>
+      <text x="506" y="233" class="svg-text">71</text>
+      <text x="542" y="233" class="svg-text">80</text>
+      <text x="20" y="282" class="svg-small" style="text-anchor:start">4 回目　範囲 [12]〜[12]、中央 [12] は 63。一致して終了する</text>
+      <rect x="20" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="56" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="92" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="128" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="164" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="200" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="236" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="272" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="308" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="344" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="380" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="416" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="488" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="524" y="290" width="36" height="32" class="svg-cell-plain"/>
+      <rect x="452" y="290" width="36" height="32" class="svg-hl"/>
+      <text x="38" y="311" class="svg-small">4</text>
+      <text x="74" y="311" class="svg-small">9</text>
+      <text x="110" y="311" class="svg-small">13</text>
+      <text x="146" y="311" class="svg-small">18</text>
+      <text x="182" y="311" class="svg-small">22</text>
+      <text x="218" y="311" class="svg-small">27</text>
+      <text x="254" y="311" class="svg-small">31</text>
+      <text x="290" y="311" class="svg-small">36</text>
+      <text x="326" y="311" class="svg-small">40</text>
+      <text x="362" y="311" class="svg-small">45</text>
+      <text x="398" y="311" class="svg-small">52</text>
+      <text x="434" y="311" class="svg-small">58</text>
+      <text x="470" y="311" class="svg-text">63</text>
+      <text x="506" y="311" class="svg-small">71</text>
+      <text x="542" y="311" class="svg-small">80</text>
+    </svg>
+    <figcaption>
+      図 3-1　二分探索の進み方。強調した位置が各回の中央であり、枠のみの位置は候補から外れた要素である。
+      候補は 15 → 7 → 3 → 1 個と半分ずつ減り、4 回の比較で目的の値に到達する。
+    </figcaption>
+  </figure>
+
+  <h3>探索が失敗する場合</h3>
+
+  <p>
+    目的の値が存在しない場合も、比較のたびに範囲は狭まる。
+    やがて <code>left</code> が <code>right</code> を追い越し、範囲に要素が1つも残らなくなる。
+    手順の 3 の条件 <code>left ≤ right</code> が成り立たなくなった時点で、
+    <strong>「存在しない」と判定して終了できる</strong>。
+    図 3-1 の配列で 60 を探せば、4 回目の比較で [12] の 63 と比べて <code>right</code> が 11 になり、
+    <code>left</code> = 12 を下回って終了する。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      手順の 6・7 で <code>left ← mid</code> や <code>right ← mid</code> と書くと、
+      範囲が狭まらない場合が生じ、繰り返しが終わらなくなる。中央の要素は比較済みであるため、
+      次の範囲から外して <code>mid + 1</code>・<code>mid − 1</code> とする。
+      また、手順の 3 を <code>left &lt; right</code> とすると、範囲に1要素だけ残った場合を調べずに終了してしまう。
+      なお、整数の大きさに上限のある処理系では、要素数が極めて大きいと
+      <code>left + right</code> が上限を超えることがあるため、
+      <code>left + (right − left) ÷ 2</code> と書く実装もある。
+    </p>
+  </div>
+
+  <h3>比較回数と計算量</h3>
+
+  <p>
+    1回の比較で候補が半分になるため、k 回の比較の後に残る候補は約 n ÷ 2<sup>k</sup> 個である。
+    これが1個になるまでの回数は 2<sup>k</sup> ≒ n を満たす k、すなわち k ≒ log<sub>2</sub> n である。
+    最悪の場合の比較回数は log<sub>2</sub> n の小数点以下を切り捨てて1を加えた値になり、
+    計算量は <strong>O(log n)</strong> と表される。図 3-1 の n = 15 では、
+    log<sub>2</sub> 15 ≒ 3.9 の切り捨て 3 に1を加えた 4 回が最悪の比較回数である。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      次の整列済み配列に対して、値 19 を二分探索で探す。添字は 0 から始まり、
+      中央の添字は (left + right) ÷ 2 の小数点以下を切り捨てて求める。
+      比較する要素の値を、比較した順に並べたものとして正しいものはどれか。
+    </p>
+    <pre><code>添字: [0] [1] [2] [3] [4] [5] [6] [7] [8] [9]
+値  :  5   12  19  26  33  41  48  57  66  74</code></pre>
+    <ol class="choices">
+      <li>33 → 12 → 19</li>
+      <li>41 → 19</li>
+      <li>33 → 19</li>
+      <li>5 → 12 → 19</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          1回目は left = 0・right = 9 で、中央は (0 + 9) ÷ 2 = 4.5 の切り捨てで [4] の 33 である。
+          19 &lt; 33 なので right = 3 とする。2回目は left = 0・right = 3 で、中央は [1] の 12 である。
+          19 &gt; 12 なので left = 2 とする。3回目は left = 2・right = 3 で、中央は [2] の 19 となり一致する。
+        </p>
+        <p>
+          (B) は中央の添字を切り上げて求めた場合の並びである（[5] の 41 の次に [2] の 19）。
+          (C) は 33 と比べた後、残りの範囲の中央を求め直さずに目的の値へ直接進んでいる。
+          (D) は先頭から順に照合する線形探索の並びであり、二分探索ではない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      確認問題 3-1 と同じ配列に対して、配列中に存在しない値 50 を二分探索で探す。
+      中央の決め方も同じとする。「存在しない」と判定して終了するまでに行う比較の回数として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>4 回</li>
+      <li>3 回</li>
+      <li>10 回</li>
+      <li>範囲を狭め続けるだけで、存在しないことは判定できない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          [4] の 33 と比べて left = 5、[7] の 57 と比べて right = 6、
+          [5] の 41 と比べて left = 6、[6] の 48 と比べて left = 7 となる。
+          ここで left = 7 が right = 6 を上回り、範囲が空になるため、4 回の比較で失敗と判定して終了する。
+        </p>
+        <p>
+          (B) は範囲に1要素だけ残った [6] を調べずに終了しており、繰り返しの条件を left &lt; right と取り違えている。
+          (C) は失敗時には全要素を調べる必要があるという線形探索の性質を、二分探索に当てはめている。
+          (D) は終了条件を見落としている。範囲が空になった時点で、目的の値が存在しないことが確定する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 線形探索と二分探索を計算量で比べる ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>線形探索と二分探索を計算量で比べる</h2>
+
+  <p>
+    線形探索は O(n)、二分探索は O(log n) である。この差がどの程度のものかを、
+    最悪の場合の比較回数で確かめる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　要素数ごとの最悪の比較回数。要素数が 1000 倍になると、線形探索の回数は 1000 倍になるが、
+      二分探索の回数は約 10 回増えるだけである。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>要素数 n</th><th>線形探索（n 回）</th><th>二分探索（約 log<sub>2</sub> n 回）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">10</td><td class="num-cell">10</td><td class="num-cell">4</td></tr>
+        <tr><td class="num-cell">1,000</td><td class="num-cell">1,000</td><td class="num-cell">10</td></tr>
+        <tr><td class="num-cell">1,000,000</td><td class="num-cell">1,000,000</td><td class="num-cell">20</td></tr>
+        <tr><td class="num-cell">1,000,000,000</td><td class="num-cell">1,000,000,000</td><td class="num-cell">30</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    要素数が 10 程度であれば差は小さく、手順の単純な線形探索で困ることはない。
+    要素数が大きくなるほど差は開き、10 億件では 30 回と 10 億回という桁違いの差になる。
+    <strong>二分探索の速さは、要素数が大きい場合に初めて意味を持つ。</strong>
+  </p>
+
+  <h3>整列の費用をどう見るか</h3>
+
+  <p>
+    二分探索の比較回数には、データを整列する手間が含まれていない。
+    整列されていないデータに二分探索を使うには、先に整列する必要がある。
+    整列には、効率のよい方法でも n log n に比例する手数を要し、これは線形探索1回分の n より大きい。
+    したがって、<strong>探索を1回しか行わないなら、整列してから二分探索するより線形探索のほうが速い</strong>。
+  </p>
+
+  <p>
+    一方、整列は一度行えば、その後の探索すべてに効く。n = 1,000,000 で見積もると、
+    整列に約 2,000 万回（n log<sub>2</sub> n ≒ 10<sup>6</sup> × 20）、線形探索は1回あたり平均約 50 万回である。
+    定数倍を無視した粗い見積もりではあるが、探索が約 40 回を超えると整列の費用を回収できる。
+    同じデータに対して探索を繰り返す場面ほど、整列してから二分探索する方式が有利になる。
+  </p>
+
+  <h3>データが追加・削除される場合</h3>
+
+  <p>
+    整列済みの配列に要素を追加するには、整列の順序を保つ位置に挿入する必要がある。
+    挿入位置は二分探索で O(log n) で求まるが、その位置より後ろの要素を1つずつずらすため、
+    挿入全体では O(n) を要する。削除も同様である。
+    探索に比べて追加・削除がまれであれば問題にならないが、
+    <strong>追加・削除が探索と同じくらい頻繁に起こる場合</strong>、整列済み配列の利点は損なわれる。
+  </p>
+
+  <p>
+    二分探索木は、この問題に対する一つの答えである。中央と比べて半分を捨てるという二分探索の考え方を、
+    木の配置として保持することで、挿入のたびに要素をずらす必要をなくしている。
+    ただし、整列済みの値を順に挿入すると木が一列に退化し、探索は O(n) に戻る。
+    二分探索木の利点は、木の形が整っていることを前提とする。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      整列されていない 100 万件のデータがある。このデータに対して、ある値を<strong>1回だけ</strong>探したい。
+      探索の方式とその理由の組合せとして、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>線形探索を用いる。整列に n 回を超える手数がかかり、1回の探索では整列の費用を回収できないため</li>
+      <li>整列してから二分探索を用いる。二分探索は O(log n) であり、どのような場合でも線形探索より速いため</li>
+      <li>整列せずに二分探索を用いる。中央の要素から比べ始めれば、並び順に関係なく範囲を半分にできるため</li>
+      <li>整列してから線形探索を用いる。整列済みのデータでは線形探索も O(log n) になるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          整列には n log n に比例する手数がかかり、これは線形探索1回分の n より大きい。
+          探索が1回きりであれば、整列の費用を後の探索で回収する機会がないため、線形探索が最も手数が少ない。
+        </p>
+        <p>
+          (B) は整列の費用を考慮していない。O(log n) は整列済みのデータに対する探索のみの計算量である。
+          (C) は二分探索の前提を見落としている。整列されていなければ、捨てた側に目的の値が残りうる。
+          (D) は整列によって線形探索の手順が変わると考えているが、先頭から順に照合する以上 O(n) のままである。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      整列済みの配列の要素数が 2,000 から 2,000,000 に増えた（1000 倍）。
+      最悪の場合の比較回数の変化として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>線形探索は約 1000 倍に増え、二分探索は約 11 回から約 21 回に増える</li>
+      <li>線形探索も二分探索も、ともに約 1000 倍に増える</li>
+      <li>線形探索は約 1000 倍に増え、二分探索は変わらない</li>
+      <li>線形探索は約 500 倍に増え、二分探索は約 11 回から約 21 回に増える</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          線形探索の最悪の比較回数は n であり、要素数に比例して 1000 倍になる。
+          二分探索は 2<sup>11</sup> = 2048 ≧ 2000、2<sup>21</sup> = 2097152 ≧ 2000000 より、
+          約 11 回から約 21 回に増える。1000 ≒ 2<sup>10</sup> であるため、要素数が 1000 倍になっても
+          比較回数は約 10 回増えるだけである。
+        </p>
+        <p>
+          (B) は O(log n) を O(n) と同様に要素数に比例すると捉えている。
+          (C) は二分探索の比較回数が一定であると誤解している。log n はゆっくりではあるが増加する。
+          (D) の 500 倍は平均の比較回数 n ÷ 2 から生じた誤りであり、平均も最悪も n に比例するため、比率は 1000 倍である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. ハッシュ法 — キーから格納位置を計算する ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>ハッシュ法 — キーから格納位置を計算する</h2>
+
+  <p>
+    線形探索も二分探索も、キーを要素と比べることで候補を減らしていく。
+    比べる回数を減らす工夫には限りがあり、二分探索でも log n 回の比較は避けられない。
+    これに対し、<strong>キーそのものから格納位置を計算できれば、比べる前に目的の位置へ到達できる</strong>。
+    会員番号が 0 から 99999 までであれば、大きさ 10 万の配列を用意し、
+    番号をそのまま添字として格納すれば1回で取り出せる。
+  </p>
+
+  <p>
+    しかし、キーの取りうる範囲は実際に格納する件数よりはるかに広いことが多い。
+    8 桁の会員番号で会員が 1000 人であれば、1 億の大きさの配列のうち 1000 か所しか使わない。
+    そこで、キーを小さな範囲の値に変換してから添字に用いる。
+  </p>
+
+  <h3>ハッシュ関数とハッシュ表</h3>
+
+  <p>
+    キーを、格納に用いる配列の添字の範囲の値に変換する関数を
+    <span class="term">ハッシュ関数</span><span class="en">(hash function)</span>、
+    変換後の値を<span class="term">ハッシュ値</span><span class="en">(hash value)</span> と呼ぶ。
+    ハッシュ値を添字として要素を格納する配列を
+    <span class="term">ハッシュ表</span><span class="en">(hash table)</span> と呼び、
+    この仕組みによる探索法を<span class="term">ハッシュ法</span><span class="en">(hashing)</span> と呼ぶ。
+  </p>
+
+  <p>
+    整数のキーに対して最も単純なハッシュ関数は、キーを表の大きさ m で割った余りである。
+    以下では、k を m で割った余りを <code>k mod m</code> と書く。
+  </p>
+
+  <pre><code>h(k) ← k mod m   （結果は 0 以上 m − 1 以下になる）</code></pre>
+
+  <p>
+    格納するときは h(k) の位置に要素を置き、探すときは同じ h(k) を計算してその位置を見る。
+    格納と探索で同じ計算をするため、<strong>キーが同じであれば必ず同じ位置にたどり着く</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 330" role="img" aria-label="6個のキー23、90、47、15、38、62をそれぞれ11で割った余りを求め、大きさ11のハッシュ表の添字1、2、3、4、5、7に格納する様子を示す図。添字0、6、8、9、10は空いている">
+      <text x="40" y="22" class="svg-small" style="text-anchor:start">キー k と h(k) = k mod 11</text>
+      <text x="435" y="22" class="svg-small">ハッシュ表（m = 11）</text>
+      <path d="M 222 60 L 372 75" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 222 108 L 372 101" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 222 156 L 372 127" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 222 204 L 372 153" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 222 252 L 372 179" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 222 300 L 372 231" class="svg-arrow" marker-end="url(#ah1)"/>
+      <rect x="380" y="36" width="110" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="192" width="110" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="244" width="110" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="270" width="110" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="296" width="110" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="62" width="110" height="26" class="svg-cell"/>
+      <text x="435" y="80" class="svg-text">23</text>
+      <rect x="380" y="88" width="110" height="26" class="svg-cell"/>
+      <text x="435" y="106" class="svg-text">90</text>
+      <rect x="380" y="114" width="110" height="26" class="svg-cell"/>
+      <text x="435" y="132" class="svg-text">47</text>
+      <rect x="380" y="140" width="110" height="26" class="svg-cell"/>
+      <text x="435" y="158" class="svg-text">15</text>
+      <rect x="380" y="166" width="110" height="26" class="svg-cell"/>
+      <text x="435" y="184" class="svg-text">38</text>
+      <rect x="380" y="218" width="110" height="26" class="svg-cell"/>
+      <text x="435" y="236" class="svg-text">62</text>
+      <text x="500" y="54" class="svg-mono" style="text-anchor:start">[0]</text>
+      <text x="500" y="80" class="svg-mono" style="text-anchor:start">[1]</text>
+      <text x="500" y="106" class="svg-mono" style="text-anchor:start">[2]</text>
+      <text x="500" y="132" class="svg-mono" style="text-anchor:start">[3]</text>
+      <text x="500" y="158" class="svg-mono" style="text-anchor:start">[4]</text>
+      <text x="500" y="184" class="svg-mono" style="text-anchor:start">[5]</text>
+      <text x="500" y="210" class="svg-mono" style="text-anchor:start">[6]</text>
+      <text x="500" y="236" class="svg-mono" style="text-anchor:start">[7]</text>
+      <text x="500" y="262" class="svg-mono" style="text-anchor:start">[8]</text>
+      <text x="500" y="288" class="svg-mono" style="text-anchor:start">[9]</text>
+      <text x="500" y="314" class="svg-mono" style="text-anchor:start">[10]</text>
+      <rect x="40" y="46" width="56" height="28" class="svg-cell"/>
+      <text x="68" y="65" class="svg-text">23</text>
+      <text x="110" y="65" class="svg-mono" style="text-anchor:start">23 mod 11 = 1</text>
+      <rect x="40" y="94" width="56" height="28" class="svg-cell"/>
+      <text x="68" y="113" class="svg-text">90</text>
+      <text x="110" y="113" class="svg-mono" style="text-anchor:start">90 mod 11 = 2</text>
+      <rect x="40" y="142" width="56" height="28" class="svg-cell"/>
+      <text x="68" y="161" class="svg-text">47</text>
+      <text x="110" y="161" class="svg-mono" style="text-anchor:start">47 mod 11 = 3</text>
+      <rect x="40" y="190" width="56" height="28" class="svg-cell"/>
+      <text x="68" y="209" class="svg-text">15</text>
+      <text x="110" y="209" class="svg-mono" style="text-anchor:start">15 mod 11 = 4</text>
+      <rect x="40" y="238" width="56" height="28" class="svg-cell"/>
+      <text x="68" y="257" class="svg-text">38</text>
+      <text x="110" y="257" class="svg-mono" style="text-anchor:start">38 mod 11 = 5</text>
+      <rect x="40" y="286" width="56" height="28" class="svg-cell"/>
+      <text x="68" y="305" class="svg-text">62</text>
+      <text x="110" y="305" class="svg-mono" style="text-anchor:start">62 mod 11 = 7</text>
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　大きさ 11 のハッシュ表に、h(k) = k mod 11 で 6 個のキーを格納した。
+      各キーの位置は、ほかのキーと比べることなく計算だけで決まる。探索も同じ計算で位置を求め、その1か所を見ればよい。
+    </figcaption>
+  </figure>
+
+  <h3>計算量と、それが成り立つ条件</h3>
+
+  <p>
+    ハッシュ値の計算は要素数 n に関係なく一定の手数で済み、その位置を1回見れば探索が終わる。
+    そのため、ハッシュ法の探索・挿入・削除はいずれも平均 <strong>O(1)</strong> で行える。
+    ただしこれは、<strong>ハッシュ値が表の中に偏りなく散らばる</strong>場合に限られる。
+    多くのキーが同じハッシュ値に集まると、その位置で複数のキーを順に調べることになり、
+    最悪の場合はすべてのキーが同じ位置に集まって O(n) となる。
+  </p>
+
+  <p>
+    よいハッシュ関数には、次の性質が求められる。
+  </p>
+
+  <ul>
+    <li>同じキーに対して、常に同じハッシュ値を返す</li>
+    <li>実際に現れるキーの集合に対して、ハッシュ値が表全体に偏りなく散らばる</li>
+    <li>計算が軽い（ハッシュ値の計算が重ければ、比較を省いた利点が失われる）</li>
+  </ul>
+
+  <p>
+    文字列のように整数でないキーは、各文字を文字コードの数値として組み合わせて整数にしてから、
+    表の大きさで割った余りをとる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">表の大きさの選び方</span>
+    <p>
+      余りを用いるハッシュ関数では、表の大きさ m の選び方が散らばり方を左右する。
+      m = 10 とすると、ハッシュ値はキーの下一桁だけで決まる。
+      末尾が 0 の番号ばかりのように、キーの並びに規則性があれば特定の位置に集中する。
+      m を素数にするとキーの規則性と m の約数とが重なりにくいため、素数が選ばれることが多い。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      大きさ 13 のハッシュ表に、ハッシュ関数 h(k) = k mod 13 を用いて、
+      キー 20、33、41、54、60 を格納する。同じハッシュ値になるキーの組をすべて挙げたものとして、
+      正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>20 と 33、および 41 と 54</li>
+      <li>20 と 60</li>
+      <li>同じハッシュ値になる組はない</li>
+      <li>20 と 33 のみ</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          各キーを 13 で割った余りは、20 → 7、33 → 7、41 → 2、54 → 2、60 → 8 である。
+          20 と 33 がともに 7、41 と 54 がともに 2 になる。
+        </p>
+        <p>
+          (B) は下一桁が等しいことから同じ位置と考えている。これは表の大きさが 10 の場合の判断であり、
+          13 で割った余りは 20 → 7、60 → 8 で異なる。
+          (C) はキーが互いに異なれば位置も異なると考えているが、ハッシュ関数はキーを狭い範囲へ変換するため、
+          異なるキーが同じ値になることは避けられない。
+          (D) は最初に見つけた組で確認を打ち切っており、41 と 54 の組を見落としている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      ハッシュ法の探索が平均 O(1) で行えることについての記述として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>ハッシュ値が表の中に偏りなく散らばることを前提としており、多くのキーが同じ位置に集まると成り立たない</li>
+      <li>キーから位置を計算するため、どのようなキーの集合に対しても常に1回の照合で探索が終わる</li>
+      <li>データを整列済みにしておくことで初めて成り立ち、整列されていなければ O(n) となる</li>
+      <li>ハッシュ表の大きさを要素数より小さく保つほど、照合の回数が減る</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          O(1) は平均についての評価であり、ハッシュ値の散らばりに依存する。
+          多くのキーが同じ位置に集まれば、その位置で複数のキーを順に調べることになり、最悪の場合は O(n) となる。
+        </p>
+        <p>
+          (B) は「常に」が誤りである。異なるキーが同じ位置になることがあり、そのときは複数回の照合を要する。
+          (C) は二分探索の前提と混同している。ハッシュ法は並び順を用いず、位置の計算に依拠する。
+          (D) は因果が逆である。表が要素数に比べて小さいほど同じ位置に集まるキーが増え、照合の回数は増える。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 衝突の解決 — チェイン法とオープンアドレス法 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>衝突の解決 — チェイン法とオープンアドレス法</h2>
+
+  <p>
+    図 5-1 の表にキー 34 を加えると、34 mod 11 = 1 となり、既に 23 が入っている位置と重なる。
+    異なるキーが同じハッシュ値になることを
+    <span class="term">衝突</span><span class="en">(collision)</span> と呼び、
+    衝突したキー同士を<span class="term">シノニム</span><span class="en">(synonym)</span> と呼ぶ。
+  </p>
+
+  <p>
+    キーの取りうる範囲が表の大きさより広い以上、<strong>どのようなハッシュ関数を選んでも衝突は避けられない</strong>。
+    よいハッシュ関数が減らせるのは衝突の頻度であり、衝突そのものをなくすことはできない。
+    そのためハッシュ法では、衝突が起きたときにキーをどこへ置き、どう探すかを必ず定めておく。
+    その定め方は、衝突したキーを表の外へつなぐ方式と、表の中の別の空き位置へ置く方式に大別される。
+  </p>
+
+  <h3>チェイン法 — 同じ位置のキーをリストでつなぐ</h3>
+
+  <p>
+    <span class="term">チェイン法</span><span class="en">(separate chaining)</span> は、
+    表の各位置にリストの先頭を持たせ、同じハッシュ値になったキーをそのリストにつないでいく方式である。
+    格納は h(k) の位置のリストに加え、探索は h(k) の位置のリストを先頭から線形探索する。
+    削除はリストから要素を外すだけで済む。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 330" role="img" aria-label="大きさ11のハッシュ表の各位置からリストが伸びる図。添字1のリストには衝突したキー23、34、56が順につながり、添字2、3、4、5、7にはそれぞれ90、47、15、38、62が1個ずつつながっている">
+      <text x="40" y="22" class="svg-small" style="text-anchor:start">表の各位置が、その位置に割り当てられたキーのリストを指す</text>
+      <path d="M 130 75 L 166 75" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 230 75 L 258 75" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 322 75 L 350 75" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 130 101 L 166 101" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 130 127 L 166 127" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 130 153 L 166 153" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 130 179 L 166 179" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 130 231 L 166 231" class="svg-arrow" marker-end="url(#ah2)"/>
+      <rect x="70" y="36" width="60" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="192" width="60" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="244" width="60" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="270" width="60" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="296" width="60" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="62" width="60" height="26" class="svg-cell"/>
+      <rect x="70" y="88" width="60" height="26" class="svg-cell"/>
+      <rect x="70" y="114" width="60" height="26" class="svg-cell"/>
+      <rect x="70" y="140" width="60" height="26" class="svg-cell"/>
+      <rect x="70" y="166" width="60" height="26" class="svg-cell"/>
+      <rect x="70" y="218" width="60" height="26" class="svg-cell"/>
+      <text x="58" y="54" class="svg-mono" style="text-anchor:end">[0]</text>
+      <text x="58" y="80" class="svg-mono" style="text-anchor:end">[1]</text>
+      <text x="58" y="106" class="svg-mono" style="text-anchor:end">[2]</text>
+      <text x="58" y="132" class="svg-mono" style="text-anchor:end">[3]</text>
+      <text x="58" y="158" class="svg-mono" style="text-anchor:end">[4]</text>
+      <text x="58" y="184" class="svg-mono" style="text-anchor:end">[5]</text>
+      <text x="58" y="210" class="svg-mono" style="text-anchor:end">[6]</text>
+      <text x="58" y="236" class="svg-mono" style="text-anchor:end">[7]</text>
+      <text x="58" y="262" class="svg-mono" style="text-anchor:end">[8]</text>
+      <text x="58" y="288" class="svg-mono" style="text-anchor:end">[9]</text>
+      <text x="58" y="314" class="svg-mono" style="text-anchor:end">[10]</text>
+      <rect x="170" y="65" width="60" height="20" class="svg-cell"/>
+      <text x="200" y="80" class="svg-text">23</text>
+      <rect x="262" y="65" width="60" height="20" class="svg-hl"/>
+      <text x="292" y="80" class="svg-text">34</text>
+      <rect x="354" y="65" width="60" height="20" class="svg-hl"/>
+      <text x="384" y="80" class="svg-text">56</text>
+      <rect x="170" y="91" width="60" height="20" class="svg-cell"/>
+      <text x="200" y="106" class="svg-text">90</text>
+      <rect x="170" y="117" width="60" height="20" class="svg-cell"/>
+      <text x="200" y="132" class="svg-text">47</text>
+      <rect x="170" y="143" width="60" height="20" class="svg-cell"/>
+      <text x="200" y="158" class="svg-text">15</text>
+      <rect x="170" y="169" width="60" height="20" class="svg-cell"/>
+      <text x="200" y="184" class="svg-text">38</text>
+      <rect x="170" y="221" width="60" height="20" class="svg-cell"/>
+      <text x="200" y="236" class="svg-text">62</text>
+      <text x="440" y="80" class="svg-small" style="text-anchor:start">h(k) = 1 の 3 個</text>
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-1　チェイン法。h(k) = 1 となる 23・34・56 は、添字 1 のリストに順につながる。
+      34 や 56 を探すときは、添字 1 のリストを先頭からたどって照合する。衝突が多い位置ほどリストが長くなり、照合の回数が増える。
+    </figcaption>
+  </figure>
+
+  <h3>オープンアドレス法 — 表の中の別の空き位置へ置く</h3>
+
+  <p>
+    <span class="term">オープンアドレス法</span><span class="en">(open addressing)</span> は、
+    衝突したキーを表の中の別の空き位置に格納する方式である。
+    空き位置を探して表を順に調べていくことを<span class="term">走査</span><span class="en">(probing)</span> と呼ぶ。
+    最も単純な<span class="term">線形走査法</span><span class="en">(linear probing)</span> では、
+    h(k) の位置が使用中であれば、その次の位置、さらに次の位置と1つずつ進む。
+    表の末尾に達したら先頭へ戻る。
+  </p>
+
+  <pre><code>線形走査法による探索（キー k、表の大きさ m）
+1. i ← h(k)
+2. 表[i] が空でない間、次の 3〜4 を繰り返す
+3.   もし 表[i] = k ならば、i を返して終了する
+4.   i ← (i + 1) mod m
+5. 「見つからない」を返して終了する</code></pre>
+
+  <p>
+    格納も同じ順に位置を調べ、最初に見つかった空き位置にキーを置く。
+    探索は、目的のキーに出会うか、空き位置に出会うまで続ける。
+    <strong>空き位置に出会った時点で、そのキーは表に存在しないと判断できる</strong>。
+    そのキーが格納されていたなら、格納の時点でその空き位置かそれより手前に置かれていたはずだからである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 250" role="img" aria-label="大きさ11のハッシュ表に線形走査法でキーを挿入する様子を上下2段で示した図。上段ではハッシュ値1の34が、使用中の添字1を飛ばして添字2に入る。下段ではハッシュ値1の56が、使用中の添字1から4を順に調べて添字5に入る">
+      <path d="M 102 56 Q 122 34 142 56" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 102 182 Q 122 160 142 182" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 150 182 Q 170 160 190 182" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 198 182 Q 218 160 238 182" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 246 182 Q 266 160 286 182" class="svg-arrow" marker-end="url(#ah3)"/>
+      <text x="26" y="22" class="svg-small" style="text-anchor:start">34 を挿入する（h(34) = 1）。[1] は使用中のため [2] に格納する</text>
+      <rect x="26" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="266" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="122" y="60" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="84" class="svg-text">23</text>
+      <text x="194" y="84" class="svg-text">47</text>
+      <text x="242" y="84" class="svg-text">15</text>
+      <text x="146" y="84" class="svg-text">34</text>
+      <text x="50" y="114" class="svg-mono">[0]</text>
+      <text x="98" y="114" class="svg-mono">[1]</text>
+      <text x="146" y="114" class="svg-mono">[2]</text>
+      <text x="194" y="114" class="svg-mono">[3]</text>
+      <text x="242" y="114" class="svg-mono">[4]</text>
+      <text x="290" y="114" class="svg-mono">[5]</text>
+      <text x="338" y="114" class="svg-mono">[6]</text>
+      <text x="386" y="114" class="svg-mono">[7]</text>
+      <text x="434" y="114" class="svg-mono">[8]</text>
+      <text x="482" y="114" class="svg-mono">[9]</text>
+      <text x="530" y="114" class="svg-mono">[10]</text>
+      <text x="26" y="148" class="svg-small" style="text-anchor:start">56 を挿入する（h(56) = 1）。[1]〜[4] が使用中のため [5] に格納する</text>
+      <rect x="26" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="122" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="266" y="186" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="210" class="svg-text">23</text>
+      <text x="146" y="210" class="svg-text">34</text>
+      <text x="194" y="210" class="svg-text">47</text>
+      <text x="242" y="210" class="svg-text">15</text>
+      <text x="290" y="210" class="svg-text">56</text>
+      <text x="50" y="240" class="svg-mono">[0]</text>
+      <text x="98" y="240" class="svg-mono">[1]</text>
+      <text x="146" y="240" class="svg-mono">[2]</text>
+      <text x="194" y="240" class="svg-mono">[3]</text>
+      <text x="242" y="240" class="svg-mono">[4]</text>
+      <text x="290" y="240" class="svg-mono">[5]</text>
+      <text x="338" y="240" class="svg-mono">[6]</text>
+      <text x="386" y="240" class="svg-mono">[7]</text>
+      <text x="434" y="240" class="svg-mono">[8]</text>
+      <text x="482" y="240" class="svg-mono">[9]</text>
+      <text x="530" y="240" class="svg-mono">[10]</text>
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-2　線形走査法による挿入。23・47・15 が格納された表に 34 と 56 を順に加えた。
+      衝突した位置の周辺に使用中の位置が固まり、後から加えるキーほど走査が長くなる。
+      このような使用中の位置の塊を<span class="term">クラスタ</span><span class="en">(cluster)</span> と呼ぶ。
+    </figcaption>
+  </figure>
+
+  <p>
+    線形走査法では、一度できたクラスタに後続のキーが次々と付け加わり、クラスタがさらに大きくなる。
+    これを避けるため、進む幅を 1, 4, 9, … と変える
+    <span class="term">二次走査法</span><span class="en">(quadratic probing)</span> や、
+    進む幅を別のハッシュ関数で決める
+    <span class="term">二重ハッシュ法</span><span class="en">(double hashing)</span> も用いられる。
+  </p>
+
+  <h3>オープンアドレス法での削除</h3>
+
+  <p>
+    オープンアドレス法では、キーを削除してその位置を単に空きに戻すと、探索が誤る。
+    図 6-2 の下段で 34 を削除して [2] を空にすると、56 を探す走査は [1] の次の [2] が空であるため、
+    [5] に到達する前に「存在しない」と判断して終了してしまう。
+  </p>
+
+  <p>
+    そこで削除した位置には、空きとは区別される<strong>削除済みの印</strong>を残す。
+    探索は削除済みの位置を使用中と同様に通過して走査を続け、
+    格納は削除済みの位置を空き位置として再利用する。
+    削除済みの印が増えると走査が長くなるため、増えすぎた時点で表を作り直す。
+  </p>
+
+  <h3>負荷率 — 表の混み具合が性能を決める</h3>
+
+  <p>
+    格納したキーの数 n を表の大きさ m で割った値 α = n ÷ m を
+    <span class="term">負荷率</span><span class="en">(load factor)</span> と呼ぶ。
+    負荷率が高いほど衝突が起きやすく、照合や走査の回数が増える。
+    チェイン法では負荷率は 1 を超えてもよく、リストの平均の長さが α になるため、性能は α に比例して緩やかに低下する。
+    オープンアドレス法では表の中にしかキーを置けないため、負荷率は 1 を超えられず、
+    1 に近づくと性能が急激に低下する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　線形走査法で、キーが表の中に偏りなく散らばる場合の平均の走査回数（理論上の近似値）。
+      負荷率が 0.5 から 0.9 に上がると、失敗する探索の走査回数は 20 倍に増える。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>負荷率 α</th><th>成功する探索</th><th>失敗する探索・挿入</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">0.5</td><td class="num-cell">1.5</td><td class="num-cell">2.5</td></tr>
+        <tr><td class="num-cell">0.75</td><td class="num-cell">2.5</td><td class="num-cell">8.5</td></tr>
+        <tr><td class="num-cell">0.9</td><td class="num-cell">5.5</td><td class="num-cell">50.5</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    実際の実装では、負荷率があらかじめ定めた上限を超えた時点で、より大きな表（多くは約2倍）を用意し、
+    すべてのキーのハッシュ値を新しい表の大きさで計算し直して格納し直す。
+    これを<span class="term">再ハッシュ</span><span class="en">(rehashing)</span> と呼ぶ。
+    再ハッシュの1回は O(n) を要するが、表の大きさを倍々に増やせば頻度は低く抑えられ、
+    挿入1回あたりに均すと O(1) に収まる。
+  </p>
+
+  <h3>チェイン法とオープンアドレス法の比較</h3>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-2　衝突の解決法の比較。チェイン法は混み具合に対して頑健であり、
+      オープンアドレス法は負荷率を低く保てる場合に、表の外の領域を要しない利点が生きる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>チェイン法</th><th>オープンアドレス法</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>衝突したキーの置き場所</td>
+          <td>表の外のリスト</td>
+          <td>表の中の別の空き位置</td>
+        </tr>
+        <tr>
+          <td>負荷率の上限</td>
+          <td>1 を超えてもよい</td>
+          <td>1 未満（実用上は 0.5〜0.7 程度に抑える）</td>
+        </tr>
+        <tr>
+          <td>混んだときの性能</td>
+          <td>α に比例して緩やかに低下する</td>
+          <td>α が 1 に近づくと急激に低下する</td>
+        </tr>
+        <tr>
+          <td>削除</td>
+          <td>リストから外すだけでよい</td>
+          <td>削除済みの印を残す必要がある</td>
+        </tr>
+        <tr>
+          <td>必要な領域</td>
+          <td>表に加えて、キーごとのリストの要素</td>
+          <td>表のみ</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    実装の誤りやすさの面では、削除に特別な扱いを要しないチェイン法のほうが単純である。
+    オープンアドレス法は表という連続した領域だけで完結するため、一般に記憶域を順に読む処理と相性がよく、
+    負荷率を低く保てる場合には高速になりやすい。
+    リストの要素ごとに必要な参照の領域が問題になるのは、小さなキーを大量に格納する場合や、
+    使える記憶域が限られる環境に限られる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      大きさ 7 のハッシュ表（添字 [0]〜[6]）に、ハッシュ関数 h(k) = k mod 7 と線形走査法を用いて、
+      キー 12、20、26、33 をこの順に挿入する。表は最初すべて空である。キー 33 が格納される位置として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>[1]</li>
+      <li>[5]</li>
+      <li>表の末尾 [6] を越えるため格納できない</li>
+      <li>[0]</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          12 → 5 で [5] に格納する。20 → 6 で [6] に格納する。
+          26 → 5 は [5]・[6] が使用中のため、末尾から先頭へ戻って [0] に格納する。
+          33 → 5 は [5]・[6]・[0] が使用中のため、[1] に格納する。
+        </p>
+        <p>
+          (B) は衝突を無視しており、既に格納された 12 を上書きしてしまう。
+          (C) は走査が末尾から先頭へ戻ることを見落としている。i ← (i + 1) mod m により [6] の次は [0] となる。
+          (D) は 26 が [0] を使用していることを見落としている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-2</span>
+    <p class="q-body">
+      図 6-2 の下段の状態（[1] に 23、[2] に 34、[3] に 47、[4] に 15、[5] に 56、ほかは空）から、
+      34 を削除して [2] を単に空に戻した。その後に起こることとして、最も適切なものはどれか。
+      なお h(23) = 1、h(47) = 3、h(15) = 4、h(56) = 1 である。
+    </p>
+    <ol class="choices">
+      <li>56 を探すと、[2] が空であるため、56 は存在しないと誤って判定される</li>
+      <li>どのキーもハッシュ値から位置を直接計算するため、探索に影響は生じない</li>
+      <li>15 を探すと、[2] が空であるため、15 は存在しないと誤って判定される</li>
+      <li>23 を探すと、[2] が空であるため、23 は存在しないと誤って判定される</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          56 の探索は [1] から始まり、23 と一致しないため [2] へ進む。[2] が空であるため、
+          [5] に格納された 56 に到達する前に「存在しない」と判断して終了してしまう。
+          これを防ぐために、削除した位置には削除済みの印を残す。
+        </p>
+        <p>
+          (B) は衝突によって本来の位置からずれて格納されたキーがあることを見落としている。
+          (C) の 15 は h(15) = 4 の位置にそのまま格納されており、探索は [4] から始まるため [2] を通らない。
+          (D) の 23 は h(23) = 1 の位置で最初の照合で一致するため、[2] の状態に影響されない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 線形探索・二分探索・ハッシュ法の使い分け ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>線形探索・二分探索・ハッシュ法の使い分け</h2>
+
+  <p>
+    線形探索は前提を置かずに先頭から照合し、二分探索は整列という前提によって比較のたびに候補を半分にし、
+    ハッシュ法はキーから位置を計算することで比較そのものをほぼ省く。
+    いずれも「キーを与えて要素を取り出す」という同じ操作を実現する方法であるため、
+    前提・計算量・得意な操作を並べて比べることができる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　探索法の比較（要素数を n とする）。ハッシュ法は1件の探索では最も速いが、
+      キーの大小の順序を保持しないため、範囲や順序を問う処理には向かない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>線形探索</th><th>二分探索</th><th>ハッシュ法</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>前提</td>
+          <td>なし（配列にもリストにも使える）</td>
+          <td>整列済みで、添字で直接参照できる</td>
+          <td>ハッシュ関数とハッシュ表</td>
+        </tr>
+        <tr>
+          <td>探索（平均）</td>
+          <td class="num-cell">O(n)</td>
+          <td class="num-cell">O(log n)</td>
+          <td class="num-cell">O(1)</td>
+        </tr>
+        <tr>
+          <td>探索（最悪）</td>
+          <td class="num-cell">O(n)</td>
+          <td class="num-cell">O(log n)</td>
+          <td class="num-cell">O(n)</td>
+        </tr>
+        <tr>
+          <td>要素の追加</td>
+          <td>O(1)（末尾に置く）</td>
+          <td>O(n)（後続の要素をずらす）</td>
+          <td>平均 O(1)</td>
+        </tr>
+        <tr>
+          <td>「a 以上 b 以下」のキーをすべて取り出す</td>
+          <td>O(n)（全件を調べる）</td>
+          <td>得意（端を探し、そこから順に読む）</td>
+          <td>不得意（全件を調べる）</td>
+        </tr>
+        <tr>
+          <td>最小・最大のキーを取り出す</td>
+          <td class="num-cell">O(n)</td>
+          <td class="num-cell">O(1)（両端を見る）</td>
+          <td class="num-cell">O(n)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    表 7-1 から、使い分けの指針は次のようにまとめられる。
+  </p>
+
+  <ul>
+    <li>
+      <strong>線形探索</strong> — 要素数が小さい場合、探索が1回きりの場合、
+      データがリストのように順にしかたどれない場合に選ぶ。準備が要らず、誤りの入り込む余地も小さい。
+    </li>
+    <li>
+      <strong>二分探索</strong> — データの更新がまれで、探索を繰り返す場合に選ぶ。
+      キーの大小の順序が保たれているため、範囲の取り出しや最小・最大の取り出しも速い。
+    </li>
+    <li>
+      <strong>ハッシュ法</strong> — キーを指定した探索・追加・削除が頻繁に起こり、
+      範囲や順序を問う処理を必要としない場合に選ぶ。
+    </li>
+  </ul>
+
+  <p>
+    ハッシュ法の最悪 O(n) が問題になるのは、ハッシュ関数とキーの集合の相性が悪い場合のほか、
+    外部から受け取ったキーを格納する場合である。同じハッシュ値になるキーを意図的に大量に送り込まれると、
+    探索が O(n) に落ち、処理が滞る。外部の入力を扱う実装では、推測されにくいハッシュ関数を用いるなどの対策がとられる。
+  </p>
+
+  <p>
+    多くのプログラミング言語は、キーから値を取り出す<span class="term">連想配列</span><span class="en">(associative array)</span> を
+    標準で備えている。その実装は処理系によって異なるが、ハッシュ表によるものと、
+    形が崩れないよう調整される二分探索木によるものが多い。前者は1件の探索が速く、
+    後者はキーの順序を保持して範囲の取り出しに応じられる。
+    いずれを使うかの判断も、ここで述べた探索法の性質に基づく。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      約 5000 人の学生の情報を、学籍番号をキーとして管理する。学籍番号を指定して1人の情報を取り出す処理が頻繁にあり、
+      加えて「学籍番号が 2400 以上 2450 未満の学生をすべて列挙する」処理も頻繁に行う。
+      学生の追加・削除は年に1回程度である。最も適切な方式とその理由の組合せはどれか。
+    </p>
+    <ol class="choices">
+      <li>整列済み配列と二分探索。1人の取り出しが O(log n) で、範囲の端を探した後は順に読めばよいため</li>
+      <li>ハッシュ表。1人の取り出しが平均 O(1) であり、どの探索法よりも速いため</li>
+      <li>整列していない配列と線形探索。追加・削除がまれなので、整列の手間をかける必要がないため</li>
+      <li>ハッシュ表。範囲内の学籍番号はハッシュ値も連続するため、範囲の列挙も速いため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          整列済み配列であれば、1人の取り出しは二分探索で O(log n) であり、5000 人でも最悪 13 回の比較で済む。
+          範囲の列挙は、2400 以上となる最初の位置を二分探索で求め、そこから順に読めばよい。
+          追加・削除がまれであるため、整列を保つ費用も問題にならない。
+        </p>
+        <p>
+          (B) は1件の探索の速さだけで判断しており、範囲の列挙という要件を見落としている。
+          ハッシュ表では範囲の列挙に全件の確認を要する。
+          (C) は更新がまれであることを整列が不要な理由と捉えているが、更新がまれであることは
+          むしろ整列を保つ費用が小さいことを意味し、頻繁な探索には二分探索が有利である。
+          (D) はハッシュ関数の役割を誤解している。ハッシュ関数はキーを散らばらせるためのものであり、
+          キーの大小の順序をハッシュ値の順序として保たない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li>
+      探索は集合から条件に合う要素を見つけ出す処理であり、手数は1回の照合で候補をどれだけ減らせるかで決まる。
+      存在しないと判定する失敗の場合も、評価の対象である。
+    </li>
+    <li>
+      線形探索は先頭から順に照合する。比較回数は最良 1 回、成功時の平均 (n + 1) ÷ 2 回、
+      最悪および失敗時 n 回であり、計算量は O(n) である。前提を置かないため、整列していないデータやリストにも使える。
+      番兵は判定を減らすが、計算量は変えない。
+    </li>
+    <li>
+      二分探索は整列済みの配列で中央と比べ、候補を半分ずつ捨てる。計算量は O(log n) である。
+      整列済みであることと、中央の要素へ直接到達できることが前提であり、範囲が空になった時点で失敗と判定できる。
+    </li>
+    <li>
+      二分探索の速さは要素数が大きいほど効くが、整列には n log n に比例する手数を要する。
+      探索が1回きりなら線形探索が速く、探索を繰り返すほど整列の費用を回収できる。
+    </li>
+    <li>
+      ハッシュ法はハッシュ関数でキーから格納位置を計算し、比較をほぼ省くことで、平均 O(1) の探索を実現する。
+      これはハッシュ値が偏りなく散らばることを前提とし、最悪の場合は O(n) となる。
+    </li>
+    <li>
+      衝突は避けられないため、その解決法を定める。チェイン法は同じ位置のキーをリストでつなぎ、
+      オープンアドレス法は表の中の別の空き位置へ置く。後者では削除に削除済みの印を要し、
+      負荷率が 1 に近づくと性能が急激に低下する。
+    </li>
+    <li>
+      ハッシュ法は1件の探索に最も速いが、キーの順序を保持しないため範囲の取り出しには向かない。
+      探索法は、要素数・探索と更新の頻度・必要な操作に応じて選ぶ。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／探索アルゴリズム（線形探索・二分探索・ハッシュ法）<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
