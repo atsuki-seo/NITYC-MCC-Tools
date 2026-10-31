@@ -542,8 +542,8 @@
         <tr>
           <td><code>O(n log n)</code></td>
           <td>—</td>
-          <td>全体を半分に分けることを繰り返し、分けた各段で全要素を一定回数ずつ扱う</td>
-          <td>半分ずつに分けて処理し、結果をまとめ上げる手順</td>
+          <td>全体を半分に分けることを繰り返し、分けた各段で全要素を一定回数ずつ扱う。または <code>O(log n)</code> の操作を <code>n</code> 回繰り返す</td>
+          <td>形の整った二分探索木への <code>n</code> 回の挿入、並べ替えてから隣どうしを比べる重複調べ</td>
         </tr>
         <tr>
           <td><code>O(n²)</code></td>
@@ -760,6 +760,141 @@
     半分に絞る根拠が失われる。
   </p>
 
+  <h3>O(n log n) — 段の数 × 各段の手数</h3>
+
+  <p>
+    <code>O(n log n)</code> は、<code>log n</code> 回で済む構造と <code>n</code> 回を要する構造が
+    掛け合わさったときに現れる。典型的な形は二つある。
+  </p>
+
+  <p>
+    一つ目は、<strong>全体を半分に分けることを繰り返し、分けてできた各段で全要素を扱う</strong>形である。
+    <code>n</code> 個の要素は <code>log₂ n</code> 回半分にすると1個ずつになる。
+    段ごとに組の数と大きさは変わるが、どの段でも組をすべて合わせれば <code>n</code> 個である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 252" role="img" aria-label="8個の要素を半分に分けることを繰り返すと、8個1組、4個2組、2個4組、1個8組の4段になり、分ける回数は3回である。どの段でも扱う要素は合計8個であることを示した図">
+      <text x="54" y="112" class="svg-small" style="text-anchor:end">半分に</text>
+      <text x="54" y="130" class="svg-small" style="text-anchor:end">分ける</text>
+      <path d="M 66 42 L 66 196" class="svg-arrow" marker-end="url(#ah1)"/>
+      <rect x="130" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="160" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="190" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="220" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="250" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="280" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="310" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="340" y="30" width="30" height="28" class="svg-cell"/>
+      <rect x="125" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="155" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="185" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="215" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="255" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="285" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="315" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="345" y="80" width="30" height="28" class="svg-cell"/>
+      <rect x="115" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="145" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="185" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="215" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="255" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="285" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="325" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="355" y="130" width="30" height="28" class="svg-cell"/>
+      <rect x="95" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="135" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="175" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="215" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="255" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="295" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="335" y="180" width="30" height="28" class="svg-cell"/>
+      <rect x="375" y="180" width="30" height="28" class="svg-cell"/>
+      <text x="145" y="49" class="svg-text">5</text>
+      <text x="175" y="49" class="svg-text">2</text>
+      <text x="205" y="49" class="svg-text">7</text>
+      <text x="235" y="49" class="svg-text">1</text>
+      <text x="265" y="49" class="svg-text">8</text>
+      <text x="295" y="49" class="svg-text">3</text>
+      <text x="325" y="49" class="svg-text">6</text>
+      <text x="355" y="49" class="svg-text">4</text>
+      <text x="430" y="49" class="svg-small" style="text-anchor:start">8 個 × 1 組 ＝ 8 個</text>
+      <text x="140" y="99" class="svg-text">5</text>
+      <text x="170" y="99" class="svg-text">2</text>
+      <text x="200" y="99" class="svg-text">7</text>
+      <text x="230" y="99" class="svg-text">1</text>
+      <text x="270" y="99" class="svg-text">8</text>
+      <text x="300" y="99" class="svg-text">3</text>
+      <text x="330" y="99" class="svg-text">6</text>
+      <text x="360" y="99" class="svg-text">4</text>
+      <text x="430" y="99" class="svg-small" style="text-anchor:start">4 個 × 2 組 ＝ 8 個</text>
+      <text x="130" y="149" class="svg-text">5</text>
+      <text x="160" y="149" class="svg-text">2</text>
+      <text x="200" y="149" class="svg-text">7</text>
+      <text x="230" y="149" class="svg-text">1</text>
+      <text x="270" y="149" class="svg-text">8</text>
+      <text x="300" y="149" class="svg-text">3</text>
+      <text x="340" y="149" class="svg-text">6</text>
+      <text x="370" y="149" class="svg-text">4</text>
+      <text x="430" y="149" class="svg-small" style="text-anchor:start">2 個 × 4 組 ＝ 8 個</text>
+      <text x="110" y="199" class="svg-text">5</text>
+      <text x="150" y="199" class="svg-text">2</text>
+      <text x="190" y="199" class="svg-text">7</text>
+      <text x="230" y="199" class="svg-text">1</text>
+      <text x="270" y="199" class="svg-text">8</text>
+      <text x="310" y="199" class="svg-text">3</text>
+      <text x="350" y="199" class="svg-text">6</text>
+      <text x="390" y="199" class="svg-text">4</text>
+      <text x="430" y="199" class="svg-small" style="text-anchor:start">1 個 × 8 組 ＝ 8 個</text>
+      <text x="95" y="240" class="svg-small" style="text-anchor:start">分ける回数 3 = log₂ 8 ／ どの段でも 8 個すべてを扱う → 8 × 3 = 24 回</text>
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-2　8 個の要素を半分ずつに分けると、3 回で 1 個ずつになる。段ごとの組の数と大きさは変わるが、
+      どの段でも全体では 8 個の要素を扱う。各段で全要素を一定回数ずつ扱う手順の手数は、
+      段の数 <code>log₂ n</code> と各段の手数 <code>n</code> の積、すなわち <code>n log₂ n</code> に比例する。
+    </figcaption>
+  </figure>
+  <p>
+    たとえば、二つの組をそれぞれ大小の順に並べ終えていれば、両者の先頭どうしを比べて小さいほうを取り出すことを
+    繰り返すだけで、合わせた組全体を大小の順に並べられる。この手間は二つの組の要素数の合計に比例する。
+    1個ずつの組から始めてこの「まとめ上げ」を段ごとに行えば、各段の手数は <code>n</code> に比例し、
+    段の数は <code>log₂ n</code> であるから、全体は <code>O(n log n)</code> となる。
+  </p>
+
+  <p>
+    二つ目は、<strong><code>O(log n)</code> の操作を <code>n</code> 回繰り返す</strong>形である。
+    次のような手順がこれにあたる。
+  </p>
+  <ul>
+    <li>
+      <code>n</code> 個の値を、形の整った二分探索木に1つずつ挿入する。
+      1回の挿入は木の高さ、すなわち <code>log n</code> 程度の手数で済み、それを <code>n</code> 回行う
+    </li>
+    <li>
+      大小の順に並んだ <code>n</code> 件の名簿に対し、<code>n</code> 件の問い合わせそれぞれについて、
+      図 4-1 のように候補を半分ずつ絞って該当者を探す
+    </li>
+    <li>
+      <code>n</code> 回の繰り返しの中で、値を 2 で割り続ける処理を行う
+    </li>
+  </ul>
+
+  <p>
+    冒頭の名簿の重複調べも、この計算量で行える。すべての組を突き合わせる手順は <code>O(n²)</code> であった。
+    代わりに、まず名簿を番号の順に並べ替え、次に隣り合う2件だけを比べる。
+    同じ番号は並べ替えた後に必ず隣り合うため、隣どうしを <code>n − 1</code> 回比べれば重複を見落とさない。
+    並べ替えは <code>n log n</code> 程度の手数で行う方法が知られており、
+    後半の <code>n − 1</code> 回はそれより遅く増えるので、全体は <code>O(n log n)</code> に収まる。
+    100万件であれば手数は約2,000万回となり、1秒間に1億回の操作を行う計算機で約0.2秒である。
+    同じ件数ですべての組を突き合わせると約2.8時間を要するのと比べ、
+    <strong><code>O(n log n)</code> は <code>O(n)</code> よりわずかに重いだけで、<code>O(n²)</code> とは桁違いに軽い</strong>。
+  </p>
+
   <h3>増え方の差</h3>
 
   <p>各クラスの手数を、同じ <code>n</code> で並べる。</p>
@@ -786,7 +921,7 @@
       <text x="506" y="219" class="svg-mono" style="text-anchor:start">log n</text>
     </svg>
     <figcaption>
-      図 4-2　計算量のクラスごとの手数の増え方（対数の底は 2）。<code>n²</code> は <code>n = 10</code> で上端の 100 に達して枠の外へ出るが、
+      図 4-3　計算量のクラスごとの手数の増え方（対数の底は 2）。<code>n²</code> は <code>n = 10</code> で上端の 100 に達して枠の外へ出るが、
       <code>log n</code> は <code>n = 20</code> でも 4.3 にとどまる。<code>O(1)</code> は横軸に沿った水平な線となるため省いた。
       <code>n</code> が小さい範囲でも、クラスの違いはすでに曲線の傾きの差として現れている。
     </figcaption>
@@ -879,6 +1014,35 @@
           クラスが表すのは増え方であって、時間そのものではない。
           (B) は <code>O(n)</code> の手順の見積もりであり、手数が <code>n</code> に比例すると考えている。
           (D) は 1,000倍、すなわち <code>n³</code> に比例するとした場合の見積もりである。
+        </p>
+      </div>
+    </details>
+  </div>
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-3</span>
+    <p class="q-body">
+      要素数 <code>n</code> の配列 B は、値が大小の順に並んでいる。これとは別に <code>n</code> 個の値の組 C がある。
+      次の手順のうち、計算量が <code>O(n log n)</code> となるものはどれか。
+    </p>
+    <ol class="choices">
+      <li>ある値 1 個が B に含まれるかを、候補を半分ずつ絞る方法で調べる</li>
+      <li>C の各値が B に含まれるかを、それぞれ候補を半分ずつ絞る方法で調べる</li>
+      <li>C の各値が B に含まれるかを、それぞれ B の先頭から順に調べる</li>
+      <li>C の各値を、B の先頭の要素 1 個とだけ比べる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          候補を半分ずつ絞る1回の調べは <code>O(log n)</code> であり、それを C の <code>n</code> 個の値について行う。
+          <code>O(log n)</code> の操作を <code>n</code> 回繰り返す形であり、<code>O(n log n)</code> となる。
+        </p>
+        <p>
+          (A) は調べる回数が1回だけなので <code>O(log n)</code> である。<code>n</code> 回の繰り返しが掛からない。
+          (C) は1回の調べが先頭から順にたどる <code>O(n)</code> であり、それを <code>n</code> 回行うので <code>O(n²)</code> となる。
+          繰り返しの形は (B) と同じだが、1回あたりの手数が異なる。
+          (D) は1回の比較が <code>O(1)</code> であり、<code>n</code> 回で <code>O(n)</code> である。
         </p>
       </div>
     </details>
@@ -1313,7 +1477,8 @@
     </li>
     <li>
       代表的な計算量は <code>O(1) &lt; O(log n) &lt; O(n) &lt; O(n log n) &lt; O(n²) &lt; O(2ⁿ)</code> の順に増える。
-      候補を半分ずつ絞る手順は対数時間、すべての組を扱う手順は2乗時間、
+      候補を半分ずつ絞る手順は対数時間、半分に分ける段ごとに全要素を扱う手順や
+      対数時間の操作を <code>n</code> 回繰り返す手順は <code>O(n log n)</code>、すべての組を扱う手順は2乗時間、
       すべての組合せを試す手順は指数時間となる。
     </li>
     <li>
