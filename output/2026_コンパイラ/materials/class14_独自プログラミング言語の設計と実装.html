@@ -47,8 +47,56 @@
     <li>意味解析器が誤りを報告しようとしたが、トークンが行番号を持っていないため、どの行の誤りかを示せない</li>
   </ul>
 
+  <figure>
+    <svg viewBox="0 0 580 168" role="img" aria-label="段階の境界で起こる二つの食い違いを示す図。上段では、字句解析器が種別 PLUS・字面 + のトークンを渡すが、構文解析器は種別 ADD を待っている。下段では、構文解析器が演算子・左・右の順に子を持つ二項演算の節点を作るが、評価器は左・演算子・右の順に取り出す。いずれも境界に不一致の印がある。">
+      <path d="M 290 26 L 290 162" class="svg-line" stroke-dasharray="6 4"/>
+      <path d="M 232 66 L 254 66" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 324 66 L 346 66" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 232 140 L 254 140" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 324 140 L 346 140" class="svg-arrow" marker-end="url(#ah4)"/>
+
+      <text x="125" y="18" class="svg-small">前段が渡すもの</text>
+      <text x="455" y="18" class="svg-small">後段が想定するもの</text>
+
+      <text x="20" y="44" class="svg-small" style="text-anchor:start">字句解析器 → 構文解析器</text>
+      <rect x="20" y="52" width="210" height="28" class="svg-cell"/>
+      <text x="125" y="71" class="svg-mono">{種別: PLUS, 字面: "+"}</text>
+      <rect x="260" y="54" width="60" height="24" class="svg-hl"/>
+      <text x="290" y="70" class="svg-small">不一致</text>
+      <rect x="350" y="52" width="210" height="28" class="svg-cell"/>
+      <text x="455" y="71" class="svg-mono">{種別: ADD}</text>
+
+      <text x="20" y="118" class="svg-small" style="text-anchor:start">構文解析器 → 評価器</text>
+      <rect x="20" y="126" width="210" height="28" class="svg-cell"/>
+      <text x="125" y="145" class="svg-mono">二項演算(演算子, 左, 右)</text>
+      <rect x="260" y="128" width="60" height="24" class="svg-hl"/>
+      <text x="290" y="144" class="svg-small">不一致</text>
+      <rect x="350" y="126" width="210" height="28" class="svg-cell"/>
+      <text x="455" y="145" class="svg-mono">二項演算(左, 演算子, 右)</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　段階の境界で起こる食い違い。左右の部品はそれぞれ単体では正しく動くが、受け渡すデータについての想定が一致していない。
+      上段は種別名の食い違い、下段は節点が持つ子の順序の食い違いである。どちらも一方の部品のテストだけを見ていては気付けない。
+    </figcaption>
+  </figure>
+
   <p>
-    いずれも各部品の内部には誤りがない。誤りがあるのは、部品と部品の間で受け渡すデータについての<strong>取り決め</strong>である。
+    図 1-1 は、上の二つを境界の両側に並べたものである。いずれも各部品の内部には誤りがない。誤りがあるのは、部品と部品の間で受け渡すデータについての<strong>取り決め</strong>である。
     段階ごとの正しさと、段階をつないだ全体の正しさは別の事柄であり、後者は前者から自動的には得られない。
   </p>
 
@@ -184,20 +232,22 @@ print sum</code></pre>
 
   <div class="table-block">
     <p class="table-caption">
-      表 2-2　例とする言語の字句規則。予約語は識別子と同じ形をしているため、
-      識別子の規則から除く旨を明記しておく必要がある。
+      表 2-2　例とする言語の字句規則と種別名。種別名は字句解析器と構文解析器が共有する取り決めであり、処理系の内部ではこの名前でトークンを区別する。
+      予約語は識別子と同じ形をしているため、識別子の規則から除く旨を明記しておく。
     </p>
     <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>種別</th><th>形</th><th>例</th></tr>
+        <tr><th>種別名</th><th>形</th></tr>
       </thead>
       <tbody>
-        <tr><td>整数</td><td><code>[0-9]+</code></td><td><code>0</code>, <code>42</code></td></tr>
-        <tr><td>識別子</td><td><code>[a-z][a-z0-9]*</code>（予約語を除く）</td><td><code>i</code>, <code>sum</code>, <code>x1</code></td></tr>
-        <tr><td>予約語</td><td><code>let</code> <code>if</code> <code>then</code> <code>else</code> <code>while</code> <code>do</code> <code>end</code> <code>print</code> <code>true</code> <code>false</code></td><td>—</td></tr>
-        <tr><td>演算子・区切り</td><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>&lt;</code> <code>==</code> <code>=</code> <code>(</code> <code>)</code></td><td>—</td></tr>
-        <tr><td>読み飛ばすもの</td><td>空白・改行、<code>#</code> から行末まで</td><td>—</td></tr>
+        <tr><td><code>INT</code></td><td><code>[0-9]+</code>（例: <code>0</code>, <code>42</code>）</td></tr>
+        <tr><td><code>IDENT</code></td><td><code>[a-z][a-z0-9]*</code>、ただし予約語を除く（例: <code>i</code>, <code>sum</code>, <code>x1</code>）</td></tr>
+        <tr><td><code>LET</code> <code>IF</code> <code>THEN</code> <code>ELSE</code> <code>WHILE</code> <code>DO</code> <code>END</code> <code>PRINT</code> <code>TRUE</code> <code>FALSE</code></td><td>予約語 <code>let</code> <code>if</code> <code>then</code> <code>else</code> <code>while</code> <code>do</code> <code>end</code> <code>print</code> <code>true</code> <code>false</code>。種別名は字面を大文字にしたもの</td></tr>
+        <tr><td><code>PLUS</code> <code>MINUS</code> <code>STAR</code> <code>SLASH</code></td><td><code>+</code> <code>-</code> <code>*</code> <code>/</code></td></tr>
+        <tr><td><code>LT</code> <code>EQ</code> <code>ASSIGN</code></td><td><code>&lt;</code> <code>==</code> <code>=</code></td></tr>
+        <tr><td><code>LPAR</code> <code>RPAR</code></td><td><code>(</code> <code>)</code></td></tr>
+        <tr><td>（トークンにしない）</td><td>空白・改行、<code>#</code> から行末まで</td></tr>
       </tbody>
     </table>
     </div>
@@ -208,7 +258,76 @@ print sum</code></pre>
     できるだけ長い字面を一つのトークンとして切り出す <span class="term">最長一致</span><span class="en">(longest match)</span> を採る。
     これにより <code>ifx</code> は一つの識別子に、<code>==</code> は二つの <code>=</code> ではなく一つの比較演算子になる。
     そのうえで、切り出した字面が予約語と一致すれば予約語の種別を与える。
+    この二つの手順を、一文字ずつ追うと図 2-1 のようになる。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 210" role="img" aria-label="入力 ifx==1 と入力 if x を一文字ずつセルに並べ、各位置から字句規則に一致する候補を挙げて最長のものを選ぶ様子を示す図。ifx==1 では位置 0 から i・if・ifx が一致して最長の ifx を採り、予約語表にないため IDENT となる。続いて = と == から最長の == を採り EQ、1 が INT となる。if x では位置 0 から i・if が一致して if を採り、予約語表にあるため IF となる。">
+      <text x="150" y="18" class="svg-small">入力 ifx==1</text>
+      <text x="418" y="18" class="svg-small">入力 if x</text>
+
+      <rect x="30"  y="28" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="70"  y="28" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="110" y="28" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="150" y="28" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="190" y="28" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="230" y="28" width="40" height="26" class="svg-cell-plain"/>
+      <text x="50"  y="46" class="svg-mono">i</text>
+      <text x="90"  y="46" class="svg-mono">f</text>
+      <text x="130" y="46" class="svg-mono">x</text>
+      <text x="170" y="46" class="svg-mono">=</text>
+      <text x="210" y="46" class="svg-mono">=</text>
+      <text x="250" y="46" class="svg-mono">1</text>
+
+      <rect x="30"  y="66" width="40"  height="20" class="svg-cell-plain"/>
+      <rect x="30"  y="90" width="80"  height="20" class="svg-cell-plain"/>
+      <rect x="150" y="66" width="40"  height="20" class="svg-cell-plain"/>
+      <rect x="30"  y="114" width="120" height="20" class="svg-hl"/>
+      <rect x="150" y="90" width="80"  height="20" class="svg-hl"/>
+      <rect x="230" y="66" width="40"  height="20" class="svg-hl"/>
+      <text x="50"  y="81"  class="svg-mono">i</text>
+      <text x="70"  y="105" class="svg-mono">if</text>
+      <text x="90"  y="129" class="svg-mono">ifx</text>
+      <text x="170" y="81"  class="svg-mono">=</text>
+      <text x="190" y="105" class="svg-mono">==</text>
+      <text x="250" y="81"  class="svg-mono">1</text>
+
+      <rect x="30"  y="156" width="120" height="26" class="svg-cell"/>
+      <rect x="150" y="156" width="80"  height="26" class="svg-cell"/>
+      <rect x="230" y="156" width="40"  height="26" class="svg-cell"/>
+      <text x="90"  y="174" class="svg-mono">IDENT</text>
+      <text x="190" y="174" class="svg-mono">EQ</text>
+      <text x="250" y="174" class="svg-mono">INT</text>
+      <text x="90"  y="200" class="svg-small">ifx は予約語表にない</text>
+
+      <rect x="330" y="28" width="44" height="26" class="svg-cell-plain"/>
+      <rect x="374" y="28" width="44" height="26" class="svg-cell-plain"/>
+      <rect x="418" y="28" width="44" height="26" class="svg-cell-plain"/>
+      <rect x="462" y="28" width="44" height="26" class="svg-cell-plain"/>
+      <text x="352" y="46" class="svg-mono">i</text>
+      <text x="396" y="46" class="svg-mono">f</text>
+      <text x="440" y="46" class="svg-mono">␣</text>
+      <text x="484" y="46" class="svg-mono">x</text>
+
+      <rect x="330" y="66" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="330" y="90" width="88" height="20" class="svg-hl"/>
+      <rect x="462" y="66" width="44" height="20" class="svg-hl"/>
+      <text x="352" y="81"  class="svg-mono">i</text>
+      <text x="374" y="105" class="svg-mono">if</text>
+      <text x="484" y="81"  class="svg-mono">x</text>
+
+      <rect x="330" y="156" width="88" height="26" class="svg-cell"/>
+      <rect x="462" y="156" width="44" height="26" class="svg-cell"/>
+      <text x="374" y="174" class="svg-mono">IF</text>
+      <text x="484" y="174" class="svg-mono">IDENT</text>
+      <text x="374" y="200" class="svg-small">if は予約語表にある</text>
+    </svg>
+    <figcaption>
+      図 2-1　最長一致による切り出しと予約語の判定。上段が入力の文字、中段が各位置から字句規則に一致する候補で、強調したものが採られる最長の候補、下段が付けられた種別である。
+      左の <code>ifx</code> は <code>if</code> を含むが、より長い <code>ifx</code> が識別子の形に一致するため一つの識別子になる。
+      右では空白が識別子の形を断ち切るため <code>if</code> が最長となり、予約語表を引いて <code>IF</code> の種別が付く。空白はトークンにならない。
+    </figcaption>
+  </figure>
 
   <h3>文法</h3>
 
@@ -230,18 +349,131 @@ print sum</code></pre>
 
   <p>
     演算子の優先順位は、規則の階層として文法に組み込まれている。<code>&lt;arith&gt;</code> は <code>&lt;term&gt;</code> を部品とし、
-    <code>&lt;term&gt;</code> は <code>&lt;factor&gt;</code> を部品とする。このため <code>1 + 2 * 3</code> では、
-    <code>2 * 3</code> が先に一つの <code>&lt;term&gt;</code> にまとまり、その後で <code>+</code> の右辺になる。
+    <code>&lt;term&gt;</code> は <code>&lt;factor&gt;</code> を部品とする。このため <code>2 + 3 * 4</code> では、
+    <code>3 * 4</code> が先に一つの <code>&lt;term&gt;</code> にまとまり、その後で <code>+</code> の右辺になる（図 2-2 の左）。
     <strong>優先順位を文法の階層で表しておけば、一つの式に対する構文木は一通りに定まる。</strong>
     階層を設けずに全演算子を一つの規則に並べると、文法は <span class="term">曖昧</span><span class="en">(ambiguous)</span> になり、
-    どの木を選ぶかが構文解析器の書き方次第になる。
+    どの木を選ぶかが構文解析器の書き方次第になる。左から順にまとめる書き方を選べば、図 2-2 の右の木ができる。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 258" role="img" aria-label="式 2 + 3 * 4 の二通りの構文木を並べた図。左は優先順位を規則の階層で表した文法による木で、根の + が arith、右の子の * が term、葉が factor に対応し、値は 14 になる。右は + と * を同じ規則に並べた文法による木で、根の * と左の子の + がともに arith に対応し、値は 20 になる。">
+      <path d="M 135 66 L 85 110" class="svg-line"/>
+      <path d="M 155 66 L 205 110" class="svg-line"/>
+      <path d="M 195 136 L 165 180" class="svg-line"/>
+      <path d="M 215 136 L 245 180" class="svg-line"/>
+      <path d="M 425 66 L 375 110" class="svg-line"/>
+      <path d="M 445 66 L 495 110" class="svg-line"/>
+      <path d="M 365 136 L 335 180" class="svg-line"/>
+      <path d="M 385 136 L 415 180" class="svg-line"/>
+
+      <text x="165" y="20" class="svg-small">優先順位を階層で表した文法</text>
+      <text x="415" y="20" class="svg-small">+ と * を同じ規則に並べた文法</text>
+
+      <rect x="123" y="40" width="44" height="26" class="svg-cell"/>
+      <text x="145" y="58" class="svg-mono">+</text>
+      <text x="173" y="58" class="svg-small" style="text-anchor:start">&lt;arith&gt;</text>
+      <rect x="63" y="110" width="44" height="26" class="svg-cell"/>
+      <text x="85" y="128" class="svg-mono">2</text>
+      <text x="85" y="152" class="svg-small">&lt;factor&gt;</text>
+      <rect x="183" y="110" width="44" height="26" class="svg-hl"/>
+      <text x="205" y="128" class="svg-mono">*</text>
+      <text x="233" y="128" class="svg-small" style="text-anchor:start">&lt;term&gt;</text>
+      <rect x="143" y="180" width="44" height="26" class="svg-cell"/>
+      <text x="165" y="198" class="svg-mono">3</text>
+      <text x="165" y="222" class="svg-small">&lt;factor&gt;</text>
+      <rect x="223" y="180" width="44" height="26" class="svg-cell"/>
+      <text x="245" y="198" class="svg-mono">4</text>
+      <text x="245" y="222" class="svg-small">&lt;factor&gt;</text>
+      <text x="165" y="248" class="svg-mono">2 + (3 * 4) = 14</text>
+
+      <rect x="413" y="40" width="44" height="26" class="svg-cell"/>
+      <text x="435" y="58" class="svg-mono">*</text>
+      <text x="463" y="58" class="svg-small" style="text-anchor:start">&lt;arith&gt;</text>
+      <rect x="353" y="110" width="44" height="26" class="svg-hl"/>
+      <text x="375" y="128" class="svg-mono">+</text>
+      <text x="347" y="128" class="svg-small" style="text-anchor:end">&lt;arith&gt;</text>
+      <rect x="473" y="110" width="44" height="26" class="svg-cell"/>
+      <text x="495" y="128" class="svg-mono">4</text>
+      <text x="495" y="152" class="svg-small">&lt;factor&gt;</text>
+      <rect x="313" y="180" width="44" height="26" class="svg-cell"/>
+      <text x="335" y="198" class="svg-mono">2</text>
+      <text x="335" y="222" class="svg-small">&lt;factor&gt;</text>
+      <rect x="393" y="180" width="44" height="26" class="svg-cell"/>
+      <text x="415" y="198" class="svg-mono">3</text>
+      <text x="415" y="222" class="svg-small">&lt;factor&gt;</text>
+      <text x="415" y="248" class="svg-mono">(2 + 3) * 4 = 20</text>
+    </svg>
+    <figcaption>
+      図 2-2　同じ式 <code>2 + 3 * 4</code> に対する二通りの構文木。各節点の横に、その部分木をまとめた規則の名前を記した。
+      左では <code>*</code> の部分木が一段深い <code>&lt;term&gt;</code> にまとまるため、強調した <code>*</code> が先に計算される。
+      右では <code>+</code> と <code>*</code> が同じ <code>&lt;arith&gt;</code> の規則で左から順にまとめられ、強調した <code>+</code> が先に計算される。
+      評価器は木の形に従って計算するだけなので、どちらの値になるかは構文解析の時点で決まっている。
+    </figcaption>
+  </figure>
 
   <p>
     文の区切りに記号を用いていないことも、文法から読み取れる。各文は予約語か識別子で始まり、
     式は演算子が続かなくなった時点で終わるため、区切り記号がなくとも文の切れ目は一通りに定まる。
+    構文解析器が受け取るのは改行を含まないトークン列であり、文の切れ目はこの規則だけから決まる（図 2-3）。
     区切り記号を設けるかどうかは言語設計者の選択であり、設けない場合はこの性質が成り立つことを確かめておく必要がある。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 210" role="img" aria-label="例のプログラムの 3 行目から 6 行目を改行なしのトークン列として並べ、文の切れ目に縦線を入れた図。0 の後は次の while が演算子でないため式が終わり、do の後で本体の文が始まり、i の後は次の i が演算子でないため式が終わる。">
+      <text x="30" y="24" class="svg-small" style="text-anchor:start">3〜4 行目（let sum = 0 ／ while i &lt; 6 do）</text>
+      <text x="30" y="126" class="svg-small" style="text-anchor:start">5〜6 行目（sum = sum + i ／ i = i + 1）</text>
+      <path d="M 178 38 L 178 80" class="svg-arrow"/>
+      <path d="M 373 38 L 373 80" class="svg-arrow"/>
+      <path d="M 206 134 L 206 176" class="svg-arrow"/>
+      <rect x="30" y="46" width="39" height="26" class="svg-cell-plain"/>
+      <rect x="73" y="46" width="39" height="26" class="svg-cell-plain"/>
+      <rect x="116" y="46" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="144" y="46" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="188" y="46" width="55" height="26" class="svg-cell-plain"/>
+      <rect x="247" y="46" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="275" y="46" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="303" y="46" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="331" y="46" width="32" height="26" class="svg-cell-plain"/>
+      <rect x="30" y="142" width="39" height="26" class="svg-cell-plain"/>
+      <rect x="73" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="101" y="142" width="39" height="26" class="svg-cell-plain"/>
+      <rect x="144" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="172" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="216" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="244" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="272" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="300" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <rect x="328" y="142" width="24" height="26" class="svg-cell-plain"/>
+      <text x="49.5" y="64" class="svg-mono">let</text>
+      <text x="92.5" y="64" class="svg-mono">sum</text>
+      <text x="128" y="64" class="svg-mono">=</text>
+      <text x="156" y="64" class="svg-mono">0</text>
+      <text x="178" y="98" class="svg-small">次の while は演算子でない</text>
+      <text x="215.5" y="64" class="svg-mono">while</text>
+      <text x="259" y="64" class="svg-mono">i</text>
+      <text x="287" y="64" class="svg-mono">&lt;</text>
+      <text x="315" y="64" class="svg-mono">6</text>
+      <text x="347" y="64" class="svg-mono">do</text>
+      <text x="373" y="98" class="svg-small">本体の文が始まる</text>
+      <text x="49.5" y="160" class="svg-mono">sum</text>
+      <text x="85" y="160" class="svg-mono">=</text>
+      <text x="120.5" y="160" class="svg-mono">sum</text>
+      <text x="156" y="160" class="svg-mono">+</text>
+      <text x="184" y="160" class="svg-mono">i</text>
+      <text x="206" y="194" class="svg-small">次の i は演算子でない</text>
+      <text x="228" y="160" class="svg-mono">i</text>
+      <text x="256" y="160" class="svg-mono">=</text>
+      <text x="284" y="160" class="svg-mono">i</text>
+      <text x="312" y="160" class="svg-mono">+</text>
+      <text x="340" y="160" class="svg-mono">1</text>
+    </svg>
+    <figcaption>
+      図 2-3　例のプログラムの 3〜6 行目を、構文解析器が受け取るトークン列として並べたもの。改行は字句解析で捨てられるため、行の区切りはこの列に現れない。
+      縦線が文の切れ目で、その下に切れ目と判断できる理由を記した。特に <code>sum = sum + i</code> の後では、
+      次のトークン <code>i</code> が演算子でないため、式 <code>sum + i</code> はそこで終わり、次の文が始まると判断できる。
+    </figcaption>
+  </figure>
 
   <h3>型規則</h3>
 
@@ -274,6 +506,60 @@ print sum</code></pre>
     </table>
     </div>
   </div>
+
+  <p>
+    型は AST の葉から根に向かって決まる。整数の字面は <code>int</code>、<code>true</code> と <code>false</code> は <code>bool</code>、
+    変数の参照は記号表に記録された型を持つ。演算の節点の型は、子の型が出揃った時点で表 2-3 の規則から決まる。
+    規則の条件を満たさない節点が見つかれば、そこで拒否する。図 2-4 は、例のプログラムに現れる二つの式と、拒否される式について、各節点に型を書き添えたものである。
+    このように各節点に型を書き添えた AST を、<span class="term">型の注釈つき AST</span><span class="en">(type-annotated AST)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 184" role="img" aria-label="三つの式の抽象構文木に型を書き添えた図。i &lt; 6 では葉の i と 6 が int で、根の &lt; が bool になる。sum + i では葉がともに int で、根の + が int になる。1 + true では葉が int と bool で、根の + が規則に反するため拒否される。">
+      <path d="M 85 66 L 60 110" class="svg-line"/>
+      <path d="M 115 66 L 140 110" class="svg-line"/>
+      <path d="M 275 66 L 250 110" class="svg-line"/>
+      <path d="M 305 66 L 330 110" class="svg-line"/>
+      <path d="M 465 66 L 440 110" class="svg-line"/>
+      <path d="M 495 66 L 520 110" class="svg-line"/>
+
+      <text x="100" y="20" class="svg-mono">i &lt; 6</text>
+      <text x="290" y="20" class="svg-mono">sum + i</text>
+      <text x="480" y="20" class="svg-mono">1 + true</text>
+
+      <rect x="60" y="40" width="80" height="26" class="svg-cell"/>
+      <text x="100" y="58" class="svg-mono">&lt; : bool</text>
+      <rect x="20" y="110" width="70" height="26" class="svg-cell"/>
+      <text x="55" y="128" class="svg-mono">i : int</text>
+      <text x="55" y="152" class="svg-small">記号表から</text>
+      <rect x="110" y="110" width="70" height="26" class="svg-cell"/>
+      <text x="145" y="128" class="svg-mono">6 : int</text>
+      <text x="100" y="176" class="svg-small">結果 bool</text>
+
+      <rect x="250" y="40" width="80" height="26" class="svg-cell"/>
+      <text x="290" y="58" class="svg-mono">+ : int</text>
+      <rect x="205" y="110" width="80" height="26" class="svg-cell"/>
+      <text x="245" y="128" class="svg-mono">sum : int</text>
+      <text x="245" y="152" class="svg-small">記号表から</text>
+      <rect x="300" y="110" width="70" height="26" class="svg-cell"/>
+      <text x="335" y="128" class="svg-mono">i : int</text>
+      <text x="335" y="152" class="svg-small">記号表から</text>
+      <text x="290" y="176" class="svg-small">結果 int</text>
+
+      <rect x="400" y="110" width="70" height="26" class="svg-cell"/>
+      <text x="435" y="128" class="svg-mono">1 : int</text>
+      <rect x="480" y="110" width="92" height="26" class="svg-cell"/>
+      <text x="526" y="128" class="svg-mono">true : bool</text>
+      <rect x="440" y="40" width="80" height="26" class="svg-hl"/>
+      <text x="480" y="58" class="svg-mono">+ : ✗</text>
+      <text x="480" y="176" class="svg-small">拒否（int + bool）</text>
+    </svg>
+    <figcaption>
+      図 2-4　型を葉から根へ決めていく例。葉の型は字面と記号表から、根の型は子の型と表 2-3 の規則から決まる。
+      <code>i &lt; 6</code> は <code>bool</code> になるため <code>while</code> の条件に使え、<code>sum + i</code> は <code>int</code> になるため <code>int</code> 型の <code>sum</code> に代入できる。
+      右の <code>1 + true</code> では、強調した <code>+</code> の節点で「両辺がともに <code>int</code>」という条件が満たされず、この節点で拒否される。
+    </figcaption>
+  </figure>
 
   <h3>実行の意味</h3>
 
@@ -340,11 +626,11 @@ print sum</code></pre>
 
   <figure>
     <svg viewBox="0 0 580 348" role="img" aria-label="字句解析、構文解析、意味解析、実行の四段階が縦に並び、段階の間でトークン列、抽象構文木、型の注釈つき抽象構文木が受け渡されることを示す図。意味解析は右側の記号表に名前と型を登録・参照し、実行は右側の環境に名前と値を読み書きする。">
-      <path d="M 130 26 L 130 44" class="svg-arrow" marker-end="url(#ah1)"/>
-      <path d="M 130 84 L 130 114" class="svg-arrow" marker-end="url(#ah2)"/>
-      <path d="M 130 154 L 130 184" class="svg-arrow" marker-end="url(#ah3)"/>
-      <path d="M 130 224 L 130 254" class="svg-arrow" marker-end="url(#ah4)"/>
-      <path d="M 130 294 L 130 318" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 130 26 L 130 44" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 130 84 L 130 114" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 130 154 L 130 184" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 130 224 L 130 254" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 130 294 L 130 318" class="svg-arrow" marker-end="url(#ah9)"/>
       <path d="M 232 205 L 348 205" class="svg-line"/>
       <path d="M 232 280 L 348 280" class="svg-line"/>
 
@@ -381,19 +667,19 @@ print sum</code></pre>
       <text x="450" y="296" class="svg-mono">sum : 15</text>
 
       <defs>
-        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
-        </marker>
-        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
-        </marker>
-        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
-        </marker>
-        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
-          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
-        </marker>
         <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah9" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
           <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
         </marker>
       </defs>
@@ -420,7 +706,87 @@ print sum</code></pre>
   <p>
     種別の名前は、表 2-2 の字句規則と一対一に対応させて一覧にしておく。
     位置は字句解析器でしか記録できない。空白や改行は字句解析の段階で捨てられるため、後段では位置を復元できないからである。
+    図 3-2 は、例のプログラムの 5 行目を三つの情報を持つトークンの列にしたものである。位置は「行:列」の形で記録する。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 158" role="img" aria-label="例のプログラムの 5 行目 sum = sum + i を、列番号つきの文字の並びと、そこから切り出した五つのトークンの字面・種別・位置の三段で示した図。位置は行と列の組で、5:3、5:7、5:9、5:13、5:15 である。">
+      <text x="50" y="20" class="svg-small" style="text-anchor:end">列</text>
+      <text x="50" y="46" class="svg-small" style="text-anchor:end">文字</text>
+      <text x="50" y="92" class="svg-small" style="text-anchor:end">字面</text>
+      <text x="50" y="122" class="svg-small" style="text-anchor:end">種別</text>
+      <text x="50" y="146" class="svg-small" style="text-anchor:end">位置</text>
+      <text x="77" y="20" class="svg-small">1</text>
+      <text x="111" y="20" class="svg-small">2</text>
+      <text x="145" y="20" class="svg-small">3</text>
+      <text x="179" y="20" class="svg-small">4</text>
+      <text x="213" y="20" class="svg-small">5</text>
+      <text x="247" y="20" class="svg-small">6</text>
+      <text x="281" y="20" class="svg-small">7</text>
+      <text x="315" y="20" class="svg-small">8</text>
+      <text x="349" y="20" class="svg-small">9</text>
+      <text x="383" y="20" class="svg-small">10</text>
+      <text x="417" y="20" class="svg-small">11</text>
+      <text x="451" y="20" class="svg-small">12</text>
+      <text x="485" y="20" class="svg-small">13</text>
+      <text x="519" y="20" class="svg-small">14</text>
+      <text x="553" y="20" class="svg-small">15</text>
+      <rect x="60" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="77" y="46" class="svg-mono">␣</text>
+      <rect x="94" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="111" y="46" class="svg-mono">␣</text>
+      <rect x="128" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="145" y="46" class="svg-mono">s</text>
+      <rect x="162" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="179" y="46" class="svg-mono">u</text>
+      <rect x="196" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="213" y="46" class="svg-mono">m</text>
+      <rect x="230" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="247" y="46" class="svg-mono">␣</text>
+      <rect x="264" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="281" y="46" class="svg-mono">=</text>
+      <rect x="298" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="315" y="46" class="svg-mono">␣</text>
+      <rect x="332" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="349" y="46" class="svg-mono">s</text>
+      <rect x="366" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="383" y="46" class="svg-mono">u</text>
+      <rect x="400" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="417" y="46" class="svg-mono">m</text>
+      <rect x="434" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="451" y="46" class="svg-mono">␣</text>
+      <rect x="468" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="485" y="46" class="svg-mono">+</text>
+      <rect x="502" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="519" y="46" class="svg-mono">␣</text>
+      <rect x="536" y="28" width="34" height="26" class="svg-cell-plain"/>
+      <text x="553" y="46" class="svg-mono">i</text>
+      <rect x="128" y="74" width="102" height="26" class="svg-cell"/>
+      <text x="179" y="92" class="svg-mono">sum</text>
+      <text x="179" y="122" class="svg-mono">IDENT</text>
+      <text x="179" y="146" class="svg-mono">5:3</text>
+      <rect x="264" y="74" width="34" height="26" class="svg-cell"/>
+      <text x="281" y="92" class="svg-mono">=</text>
+      <text x="281" y="122" class="svg-mono">ASSIGN</text>
+      <text x="281" y="146" class="svg-mono">5:7</text>
+      <rect x="332" y="74" width="102" height="26" class="svg-cell"/>
+      <text x="383" y="92" class="svg-mono">sum</text>
+      <text x="383" y="122" class="svg-mono">IDENT</text>
+      <text x="383" y="146" class="svg-mono">5:9</text>
+      <rect x="468" y="74" width="34" height="26" class="svg-cell"/>
+      <text x="485" y="92" class="svg-mono">+</text>
+      <text x="485" y="122" class="svg-mono">PLUS</text>
+      <text x="485" y="146" class="svg-mono">5:13</text>
+      <rect x="536" y="74" width="34" height="26" class="svg-cell"/>
+      <text x="553" y="92" class="svg-mono">i</text>
+      <text x="553" y="122" class="svg-mono">IDENT</text>
+      <text x="553" y="146" class="svg-mono">5:15</text>
+    </svg>
+    <figcaption>
+      図 3-2　5 行目 <code>sum = sum + i</code> のトークンが持つ字面・種別・位置。行頭の空白 2 文字（␣）はトークンにならないが、列の数え方には含まれる。
+      意味解析が「<code>i</code> は未宣言」と報告するときは、このトークンの位置 <code>5:15</code> を写した AST の節点から位置を得る。
+    </figcaption>
+  </figure>
 
   <h3>AST — 構造だけを残す</h3>
 
@@ -437,11 +803,91 @@ print sum</code></pre>
   <p>
     各節点が持つ子の名前と順序まで書き出しておけば、評価器を書く側は構文解析器の内部を読まずに済む。
     また、各節点にも元のトークンの位置を写しておく。意味解析は AST だけを見て誤りを報告するためである。
+    図 3-3 は、例のプログラム全体をこれらの節点で表したものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 324" role="img" aria-label="例のプログラム全体の抽象構文木。根の program の下に、let i（子は 1）、let sum（子は 0）、while、print（子は sum）が順に並ぶ。while は条件として &lt; の節点（子は i と 6）を、本体として代入 sum と代入 i の二つの文からなる文の列を持つ。代入 sum の子は sum + i、代入 i の子は i + 1 の部分木である。">
+      <rect x="296" y="140" width="208" height="46" class="svg-cell-plain" stroke-dasharray="6 4"/>
+
+      <path d="M 300 36 L 50 80" class="svg-line"/>
+      <path d="M 300 36 L 140 80" class="svg-line"/>
+      <path d="M 300 36 L 300 80" class="svg-line"/>
+      <path d="M 300 36 L 545 80" class="svg-line"/>
+      <path d="M 50 106 L 50 150" class="svg-line"/>
+      <path d="M 140 106 L 140 150" class="svg-line"/>
+      <path d="M 545 106 L 545 150" class="svg-line"/>
+      <path d="M 290 106 L 235 150" class="svg-line"/>
+      <path d="M 310 106 L 400 140" class="svg-line"/>
+      <path d="M 222 176 L 205 220" class="svg-line"/>
+      <path d="M 238 176 L 255 220" class="svg-line"/>
+      <path d="M 350 176 L 350 220" class="svg-line"/>
+      <path d="M 455 176 L 455 220" class="svg-line"/>
+      <path d="M 340 246 L 322 290" class="svg-line"/>
+      <path d="M 360 246 L 378 290" class="svg-line"/>
+      <path d="M 445 246 L 437 290" class="svg-line"/>
+      <path d="M 465 246 L 483 290" class="svg-line"/>
+
+      <text x="258" y="130" class="svg-small" style="text-anchor:end">条件</text>
+      <text x="368" y="122" class="svg-small" style="text-anchor:start">本体（文の列）</text>
+
+      <rect x="255" y="10" width="90" height="26" class="svg-cell"/>
+      <text x="300" y="28" class="svg-mono">program</text>
+
+      <rect x="22" y="80" width="56" height="26" class="svg-cell"/>
+      <text x="50" y="98" class="svg-mono">let i</text>
+      <rect x="104" y="80" width="72" height="26" class="svg-cell"/>
+      <text x="140" y="98" class="svg-mono">let sum</text>
+      <rect x="268" y="80" width="64" height="26" class="svg-cell"/>
+      <text x="300" y="98" class="svg-mono">while</text>
+      <rect x="517" y="80" width="56" height="26" class="svg-cell"/>
+      <text x="545" y="98" class="svg-mono">print</text>
+
+      <rect x="30" y="150" width="40" height="26" class="svg-cell"/>
+      <text x="50" y="168" class="svg-mono">1</text>
+      <rect x="120" y="150" width="40" height="26" class="svg-cell"/>
+      <text x="140" y="168" class="svg-mono">0</text>
+      <rect x="208" y="150" width="44" height="26" class="svg-cell"/>
+      <text x="230" y="168" class="svg-mono">&lt;</text>
+      <rect x="315" y="150" width="70" height="26" class="svg-cell"/>
+      <text x="350" y="168" class="svg-mono">代入 sum</text>
+      <rect x="425" y="150" width="60" height="26" class="svg-cell"/>
+      <text x="455" y="168" class="svg-mono">代入 i</text>
+      <rect x="523" y="150" width="44" height="26" class="svg-cell"/>
+      <text x="545" y="168" class="svg-mono">sum</text>
+
+      <rect x="180" y="220" width="40" height="26" class="svg-cell"/>
+      <text x="200" y="238" class="svg-mono">i</text>
+      <rect x="240" y="220" width="40" height="26" class="svg-cell"/>
+      <text x="260" y="238" class="svg-mono">6</text>
+      <rect x="328" y="220" width="44" height="26" class="svg-cell"/>
+      <text x="350" y="238" class="svg-mono">+</text>
+      <rect x="433" y="220" width="44" height="26" class="svg-cell"/>
+      <text x="455" y="238" class="svg-mono">+</text>
+
+      <rect x="298" y="290" width="44" height="26" class="svg-cell"/>
+      <text x="320" y="308" class="svg-mono">sum</text>
+      <rect x="360" y="290" width="40" height="26" class="svg-cell"/>
+      <text x="380" y="308" class="svg-mono">i</text>
+      <rect x="415" y="290" width="40" height="26" class="svg-cell"/>
+      <text x="435" y="308" class="svg-mono">i</text>
+      <rect x="465" y="290" width="40" height="26" class="svg-cell"/>
+      <text x="485" y="308" class="svg-mono">1</text>
+    </svg>
+    <figcaption>
+      図 3-3　例のプログラム全体の AST。根の下に文が上から順に並ぶ。<code>while</code> の節点は「条件」と「本体」の二つの子を持ち、
+      本体は文の列（破線の枠）である。<code>let</code> と代入の節点は名前を自分で持ち、右辺の式を子とする。
+      子の名前と並びをこの形で取り決めておけば、評価器は <code>while</code> の節点から「条件」と「本体」を名前で取り出せる。
+    </figcaption>
+  </figure>
+
+  <p>
+    式の部分では、ソースコードにあった括弧が AST から消える。図 3-4 は括弧を含む文の例である。
   </p>
 
   <figure>
     <svg viewBox="0 0 580 344" role="img" aria-label="文 let y = (x + 1) * 2 を字句解析した十個のトークンと、それを構文解析した抽象構文木を示す図。木の根は let y で、その子が乗算、乗算の左の子が加算、右の子が 2、加算の子が x と 1 である。左右の丸括弧のトークンは木に節点として現れない。">
-      <path d="M 290 82 L 290 106" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 290 82 L 290 106" class="svg-arrow" marker-end="url(#ah10)"/>
       <path d="M 290 166 L 290 196" class="svg-line"/>
       <path d="M 278 222 L 210 252" class="svg-line"/>
       <path d="M 302 222 L 370 252" class="svg-line"/>
@@ -505,13 +951,13 @@ print sum</code></pre>
       <text x="300" y="326" class="svg-small" style="text-anchor:start">( ) は節点にならず、木の形に移る</text>
 
       <defs>
-        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+        <marker id="ah10" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
           <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
         </marker>
       </defs>
     </svg>
     <figcaption>
-      図 3-2　文 <code>let y = (x + 1) * 2</code> のトークン列と AST。強調した丸括弧のトークンは AST に残らない。
+      図 3-4　文 <code>let y = (x + 1) * 2</code> のトークン列と AST。強調した丸括弧のトークンは AST に残らない。
       括弧が担っていた「<code>x + 1</code> を先にまとめる」という情報は、<code>+</code> の節点が <code>*</code> の節点の子に置かれるという木の形として保存される。
       評価器はこの形に従って子から先に計算すれば、括弧を意識せずに正しい順序で計算できる。
     </figcaption>
@@ -529,8 +975,76 @@ print sum</code></pre>
     これに対し、評価器が実行中に名前と現在の値を結び付けておく表を <span class="term">環境</span><span class="en">(environment)</span> と呼ぶ。
     どちらも名前を鍵とする表であるが、<strong>記号表はプログラムを実行する前に一度だけ作られ、型を記録する。
     環境は実行の進行に伴って書き換えられ、値を記録する。</strong>
-    例のプログラムでは、記号表の <code>i</code> は最初から最後まで <code>int</code> であるが、環境の <code>i</code> は 1 から 6 まで変化する。
+    例のプログラムでは、記号表の <code>i</code> は最初から最後まで <code>int</code> であるが、環境の <code>i</code> は 1 から 6 まで変化する（図 3-5）。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 258" role="img" aria-label="記号表と環境の変化を対比した図。左は意味解析が例のプログラムの各文を上から一回だけ見て、2 行目で i : int を、3 行目で sum : int を記号表に登録し、以降の文では参照するだけであることを示す。右は実行で while を一回まわるごとの環境の i と sum の値で、繰り返し前の 1 と 0 から、2 と 1、3 と 3、4 と 6、5 と 10、6 と 15 へと変わる。">
+      <path d="M 305 10 L 305 254" class="svg-line" stroke-dasharray="6 4"/>
+      <text x="150" y="18" class="svg-small">意味解析（各文を上から 1 回だけ見る）</text>
+      <text x="445" y="18" class="svg-small">実行（while を 1 回まわるごと）</text>
+      <text x="20" y="40" class="svg-small" style="text-anchor:start">行: 文</text>
+      <text x="220" y="40" class="svg-small">記号表への操作</text>
+      <text x="330" y="40" class="svg-small" style="text-anchor:start">時点</text>
+      <text x="445" y="40" class="svg-small">i</text>
+      <text x="495" y="40" class="svg-small">sum</text>
+      <text x="20" y="67" class="svg-mono" style="text-anchor:start">2: let i = 1</text>
+      <rect x="160" y="50" width="120" height="24" class="svg-cell"/>
+      <text x="220" y="67" class="svg-small">登録 i : int</text>
+      <text x="330" y="67" class="svg-small" style="text-anchor:start">繰り返し前</text>
+      <rect x="420" y="50" width="50" height="24" class="svg-cell"/>
+      <rect x="470" y="50" width="50" height="24" class="svg-cell"/>
+      <text x="445" y="67" class="svg-mono">1</text>
+      <text x="495" y="67" class="svg-mono">0</text>
+      <text x="20" y="97" class="svg-mono" style="text-anchor:start">3: let sum = 0</text>
+      <rect x="160" y="80" width="120" height="24" class="svg-cell"/>
+      <text x="220" y="97" class="svg-small">登録 sum : int</text>
+      <text x="330" y="97" class="svg-small" style="text-anchor:start">1 回目の後</text>
+      <rect x="420" y="80" width="50" height="24" class="svg-cell"/>
+      <rect x="470" y="80" width="50" height="24" class="svg-cell"/>
+      <text x="445" y="97" class="svg-mono">2</text>
+      <text x="495" y="97" class="svg-mono">1</text>
+      <text x="20" y="127" class="svg-mono" style="text-anchor:start">4: while i &lt; 6 do</text>
+      <rect x="160" y="110" width="120" height="24" class="svg-cell-plain"/>
+      <text x="220" y="127" class="svg-small">参照 i</text>
+      <text x="330" y="127" class="svg-small" style="text-anchor:start">2 回目の後</text>
+      <rect x="420" y="110" width="50" height="24" class="svg-cell"/>
+      <rect x="470" y="110" width="50" height="24" class="svg-cell"/>
+      <text x="445" y="127" class="svg-mono">3</text>
+      <text x="495" y="127" class="svg-mono">3</text>
+      <text x="20" y="157" class="svg-mono" style="text-anchor:start">5: sum = sum + i</text>
+      <rect x="160" y="140" width="120" height="24" class="svg-cell-plain"/>
+      <text x="220" y="157" class="svg-small">参照 sum, i</text>
+      <text x="330" y="157" class="svg-small" style="text-anchor:start">3 回目の後</text>
+      <rect x="420" y="140" width="50" height="24" class="svg-cell"/>
+      <rect x="470" y="140" width="50" height="24" class="svg-cell"/>
+      <text x="445" y="157" class="svg-mono">4</text>
+      <text x="495" y="157" class="svg-mono">6</text>
+      <text x="20" y="187" class="svg-mono" style="text-anchor:start">6: i = i + 1</text>
+      <rect x="160" y="170" width="120" height="24" class="svg-cell-plain"/>
+      <text x="220" y="187" class="svg-small">参照 i</text>
+      <text x="330" y="187" class="svg-small" style="text-anchor:start">4 回目の後</text>
+      <rect x="420" y="170" width="50" height="24" class="svg-cell"/>
+      <rect x="470" y="170" width="50" height="24" class="svg-cell"/>
+      <text x="445" y="187" class="svg-mono">5</text>
+      <text x="495" y="187" class="svg-mono">10</text>
+      <text x="20" y="217" class="svg-mono" style="text-anchor:start">8: print sum</text>
+      <rect x="160" y="200" width="120" height="24" class="svg-cell-plain"/>
+      <text x="220" y="217" class="svg-small">参照 sum</text>
+      <text x="330" y="217" class="svg-small" style="text-anchor:start">5 回目の後</text>
+      <rect x="420" y="200" width="50" height="24" class="svg-cell"/>
+      <rect x="470" y="200" width="50" height="24" class="svg-cell"/>
+      <text x="445" y="217" class="svg-mono">6</text>
+      <text x="495" y="217" class="svg-mono">15</text>
+      <text x="150" y="246" class="svg-small">記号表は i : int, sum : int のまま変わらない</text>
+      <text x="470" y="246" class="svg-small">6 &lt; 6 が偽で繰り返しを終える</text>
+    </svg>
+    <figcaption>
+      図 3-5　記号表と環境の対比。左の意味解析は各文を一度ずつ見るだけで、<code>while</code> の本体も繰り返さない。
+      塗った行で記号表に登録し、それ以外の行では引くだけである。右の実行では、<code>while</code> の本体を通るたびに環境の値が書き換わる。
+      同じ名前 <code>i</code> について、記号表は型 <code>int</code> を一つ記録するのに対し、環境は 1 から 6 までの値を順に記録する。
+    </figcaption>
+  </figure>
 
   <div class="table-block">
     <p class="table-caption">
@@ -624,7 +1138,66 @@ print sum</code></pre>
     まず、ごく小さな言語について字句解析から実行までの全段階を通しで動かし、そこに機能を一つずつ加えていく。
     最初に作る、全段階を貫いて動く最小の処理系を <span class="term">ウォーキングスケルトン</span><span class="en">(walking skeleton)</span> と呼ぶ。
     例とする言語では、<code>print 42</code> のように整数を一つ出力するだけの処理系がこれにあたる。
+    図 4-1 の上段がその処理系のデータの流れであり、下段はそこに加算を足したときの差分である。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 254" role="img" aria-label="最小の処理系と、そこに四則演算を加えたときの差分を示す図。上段は print 42 が、トークン PRINT と INT(42)、AST の Print と Int 42、出力 42 と変わる様子。下段は print 1 + 2 が、トークン PRINT・INT(1)・PLUS・INT(2)、AST の Print の下の + と Int 1・Int 2、出力 3 と変わる様子で、増えたトークンの種別 PLUS、節点 +、二項演算の評価の手順を強調している。">
+      <path d="M 10 120 L 570 120" class="svg-line" stroke-dasharray="6 4"/>
+      <path d="M 395 58 L 395 82" class="svg-line"/>
+      <path d="M 395 158 L 395 176" class="svg-line"/>
+      <path d="M 385 200 L 367 220" class="svg-line"/>
+      <path d="M 405 200 L 423 220" class="svg-line"/>
+
+      <text x="55" y="18" class="svg-small">ソース</text>
+      <text x="214" y="18" class="svg-small">トークン列</text>
+      <text x="395" y="18" class="svg-small">AST</text>
+      <text x="520" y="18" class="svg-small">実行</text>
+
+      <text x="55" y="80" class="svg-mono">print 42</text>
+      <rect x="110" y="62" width="50" height="26" class="svg-cell"/>
+      <text x="135" y="80" class="svg-mono">PRINT</text>
+      <rect x="164" y="62" width="60" height="26" class="svg-cell"/>
+      <text x="194" y="80" class="svg-mono">INT(42)</text>
+      <rect x="365" y="34" width="60" height="24" class="svg-cell"/>
+      <text x="395" y="51" class="svg-mono">Print</text>
+      <rect x="361" y="82" width="68" height="24" class="svg-cell"/>
+      <text x="395" y="99" class="svg-mono">Int 42</text>
+      <rect x="472" y="34" width="96" height="24" class="svg-cell"/>
+      <text x="520" y="50" class="svg-small">整数を出力</text>
+      <text x="494" y="99" class="svg-small" style="text-anchor:end">出力</text>
+      <rect x="500" y="82" width="40" height="24" class="svg-cell"/>
+      <text x="520" y="99" class="svg-mono">42</text>
+
+      <text x="55" y="194" class="svg-mono">print 1 + 2</text>
+      <rect x="110" y="176" width="50" height="26" class="svg-cell"/>
+      <text x="135" y="194" class="svg-mono">PRINT</text>
+      <rect x="164" y="176" width="50" height="26" class="svg-cell"/>
+      <text x="189" y="194" class="svg-mono">INT(1)</text>
+      <rect x="218" y="176" width="46" height="26" class="svg-hl"/>
+      <text x="241" y="194" class="svg-mono">PLUS</text>
+      <rect x="268" y="176" width="50" height="26" class="svg-cell"/>
+      <text x="293" y="194" class="svg-mono">INT(2)</text>
+      <rect x="365" y="134" width="60" height="24" class="svg-cell"/>
+      <text x="395" y="151" class="svg-mono">Print</text>
+      <rect x="373" y="176" width="44" height="24" class="svg-hl"/>
+      <text x="395" y="193" class="svg-mono">+</text>
+      <rect x="339" y="220" width="52" height="24" class="svg-cell"/>
+      <text x="365" y="237" class="svg-mono">Int 1</text>
+      <rect x="399" y="220" width="52" height="24" class="svg-cell"/>
+      <text x="425" y="237" class="svg-mono">Int 2</text>
+      <rect x="472" y="176" width="96" height="24" class="svg-hl"/>
+      <text x="520" y="192" class="svg-small">二項演算の評価</text>
+      <text x="494" y="237" class="svg-small" style="text-anchor:end">出力</text>
+      <rect x="500" y="220" width="40" height="24" class="svg-cell"/>
+      <text x="520" y="237" class="svg-mono">3</text>
+    </svg>
+    <figcaption>
+      図 4-1　最小の処理系（上段）と、そこに四則演算の加算を足したとき（下段）の、各段階のデータ。
+      上段の時点で、ソースから出力までの経路はすでに一本につながっている。下段で強調したトークンの種別 <code>PLUS</code>、
+      節点 <code>+</code>、二項演算の評価の手順が、機能を一つ足したときの差分のすべてであり、誤りが出ればこの差分の中を探せばよい。
+    </figcaption>
+  </figure>
 
   <div class="table-block">
     <p class="table-caption">
@@ -682,7 +1255,7 @@ print sum</code></pre>
   <p>
     これに対し、字句解析器を全機能について完成させてから構文解析器に移る、という進め方もある。
     表 4-1 の列ごとに埋める進め方であり、ここでは「横に作る」と呼ぶ。行ごとに埋める進め方は「縦に作る」と呼ぶ。
-    両者の違いは、作業の総量ではなく、<strong>処理系が初めて通しで動く時点</strong>に現れる。
+    両者の違いは、作業の総量ではなく、<strong>処理系が初めて通しで動く時点</strong>に現れる（図 4-2）。
   </p>
 
   <figure>
@@ -797,7 +1370,7 @@ print sum</code></pre>
       <text x="444" y="226" class="svg-small">最初に通しで動くのは 4 番目</text>
     </svg>
     <figcaption>
-      図 4-1　表 4-1 の各セルを作る順番。強調したセルを作り終えた時点で、その行の機能まで持つ処理系が初めて通しで動く。
+      図 4-2　表 4-1 の各セルを作る順番。強調したセルを作り終えた時点で、その行の機能まで持つ処理系が初めて通しで動く。
       作るセルの数はどちらも 20 で変わらないが、横に作ると 16 番目まで一度も通しで動かない。
       その間、段階の間のインタフェースの食い違いは表に出ない。
     </figcaption>
@@ -816,6 +1389,28 @@ print sum</code></pre>
   <p>
     代償として、後から加える機能のために既存の部分を書き直すことがある。たとえば比較を加えるときには、
     <code>&lt;arith&gt;</code> の上に <code>&lt;expr&gt;</code> の階層を一段増やす必要がある。
+    変数までが動く時点の文法は次のとおりである。
+  </p>
+
+<pre><code>&lt;stmt&gt;    ::= "let" IDENT "=" &lt;arith&gt; | IDENT "=" &lt;arith&gt; | "print" &lt;arith&gt;
+&lt;arith&gt;   ::= &lt;term&gt; { ( "+" | "-" ) &lt;term&gt; }
+&lt;term&gt;    ::= &lt;factor&gt; { ( "*" | "/" ) &lt;factor&gt; }
+&lt;factor&gt;  ::= INT | IDENT | "(" &lt;arith&gt; ")"</code></pre>
+
+  <p>
+    比較と真偽値を加えた後の文法は次のようになる。強調した一行が増えた規則である。
+  </p>
+
+<pre><code>&lt;stmt&gt;    ::= "let" IDENT "=" &lt;expr&gt; | IDENT "=" &lt;expr&gt; | "print" &lt;expr&gt;
+<strong>&lt;expr&gt;    ::= &lt;arith&gt; [ ( "&lt;" | "==" ) &lt;arith&gt; ]</strong>
+&lt;arith&gt;   ::= &lt;term&gt; { ( "+" | "-" ) &lt;term&gt; }
+&lt;term&gt;    ::= &lt;factor&gt; { ( "*" | "/" ) &lt;factor&gt; }
+&lt;factor&gt;  ::= INT | "true" | "false" | IDENT | "(" &lt;expr&gt; ")"</code></pre>
+
+  <p>
+    規則が一行増えたほかは、<code>&lt;arith&gt;</code> を参照していた箇所が <code>&lt;expr&gt;</code> に置き換わり、
+    <code>&lt;factor&gt;</code> に <code>true</code> と <code>false</code> が加わっただけである。
+    <code>&lt;arith&gt;</code> と <code>&lt;term&gt;</code> の規則には手が入らない。
     この書き直しが小さく済むかどうかは、言語仕様を最初に全体まで決めてあるかで決まる。
     文法の階層が仕様として先にあれば、実装はそれを上から順に埋めていくだけになる。
     <strong>仕様は全体を先に決め、実装は縦に足す</strong>という組合せが、横に作る進め方と縦に作る進め方の利点を両立させる。
@@ -826,17 +1421,30 @@ print sum</code></pre>
     複数の人が段階ごとに分担する場合にも採られるが、その場合はインタフェースの文書が唯一の頼りになる。
   </p>
 
-  <div class="note caution">
-    <span class="label">演算子を加えるときの注意 — 左再帰</span>
-    <p>
-      四則演算を加える段階で、引き算を次のように書きたくなる。
-    </p>
+  <h3>演算子を加えるときの注意 — 左再帰</h3>
+
+  <p>
+    四則演算を加える段階で、引き算を次のように書きたくなる。
+  </p>
+
 <pre><code>&lt;arith&gt; ::= &lt;arith&gt; "-" &lt;term&gt; | &lt;term&gt;</code></pre>
-    <p>
-      規則の右辺の先頭に左辺と同じ記号が現れることを <span class="term">左再帰</span><span class="en">(left recursion)</span> と呼ぶ。
-      再帰下降法でこの規則をそのまま関数にすると、算術式を解析する関数がトークンを一つも読み進めないまま自分自身を呼び出し、
-      終わらない再帰に陥る。再帰下降法で書くときは、§ 2 の文法のように繰り返しの形に書き換える。
-    </p>
+
+  <p>
+    規則の右辺の先頭に左辺と同じ記号が現れることを <span class="term">左再帰</span><span class="en">(left recursion)</span> と呼ぶ。
+    再帰下降法でこの規則をそのまま関数にすると、算術式を解析する関数がトークンを一つも読み進めないまま自分自身を呼び出し、
+    終わらない再帰に陥る（図 4-4 の右）。
+  </p>
+
+  <p>
+    終わらない再帰を避けるだけなら、右辺の並びを入れ替えて <code>&lt;arith&gt; ::= &lt;term&gt; "-" &lt;arith&gt; | &lt;term&gt;</code> と書く方法もある。
+    右辺の末尾に左辺と同じ記号が現れるこの形を <span class="term">右再帰</span><span class="en">(right recursion)</span> と呼ぶ。
+    右再帰では関数が先に項を一つ読むため再帰は終わるが、木の形が変わり、引き算の値が仕様と食い違う（図 4-4 の左）。
+  </p>
+
+  <p>
+    再帰下降法で書くときは、§ 2 の文法のように繰り返しの形に書き換え、次の手順で木を作る。
+  </p>
+
 <pre><code>算術式を解析する():
 1. 左 ← 項を解析する()
 2. 次のトークンが + または - である間、繰り返す
@@ -844,9 +1452,144 @@ print sum</code></pre>
    2.2 右 ← 項を解析する()
    2.3 左 ← 二項演算の節点(演算子, 左, 右)
 3. 左 を返す</code></pre>
+
+  <p>
+    手順 2.3 で、それまでに作った木を新しい節点の左の子に置く。このため、繰り返しのたびに木は左下へ伸びていく（図 4-3）。
+    同じ優先順位の演算子を左から順にまとめるこの性質を <span class="term">左結合</span><span class="en">(left associativity)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 256" role="img" aria-label="9 - 4 - 1 を繰り返しの形の手順で解析するとき、変数 左 が指す木が三段階で育つ様子を示す図。手順 1 の後は 左 が 9 だけを指す。1 回目の繰り返しの後は、9 と 4 を子とする - の節点を指す。2 回目の繰り返しの後は、その木を左の子とし 1 を右の子とする - の節点を指す。各段階の上に、読み終えたトークンを塗って示している。">
+      <path d="M 195 10 L 195 250" class="svg-line" stroke-dasharray="6 4"/>
+      <path d="M 385 10 L 385 250" class="svg-line" stroke-dasharray="6 4"/>
+      <path d="M 282 120 L 264 146" class="svg-line"/>
+      <path d="M 298 120 L 316 146" class="svg-line"/>
+      <path d="M 472 120 L 446 146" class="svg-line"/>
+      <path d="M 488 120 L 514 146" class="svg-line"/>
+      <path d="M 432 170 L 414 196" class="svg-line"/>
+      <path d="M 448 170 L 466 196" class="svg-line"/>
+
+      <text x="100" y="18" class="svg-small">手順 1 の後</text>
+      <text x="290" y="18" class="svg-small">1 回目の繰り返しの後</text>
+      <text x="480" y="18" class="svg-small">2 回目の繰り返しの後</text>
+      <rect x="58" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="86" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="114" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="142" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="30" y="34" width="28" height="24" class="svg-cell"/>
+      <text x="44" y="51" class="svg-mono">9</text>
+      <text x="72" y="51" class="svg-mono">-</text>
+      <text x="100" y="51" class="svg-mono">4</text>
+      <text x="128" y="51" class="svg-mono">-</text>
+      <text x="156" y="51" class="svg-mono">1</text>
+      <rect x="304" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="332" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="220" y="34" width="28" height="24" class="svg-cell"/>
+      <rect x="248" y="34" width="28" height="24" class="svg-cell"/>
+      <rect x="276" y="34" width="28" height="24" class="svg-cell"/>
+      <text x="234" y="51" class="svg-mono">9</text>
+      <text x="262" y="51" class="svg-mono">-</text>
+      <text x="290" y="51" class="svg-mono">4</text>
+      <text x="318" y="51" class="svg-mono">-</text>
+      <text x="346" y="51" class="svg-mono">1</text>
+      <rect x="410" y="34" width="28" height="24" class="svg-cell"/>
+      <rect x="438" y="34" width="28" height="24" class="svg-cell"/>
+      <rect x="466" y="34" width="28" height="24" class="svg-cell"/>
+      <rect x="494" y="34" width="28" height="24" class="svg-cell"/>
+      <rect x="522" y="34" width="28" height="24" class="svg-cell"/>
+      <text x="424" y="51" class="svg-mono">9</text>
+      <text x="452" y="51" class="svg-mono">-</text>
+      <text x="480" y="51" class="svg-mono">4</text>
+      <text x="508" y="51" class="svg-mono">-</text>
+      <text x="536" y="51" class="svg-mono">1</text>
+
+      <rect x="82" y="96" width="36" height="24" class="svg-hl"/>
+      <text x="100" y="113" class="svg-mono">9</text>
+      <text x="76" y="113" class="svg-small" style="text-anchor:end">左</text>
+
+      <rect x="272" y="96" width="36" height="24" class="svg-hl"/>
+      <text x="290" y="113" class="svg-mono">-</text>
+      <text x="266" y="113" class="svg-small" style="text-anchor:end">左</text>
+      <rect x="242" y="146" width="36" height="24" class="svg-cell"/>
+      <text x="260" y="163" class="svg-mono">9</text>
+      <rect x="302" y="146" width="36" height="24" class="svg-cell"/>
+      <text x="320" y="163" class="svg-mono">4</text>
+
+      <rect x="462" y="96" width="36" height="24" class="svg-hl"/>
+      <text x="480" y="113" class="svg-mono">-</text>
+      <text x="456" y="113" class="svg-small" style="text-anchor:end">左</text>
+      <rect x="422" y="146" width="36" height="24" class="svg-cell"/>
+      <text x="440" y="163" class="svg-mono">-</text>
+      <rect x="502" y="146" width="36" height="24" class="svg-cell"/>
+      <text x="520" y="163" class="svg-mono">1</text>
+      <rect x="392" y="196" width="36" height="24" class="svg-cell"/>
+      <text x="410" y="213" class="svg-mono">9</text>
+      <rect x="452" y="196" width="36" height="24" class="svg-cell"/>
+      <text x="470" y="213" class="svg-mono">4</text>
+
+      <text x="100" y="246" class="svg-mono">左 = 9</text>
+      <text x="290" y="246" class="svg-mono">左 = (- 9 4)</text>
+      <text x="480" y="246" class="svg-mono">左 = (- (- 9 4) 1)</text>
+    </svg>
+    <figcaption>
+      図 4-3　<code>9 - 4 - 1</code> を上の手順で解析するときの、変数「左」が指す木の変化。上段の塗ったトークンが読み終えたもの、強調した節点がその時点で新しく作られた節点である。
+      繰り返しのたびに、それまでの木がまるごと新しい節点の左の子に収まる。最下段は木を括弧の入れ子で書いたもので、最後の木の値は <code>(9 - 4) - 1 = 4</code> である。
+    </figcaption>
+  </figure>
+
+  <figure>
+    <svg viewBox="0 0 580 216" role="img" aria-label="二つの誤った書き方を並べた図。左は右再帰の規則で 9 - 4 - 1 を解析した木で、根の - の右の子がもう一つの - になり、値は 9 - (4 - 1) = 6 となる。右は左再帰の規則をそのまま関数にした場合で、読み位置がトークン 9 から動かないまま、算術式を解析する関数の呼び出しが積み重なっていく。">
+      <path d="M 270 10 L 270 210" class="svg-line" stroke-dasharray="6 4"/>
+      <path d="M 122 58 L 96 84" class="svg-line"/>
+      <path d="M 138 58 L 164 84" class="svg-line"/>
+      <path d="M 162 108 L 146 134" class="svg-line"/>
+      <path d="M 178 108 L 194 134" class="svg-line"/>
+
+      <text x="130" y="18" class="svg-small">右再帰に書き換えた場合</text>
+      <rect x="112" y="34" width="36" height="24" class="svg-cell"/>
+      <text x="130" y="51" class="svg-mono">-</text>
+      <rect x="72" y="84" width="36" height="24" class="svg-cell"/>
+      <text x="90" y="101" class="svg-mono">9</text>
+      <rect x="152" y="84" width="36" height="24" class="svg-hl"/>
+      <text x="170" y="101" class="svg-mono">-</text>
+      <rect x="122" y="134" width="36" height="24" class="svg-cell"/>
+      <text x="140" y="151" class="svg-mono">4</text>
+      <rect x="182" y="134" width="36" height="24" class="svg-cell"/>
+      <text x="200" y="151" class="svg-mono">1</text>
+      <text x="130" y="190" class="svg-mono">9 - (4 - 1) = 6</text>
+
+      <text x="430" y="18" class="svg-small">左再帰のまま関数にした場合</text>
+      <rect x="360" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="388" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="416" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="444" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <rect x="472" y="34" width="28" height="24" class="svg-cell-plain"/>
+      <text x="374" y="51" class="svg-mono">9</text>
+      <text x="402" y="51" class="svg-mono">-</text>
+      <text x="430" y="51" class="svg-mono">4</text>
+      <text x="458" y="51" class="svg-mono">-</text>
+      <text x="486" y="51" class="svg-mono">1</text>
+      <text x="362" y="74" class="svg-small" style="text-anchor:start">▲ 読み位置</text>
+      <rect x="330" y="86" width="160" height="22" class="svg-cell-plain"/>
+      <text x="410" y="102" class="svg-mono">算術式を解析する()</text>
+      <rect x="350" y="114" width="160" height="22" class="svg-cell-plain"/>
+      <text x="430" y="130" class="svg-mono">算術式を解析する()</text>
+      <rect x="370" y="142" width="160" height="22" class="svg-cell-plain"/>
+      <text x="450" y="158" class="svg-mono">算術式を解析する()</text>
+      <text x="470" y="182" class="svg-mono">…</text>
+      <text x="425" y="206" class="svg-small">読み位置が動かないまま呼び出しが積み重なる</text>
+    </svg>
+    <figcaption>
+      図 4-4　左再帰の規則を扱う二つの誤った書き方。左の右再帰は、関数が先に項を一つ読むため再帰は終わるが、強調した部分木が右側にでき、
+      <code>9 - 4 - 1</code> の値が 4 ではなく 6 になる。右の左再帰のままの関数は、トークンを一つも読まないうちに自分自身を呼ぶため、呼び出しが際限なく積み重なる。
+    </figcaption>
+  </figure>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
     <p>
-      手順 2.3 で、それまでに作った木を新しい節点の左の子に置くことで、<code>8 - 3 - 2</code> は <code>(8 - 3) - 2</code> の形の木になる。
-      同じ優先順位の演算子を左から順にまとめるこの性質を <span class="term">左結合</span><span class="en">(left associativity)</span> と呼ぶ。
+      右再帰への書き換えは終わらない再帰を止めるが、結合の向きを変える。足し算と掛け算は結合の向きで値が変わらないため、
+      この誤りは引き算か割り算を二つ以上並べた式でなければ表に出ない。テストにはそうした式を含めておく。
     </p>
   </div>
 
@@ -948,6 +1691,58 @@ print sum</code></pre>
     意味解析を通過した AST だけを受け取るため、評価器の中で型を調べ直す必要はない。
   </p>
 
+  <p>
+    図 5-1 は、環境が <code>i = 2</code>、<code>sum = 1</code> のとき、すなわち <code>while</code> の 1 回目を終えた時点（図 3-5 の「1 回目の後」）で、
+    5 行目の右辺 <code>sum + i</code> を評価する様子である。二項演算の節点の手順が左右の子について自分を呼び出し、子は環境から値を取り出して返す。
+    返ってきた二つの値から <code>3</code> が計算され、代入文の手順が環境の <code>sum</code> を <code>3</code> に書き換える。
+    続く 6 行目で <code>i</code> が <code>3</code> になり、環境は図 3-5 の「2 回目の後」の <code>(3, 3)</code> に至る。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 176" role="img" aria-label="環境が i = 2、sum = 1 のときに式 sum + i を評価する呼び出しの木。評価する(+) が評価する(sum) と評価する(i) を呼び出し、それぞれ環境から取り出した 1 と 2 を返す。評価する(+) は 1 + 2 から 3 を返す。">
+      <path d="M 180 66 L 115 120" class="svg-line"/>
+      <path d="M 220 66 L 285 120" class="svg-line"/>
+      <path d="M 90 118 L 150 72" class="svg-arrow" marker-end="url(#ah11)"/>
+      <path d="M 310 118 L 250 72" class="svg-arrow" marker-end="url(#ah12)"/>
+      <path d="M 200 38 L 200 16" class="svg-arrow" marker-end="url(#ah13)"/>
+
+      <text x="210" y="24" class="svg-small" style="text-anchor:start">1 + 2 から 3 を返す</text>
+      <text x="112" y="96" class="svg-small" style="text-anchor:end">1 を返す</text>
+      <text x="288" y="96" class="svg-small" style="text-anchor:start">2 を返す</text>
+
+      <rect x="140" y="40" width="120" height="26" class="svg-cell"/>
+      <text x="200" y="58" class="svg-mono">評価する(+)</text>
+      <rect x="40" y="120" width="120" height="26" class="svg-cell"/>
+      <text x="100" y="138" class="svg-mono">評価する(sum)</text>
+      <rect x="240" y="120" width="120" height="26" class="svg-cell"/>
+      <text x="300" y="138" class="svg-mono">評価する(i)</text>
+      <text x="100" y="164" class="svg-small">環境から sum = 1</text>
+      <text x="300" y="164" class="svg-small">環境から i = 2</text>
+
+      <text x="480" y="46" class="svg-small">環境</text>
+      <rect x="410" y="56" width="140" height="52" class="svg-cell"/>
+      <text x="480" y="77" class="svg-mono">i : 2</text>
+      <text x="480" y="99" class="svg-mono">sum : 1</text>
+      <text x="480" y="126" class="svg-small">図 3-5 の「1 回目の後」</text>
+
+      <defs>
+        <marker id="ah11" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah12" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah13" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　式 <code>sum + i</code> を評価するときの呼び出し。灰色の線が呼び出し、矢印が返る値である。
+      呼び出しは木を根から葉へ下り、値は葉から根へ上る。どの呼び出しも同じ環境を参照するため、同じ式でも <code>while</code> の何回目に評価するかで値が変わる。
+    </figcaption>
+  </figure>
+
   <h3>スタック機械向けの命令列の生成</h3>
 
   <p>
@@ -965,7 +1760,7 @@ print sum</code></pre>
   <p>
     二項演算の節点は、左の子の命令列、右の子の命令列、自分の演算命令、の順に命令を出力すればよい。
     子をすべて訪れてから親を訪れるこの順序を <span class="term">後行順</span><span class="en">(post-order)</span> と呼ぶ。
-    演算命令が実行される時点で、二つの被演算子の値はスタックの上端に揃っている。
+    演算命令が実行される時点で、二つの被演算子の値はスタックの上端に揃っている（図 5-2）。
   </p>
 
   <figure>
@@ -974,7 +1769,7 @@ print sum</code></pre>
       <path d="M 120 66 L 160 110" class="svg-line"/>
       <path d="M 160 136 L 140 180" class="svg-line"/>
       <path d="M 180 136 L 200 180" class="svg-line"/>
-      <path d="M 240 120 L 282 120" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 240 120 L 282 120" class="svg-arrow" marker-end="url(#ah14)"/>
 
       <text x="20" y="22" class="svg-small" style="text-anchor:start">AST（番号は訪れる順）</text>
 
@@ -1033,28 +1828,242 @@ print sum</code></pre>
       <text x="438" y="197" class="svg-mono">14</text>
 
       <defs>
-        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+        <marker id="ah14" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
           <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
         </marker>
       </defs>
     </svg>
     <figcaption>
-      図 5-1　式 <code>2 * (3 + 4)</code> の AST を後行順に辿って得た命令列と、各命令を実行した後のスタック。
+      図 5-2　式 <code>2 * (3 + 4)</code> の AST を後行順に辿って得た命令列と、各命令を実行した後のスタック。
       スタックは右端が上端で、強調したセルはその命令が積んだ値である。
       <code>ADD</code> が実行される時点で <code>3</code> と <code>4</code> が上端に揃っており、括弧の指定どおり加算が先に行われる。
     </figcaption>
   </figure>
 
   <p>
-    文の命令列も同じ考え方で作れる。<code>while</code> 文には、命令列の中の位置を表す名札と、そこへ移る命令を用いる。
+    被演算子を積む順序は、引き算と割り算では結果を左右する。<code>10 - 4</code> では、左の子 <code>10</code> を先に、右の子 <code>4</code> を後に積み、
+    <code>SUB</code> は下にあった <code>10</code> から上にあった <code>4</code> を引く。
+  </p>
+
+<pre><code>PUSH 10      スタック: 10
+PUSH 4       スタック: 10 4
+SUB          スタック: 6</code></pre>
+
+  <p>
+    左右の子の命令列を逆の順に出力すると、スタックは <code>4 10</code> となり、<code>SUB</code> は <code>4 - 10 = -6</code> を計算する。
+    足し算と掛け算では順序を誤っても値が変わらないため、この誤りは引き算か割り算を含むテストでなければ見つからない。
+  </p>
+
+  <p>
+    文の命令列も同じ考え方で作れる。代入文は右辺の命令列の後に <code>STORE</code> を、<code>print</code> 文は式の命令列の後に <code>PRINT</code> を置く。
+    <code>while</code> 文と <code>if</code> 文には、命令列の中の位置を表す名札と、そこへ移る命令を用いる。
     <code>JUMP L</code> は名札 <code>L</code> へ移り、<code>JUMP_IF_FALSE L</code> は一つ取り出した値が偽なら名札 <code>L</code> へ移る。
+    <code>while</code> 文は次の形になる。
   </p>
 
 <pre><code>L1: 条件式の命令列
     JUMP_IF_FALSE L2
-    本体の文の命令列
+    本体の文の列の命令列
     JUMP L1
 L2: （while 文の次の文の命令列）</code></pre>
+
+  <p>
+    <code>if</code> 文は次の形になる。真の場合の文の列を実行し終えたら、<code>JUMP L2</code> で偽の場合の命令列を飛び越す。
+    この <code>JUMP</code> を置き忘れると、条件が真のときにも偽の場合の文が続けて実行される。
+  </p>
+
+<pre><code>    条件式の命令列
+    JUMP_IF_FALSE L1
+    真の場合の文の列の命令列
+    JUMP L2
+L1: 偽の場合の文の列の命令列
+L2: （if 文の次の文の命令列）</code></pre>
+
+  <p>
+    これらを組み合わせると、例のプログラム全体の命令列は次のようになる。右側は対応するソースコードの行である。
+  </p>
+
+<pre><code>    PUSH 1               let i = 1
+    STORE i
+    PUSH 0               let sum = 0
+    STORE sum
+L1: LOAD i               while i &lt; 6 do
+    PUSH 6
+    LT
+    JUMP_IF_FALSE L2
+    LOAD sum               sum = sum + i
+    LOAD i
+    ADD
+    STORE sum
+    LOAD i                 i = i + 1
+    PUSH 1
+    ADD
+    STORE i
+    JUMP L1              end
+L2: LOAD sum             print sum
+    PRINT</code></pre>
+
+  <p>
+    図 5-3 は、この命令列を 1 回目の繰り返しと、繰り返しを抜ける最後の回について、1 命令ずつ辿ったものである。
+    1 回目の終わりの <code>(i, sum) = (2, 1)</code> は、評価器で実行したときの図 3-5 の「1 回目の後」と一致する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 544" role="img" aria-label="例のプログラムの命令列のうち、1 回目の繰り返しと、繰り返しを抜ける最後の回について、命令を一つ実行するごとのスタックと変数 i・sum の値を示した図。1 回目では sum が 1 に、i が 2 に変わり L1 へ戻る。最後の回では 6 &lt; 6 が偽となって L2 へ移り、15 を出力する。">
+      <rect x="300" y="52" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="52" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="170" y="76" width="52" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="76" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="76" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="100" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="100" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="124" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="124" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="148" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="148" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="170" y="172" width="52" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="172" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="172" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="196" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="196" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="220" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="244" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="244" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="170" y="268" width="52" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="268" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="268" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="292" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="292" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="316" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="340" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="340" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="396" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="396" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="170" y="420" width="52" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="420" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="420" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="444" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="444" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="468" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="468" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="492" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="492" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="300" y="516" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="350" y="516" width="44" height="20" class="svg-cell-plain"/>
+      <rect x="170" y="52" width="52" height="20" class="svg-hl"/>
+      <rect x="222" y="76" width="52" height="20" class="svg-hl"/>
+      <rect x="170" y="100" width="52" height="20" class="svg-hl"/>
+      <rect x="170" y="148" width="52" height="20" class="svg-hl"/>
+      <rect x="222" y="172" width="52" height="20" class="svg-hl"/>
+      <rect x="170" y="196" width="52" height="20" class="svg-hl"/>
+      <rect x="350" y="220" width="44" height="20" class="svg-hl"/>
+      <rect x="170" y="244" width="52" height="20" class="svg-hl"/>
+      <rect x="222" y="268" width="52" height="20" class="svg-hl"/>
+      <rect x="170" y="292" width="52" height="20" class="svg-hl"/>
+      <rect x="300" y="316" width="44" height="20" class="svg-hl"/>
+      <rect x="170" y="396" width="52" height="20" class="svg-hl"/>
+      <rect x="222" y="420" width="52" height="20" class="svg-hl"/>
+      <rect x="170" y="444" width="52" height="20" class="svg-hl"/>
+      <rect x="170" y="492" width="52" height="20" class="svg-hl"/>
+      <text x="20" y="18" class="svg-small" style="text-anchor:start">命令</text>
+      <text x="170" y="18" class="svg-small" style="text-anchor:start">実行後のスタック</text>
+      <text x="322" y="18" class="svg-small">i</text>
+      <text x="372" y="18" class="svg-small">sum</text>
+      <text x="20" y="42" class="svg-small" style="text-anchor:start">1 回目の繰り返し（L1 に入る時点で i = 1, sum = 0）</text>
+      <text x="20" y="67" class="svg-mono" style="text-anchor:start">L1: LOAD i</text>
+      <text x="196" y="67" class="svg-mono">1</text>
+      <text x="322" y="67" class="svg-mono">1</text>
+      <text x="372" y="67" class="svg-mono">0</text>
+      <text x="20" y="91" class="svg-mono" style="text-anchor:start">PUSH 6</text>
+      <text x="196" y="91" class="svg-mono">1</text>
+      <text x="248" y="91" class="svg-mono">6</text>
+      <text x="322" y="91" class="svg-mono">1</text>
+      <text x="372" y="91" class="svg-mono">0</text>
+      <text x="20" y="115" class="svg-mono" style="text-anchor:start">LT</text>
+      <text x="196" y="115" class="svg-mono">true</text>
+      <text x="322" y="115" class="svg-mono">1</text>
+      <text x="372" y="115" class="svg-mono">0</text>
+      <text x="410" y="115" class="svg-small" style="text-anchor:start">1 &lt; 6 は真</text>
+      <text x="20" y="139" class="svg-mono" style="text-anchor:start">JUMP_IF_FALSE L2</text>
+      <text x="176" y="139" class="svg-small" style="text-anchor:start">（空）</text>
+      <text x="322" y="139" class="svg-mono">1</text>
+      <text x="372" y="139" class="svg-mono">0</text>
+      <text x="410" y="139" class="svg-small" style="text-anchor:start">真なので次の命令へ</text>
+      <text x="20" y="163" class="svg-mono" style="text-anchor:start">LOAD sum</text>
+      <text x="196" y="163" class="svg-mono">0</text>
+      <text x="322" y="163" class="svg-mono">1</text>
+      <text x="372" y="163" class="svg-mono">0</text>
+      <text x="20" y="187" class="svg-mono" style="text-anchor:start">LOAD i</text>
+      <text x="196" y="187" class="svg-mono">0</text>
+      <text x="248" y="187" class="svg-mono">1</text>
+      <text x="322" y="187" class="svg-mono">1</text>
+      <text x="372" y="187" class="svg-mono">0</text>
+      <text x="20" y="211" class="svg-mono" style="text-anchor:start">ADD</text>
+      <text x="196" y="211" class="svg-mono">1</text>
+      <text x="322" y="211" class="svg-mono">1</text>
+      <text x="372" y="211" class="svg-mono">0</text>
+      <text x="20" y="235" class="svg-mono" style="text-anchor:start">STORE sum</text>
+      <text x="176" y="235" class="svg-small" style="text-anchor:start">（空）</text>
+      <text x="322" y="235" class="svg-mono">1</text>
+      <text x="372" y="235" class="svg-mono">1</text>
+      <text x="20" y="259" class="svg-mono" style="text-anchor:start">LOAD i</text>
+      <text x="196" y="259" class="svg-mono">1</text>
+      <text x="322" y="259" class="svg-mono">1</text>
+      <text x="372" y="259" class="svg-mono">1</text>
+      <text x="20" y="283" class="svg-mono" style="text-anchor:start">PUSH 1</text>
+      <text x="196" y="283" class="svg-mono">1</text>
+      <text x="248" y="283" class="svg-mono">1</text>
+      <text x="322" y="283" class="svg-mono">1</text>
+      <text x="372" y="283" class="svg-mono">1</text>
+      <text x="20" y="307" class="svg-mono" style="text-anchor:start">ADD</text>
+      <text x="196" y="307" class="svg-mono">2</text>
+      <text x="322" y="307" class="svg-mono">1</text>
+      <text x="372" y="307" class="svg-mono">1</text>
+      <text x="20" y="331" class="svg-mono" style="text-anchor:start">STORE i</text>
+      <text x="176" y="331" class="svg-small" style="text-anchor:start">（空）</text>
+      <text x="322" y="331" class="svg-mono">2</text>
+      <text x="372" y="331" class="svg-mono">1</text>
+      <text x="20" y="355" class="svg-mono" style="text-anchor:start">JUMP L1</text>
+      <text x="176" y="355" class="svg-small" style="text-anchor:start">（空）</text>
+      <text x="322" y="355" class="svg-mono">2</text>
+      <text x="372" y="355" class="svg-mono">1</text>
+      <text x="410" y="355" class="svg-small" style="text-anchor:start">L1 へ戻る</text>
+      <text x="20" y="386" class="svg-small" style="text-anchor:start">最後の回（L1 に入る時点で i = 6, sum = 15）</text>
+      <text x="20" y="411" class="svg-mono" style="text-anchor:start">L1: LOAD i</text>
+      <text x="196" y="411" class="svg-mono">6</text>
+      <text x="322" y="411" class="svg-mono">6</text>
+      <text x="372" y="411" class="svg-mono">15</text>
+      <text x="20" y="435" class="svg-mono" style="text-anchor:start">PUSH 6</text>
+      <text x="196" y="435" class="svg-mono">6</text>
+      <text x="248" y="435" class="svg-mono">6</text>
+      <text x="322" y="435" class="svg-mono">6</text>
+      <text x="372" y="435" class="svg-mono">15</text>
+      <text x="20" y="459" class="svg-mono" style="text-anchor:start">LT</text>
+      <text x="196" y="459" class="svg-mono">false</text>
+      <text x="322" y="459" class="svg-mono">6</text>
+      <text x="372" y="459" class="svg-mono">15</text>
+      <text x="410" y="459" class="svg-small" style="text-anchor:start">6 &lt; 6 は偽</text>
+      <text x="20" y="483" class="svg-mono" style="text-anchor:start">JUMP_IF_FALSE L2</text>
+      <text x="176" y="483" class="svg-small" style="text-anchor:start">（空）</text>
+      <text x="322" y="483" class="svg-mono">6</text>
+      <text x="372" y="483" class="svg-mono">15</text>
+      <text x="410" y="483" class="svg-small" style="text-anchor:start">偽なので L2 へ移る</text>
+      <text x="20" y="507" class="svg-mono" style="text-anchor:start">L2: LOAD sum</text>
+      <text x="196" y="507" class="svg-mono">15</text>
+      <text x="322" y="507" class="svg-mono">6</text>
+      <text x="372" y="507" class="svg-mono">15</text>
+      <text x="20" y="531" class="svg-mono" style="text-anchor:start">PRINT</text>
+      <text x="176" y="531" class="svg-small" style="text-anchor:start">（空）</text>
+      <text x="322" y="531" class="svg-mono">6</text>
+      <text x="372" y="531" class="svg-mono">15</text>
+      <text x="410" y="531" class="svg-small" style="text-anchor:start">15 を出力する</text>
+    </svg>
+    <figcaption>
+      図 5-3　例のプログラムの命令列を 1 命令ずつ実行したときのスタックと変数。強調したセルは、その命令が積んだ値と、その命令が書き換えた変数である。
+      <code>LT</code> が積んだ真偽値を <code>JUMP_IF_FALSE</code> が取り出し、真なら次の命令へ、偽なら <code>L2</code> へ移る。
+      どの文も実行し終えるとスタックが空に戻る点に注意する。
+    </figcaption>
+  </figure>
 
   <h3>木を辿る評価と命令列の生成の使い分け</h3>
 
@@ -1104,7 +2113,7 @@ L2: （while 文の次の文の命令列）</code></pre>
   <div class="quiz">
     <span class="quiz-label">確認問題 5-1</span>
     <p class="q-body">
-      式 <code>(4 - 1) * 2</code> の AST を後行順に辿り、図 5-1 と同じ命令を用いて命令列を生成した。
+      式 <code>(4 - 1) * 2</code> の AST を後行順に辿り、図 5-2 と同じ命令を用いて命令列を生成した。
       正しい命令列はどれか。<code>SUB</code> は、下にあった値から上にあった値を引く。
     </p>
     <ol class="choices">
@@ -1225,6 +2234,40 @@ L2: （while 文の次の文の命令列）</code></pre>
     そこで、機能を加えるたびに、それ以前に用意したテストをすべて実行し直す。
     以前に通っていたテストが通らなくなっていないかを確かめるこのテストを <span class="term">回帰テスト</span><span class="en">(regression test)</span> と呼ぶ。
     テストの実行を一つの命令で行えるようにしておくと、確認の手間が機能の数に比例して増えることを避けられる。
+  </p>
+
+  <p>
+    たとえば、テストごとにソースコードと期待する出力の組をファイルとして置く。次は § 1 のプログラムの組である。
+  </p>
+
+<pre><code>tests/sum.src
+# 1 から 5 までの和を求める
+let i = 1
+let sum = 0
+while i &lt; 6 do
+  sum = sum + i
+  i = i + 1
+end
+print sum
+
+tests/sum.expected
+15</code></pre>
+
+  <p>
+    全件を実行する命令は、各組について処理系の出力と期待値を比べ、結果を一覧にする。
+    次は、比較を加えたときに算術式の解析を書き直し、結合の向きを誤った場合の出力の例である。
+  </p>
+
+<pre><code>sum           通過
+precedence    通過
+assoc         失敗   期待 4 ／ 実際 6   （9 - 4 - 1）
+undeclared    通過
+reject_type   通過
+---
+5 件中 4 件通過、1 件失敗</code></pre>
+
+  <p>
+    比較の機能そのもののテストを書いただけでは、この誤りは見つからない。以前の機能のテストを流し直して初めて、壊れたことが分かる。
   </p>
 
   <div class="note caution">
