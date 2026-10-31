@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ソートアルゴリズム | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>ソートアルゴリズム（基本的なソート・高速なソート）</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">並べ替えが必要になる理由</a></li>
+    <li><a href="#s2">バブルソート — 隣どうしの交換で大きい値を末尾へ運ぶ</a></li>
+    <li><a href="#s3">選択ソート — 最小値を探してから1回だけ交換する</a></li>
+    <li><a href="#s4">挿入ソート — 整列済みの列へ1つずつ差し込む</a></li>
+    <li><a href="#s5">基本的なソートの比較 — O(n²) にとどまる理由</a></li>
+    <li><a href="#s6">シェルソート — 離れた要素どうしを先に整える</a></li>
+    <li><a href="#s7">クイックソート — 基準値で二つに分けて繰り返す</a></li>
+    <li><a href="#s8">ヒープソート — 最大値が根に来る木から取り出す</a></li>
+    <li><a href="#s9">高速なソートの比較と使い分け</a></li>
+    <li><a href="#s10">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 並べ替えが必要になる理由 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>並べ替えが必要になる理由</h2>
+
+  <p>
+    10万件の会員データから、特定の会員番号を探すとする。データが番号の順に並んでいれば、
+    中央と比較して候補を半分に絞る二分探索が使え、17回程度の比較で見つかる。
+    並んでいなければ先頭から順に調べるしかなく、最悪で10万回の比較を要する。
+    探索だけではない。成績の上位から順に表示する、同じ値の重複を見つける、
+    二つの名簿を突き合わせるといった処理も、データが順に並んでいれば一度通して読むだけで済む。
+  </p>
+
+  <p>
+    データを一定の順序に並べ替える処理を<span class="term">ソート</span><span class="en">(sort)</span>、
+    あるいは整列と呼ぶ。並べる基準とする値を<span class="term">キー</span><span class="en">(key)</span> と呼び、
+    小さい順を<span class="term">昇順</span><span class="en">(ascending order)</span>、
+    大きい順を<span class="term">降順</span><span class="en">(descending order)</span> と呼ぶ。
+    本ページでは配列に格納した値を昇順に並べるものとし、添字は 0 から数える。
+  </p>
+
+  <p>
+    並べ替えの手順は一通りではなく、手順によって所要時間が大きく異なる。
+    手間を見積もるために、次の二つの操作の回数を数える。
+  </p>
+
+  <ul>
+    <li><span class="term">比較</span><span class="en">(comparison)</span> — 2つの値の大小を調べる操作</li>
+    <li><span class="term">交換</span><span class="en">(swap)</span>・移動 — 値を配列の別の位置へ動かす操作</li>
+  </ul>
+
+  <p>
+    二つを分けて数えるのは、<strong>手法によって比較と移動の比率が大きく異なる</strong>ためである。
+    1件のデータが大きく、動かすたびに多くの記憶域を書き換える必要がある場合は、
+    比較が多少多くても移動の少ない手法が速くなる。
+    以降の各手法では、同じ配列 <code>7, 6, 3, 8, 2, 1, 5, 4</code> を例に、比較と移動の回数を追う。
+  </p>
+
+  <p>本ページでは次の手法を扱う。</p>
+
+  <ul>
+    <li>基本的なソート — バブルソート・選択ソート・挿入ソート</li>
+    <li>高速なソート — シェルソート・クイックソート・ヒープソート</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>基本的なソート（バブル・選択・挿入）の手順を追跡し、擬似コードとして書ける</li>
+      <li>基本的なソートの比較回数・交換回数を求め、計算量が O(n²) になる理由を説明できる</li>
+      <li>高速なソート（シェル・クイック・ヒープ）の手順を追跡し、擬似コードとして書ける</li>
+      <li>高速なソートの計算量を、最良・平均・最悪に分けて説明できる</li>
+      <li>入力の性質や要件に応じて、ソートの手法を選べる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      ソートの手間を見積もる際、比較の回数と交換・移動の回数を分けて数える。
+      その理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>手法によって二つの回数の比率が異なり、データの移動が重い場合は移動の回数が所要時間を左右するから</li>
+      <li>比較は計算機にとって負担の大きい演算であり、移動より必ず時間がかかるから</li>
+      <li>比較の回数は入力の並びによらず一定であり、入力によって変わるのは移動の回数だけだから</li>
+      <li>O記法では、比較と移動の回数を別々の項として書く決まりがあるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          比較と移動のどちらが重いかは、データの大きさや格納の仕方によって変わる。
+          同じ程度の比較回数であっても、移動の回数が大きく異なる手法がある。
+          そのため両者を分けて数えておけば、条件に応じて手法を選べる。
+        </p>
+        <p>
+          (B) は比較と移動の重さを固定的に捉えている。1件のデータが大きければ移動のほうが重くなる。
+          (C) は選択ソートなど一部の手法には当てはまるが、挿入ソートのように
+          比較の回数も入力によって大きく変わる手法がある。
+          (D) は O記法の誤解である。O記法は増え方の最も大きい項だけを残す表記であり、
+          操作の種類ごとに項を書き分ける決まりはない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. バブルソート ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>バブルソート — 隣どうしの交換で大きい値を末尾へ運ぶ</h2>
+
+  <p>
+    <span class="term">バブルソート</span><span class="en">(bubble sort)</span> は、
+    隣り合う2つの値を比較し、左が右より大きければ交換する操作を、先頭から末尾へ向かって繰り返す手法である。
+    配列を先頭から末尾まで1回たどることを<span class="term">パス</span><span class="en">(pass)</span> と呼ぶ。
+  </p>
+
+  <p>
+    1回のパスで、そこまでに出会った最大の値は交換のたびに右へ運ばれ続け、末尾に至る。
+    したがって<strong>パスを1回終えるごとに、未整列部分の最大値が末尾に確定する</strong>。
+    大きい値が泡のように浮かび上がる様子から、この名がある。
+    確定した部分は次のパスで比較する必要がないため、パスごとに比較の範囲が1つずつ短くなる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 300" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 にバブルソートを適用したとき、各パスの終了時点の状態を上から順に並べた図。パスごとに末尾から1つずつ値が確定し、パス6で交換が起きずに終了する">
+      <text x="134" y="26" class="svg-mono">[0]</text>
+      <text x="182" y="26" class="svg-mono">[1]</text>
+      <text x="230" y="26" class="svg-mono">[2]</text>
+      <text x="278" y="26" class="svg-mono">[3]</text>
+      <text x="326" y="26" class="svg-mono">[4]</text>
+      <text x="374" y="26" class="svg-mono">[5]</text>
+      <text x="422" y="26" class="svg-mono">[6]</text>
+      <text x="470" y="26" class="svg-mono">[7]</text>
+      <rect x="110" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="398" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="446" y="34" width="48" height="30" class="svg-cell"/>
+      <text x="134" y="54" class="svg-text">7</text>
+      <text x="182" y="54" class="svg-text">6</text>
+      <text x="230" y="54" class="svg-text">3</text>
+      <text x="278" y="54" class="svg-text">8</text>
+      <text x="326" y="54" class="svg-text">2</text>
+      <text x="374" y="54" class="svg-text">1</text>
+      <text x="422" y="54" class="svg-text">5</text>
+      <text x="470" y="54" class="svg-text">4</text>
+      <text x="24" y="53" class="svg-small" style="text-anchor:start">初期</text>
+      <rect x="110" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="398" y="74" width="48" height="30" class="svg-cell"/>
+      <rect x="446" y="74" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="94" class="svg-text">6</text>
+      <text x="182" y="94" class="svg-text">3</text>
+      <text x="230" y="94" class="svg-text">7</text>
+      <text x="278" y="94" class="svg-text">2</text>
+      <text x="326" y="94" class="svg-text">1</text>
+      <text x="374" y="94" class="svg-text">5</text>
+      <text x="422" y="94" class="svg-text">4</text>
+      <text x="470" y="94" class="svg-text">8</text>
+      <text x="24" y="93" class="svg-small" style="text-anchor:start">パス1</text>
+      <text x="508" y="93" class="svg-small" style="text-anchor:start">交換 6</text>
+      <rect x="110" y="114" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="114" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="114" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="114" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="114" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="114" width="48" height="30" class="svg-cell"/>
+      <rect x="398" y="114" width="48" height="30" class="svg-hl"/>
+      <rect x="446" y="114" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="134" class="svg-text">3</text>
+      <text x="182" y="134" class="svg-text">6</text>
+      <text x="230" y="134" class="svg-text">2</text>
+      <text x="278" y="134" class="svg-text">1</text>
+      <text x="326" y="134" class="svg-text">5</text>
+      <text x="374" y="134" class="svg-text">4</text>
+      <text x="422" y="134" class="svg-text">7</text>
+      <text x="470" y="134" class="svg-text">8</text>
+      <text x="24" y="133" class="svg-small" style="text-anchor:start">パス2</text>
+      <text x="508" y="133" class="svg-small" style="text-anchor:start">交換 5</text>
+      <rect x="110" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="154" width="48" height="30" class="svg-hl"/>
+      <rect x="398" y="154" width="48" height="30" class="svg-hl"/>
+      <rect x="446" y="154" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="174" class="svg-text">3</text>
+      <text x="182" y="174" class="svg-text">2</text>
+      <text x="230" y="174" class="svg-text">1</text>
+      <text x="278" y="174" class="svg-text">5</text>
+      <text x="326" y="174" class="svg-text">4</text>
+      <text x="374" y="174" class="svg-text">6</text>
+      <text x="422" y="174" class="svg-text">7</text>
+      <text x="470" y="174" class="svg-text">8</text>
+      <text x="24" y="173" class="svg-small" style="text-anchor:start">パス3</text>
+      <text x="508" y="173" class="svg-small" style="text-anchor:start">交換 4</text>
+      <rect x="110" y="194" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="194" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="194" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="194" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="194" width="48" height="30" class="svg-hl"/>
+      <rect x="350" y="194" width="48" height="30" class="svg-hl"/>
+      <rect x="398" y="194" width="48" height="30" class="svg-hl"/>
+      <rect x="446" y="194" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="214" class="svg-text">2</text>
+      <text x="182" y="214" class="svg-text">1</text>
+      <text x="230" y="214" class="svg-text">3</text>
+      <text x="278" y="214" class="svg-text">4</text>
+      <text x="326" y="214" class="svg-text">5</text>
+      <text x="374" y="214" class="svg-text">6</text>
+      <text x="422" y="214" class="svg-text">7</text>
+      <text x="470" y="214" class="svg-text">8</text>
+      <text x="24" y="213" class="svg-small" style="text-anchor:start">パス4</text>
+      <text x="508" y="213" class="svg-small" style="text-anchor:start">交換 3</text>
+      <rect x="110" y="234" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="234" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="234" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="234" width="48" height="30" class="svg-hl"/>
+      <rect x="302" y="234" width="48" height="30" class="svg-hl"/>
+      <rect x="350" y="234" width="48" height="30" class="svg-hl"/>
+      <rect x="398" y="234" width="48" height="30" class="svg-hl"/>
+      <rect x="446" y="234" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="254" class="svg-text">1</text>
+      <text x="182" y="254" class="svg-text">2</text>
+      <text x="230" y="254" class="svg-text">3</text>
+      <text x="278" y="254" class="svg-text">4</text>
+      <text x="326" y="254" class="svg-text">5</text>
+      <text x="374" y="254" class="svg-text">6</text>
+      <text x="422" y="254" class="svg-text">7</text>
+      <text x="470" y="254" class="svg-text">8</text>
+      <text x="24" y="253" class="svg-small" style="text-anchor:start">パス5</text>
+      <text x="508" y="253" class="svg-small" style="text-anchor:start">交換 1</text>
+      <text x="24" y="290" class="svg-small" style="text-anchor:start">パス6 では交換が一度も起きないため、ここで終了する（交換の合計 19）</text>
+    </svg>
+    <figcaption>
+      図 2-1　配列 7, 6, 3, 8, 2, 1, 5, 4 にバブルソートを適用した各パスの終了時点。
+      強調した部分が確定した値であり、パスごとに末尾から1つずつ増える。
+      パス5 の時点で全体は整列しているが、それを知るにはもう1回のパスで交換が起きないことを確かめる必要がある。
+    </figcaption>
+  </figure>
+
+  <pre><code>バブルソート(配列 a, 要素数 n):
+1. k を n − 1 から 1 まで 1 ずつ減らしながら、2〜4 を繰り返す
+2. j を 0 から k − 1 まで 1 ずつ増やしながら、3 を繰り返す
+3. a[j] &gt; a[j+1] ならば、a[j] と a[j+1] を交換する
+4. 2〜3 で交換が一度も起きなければ、整列済みとして終了する</code></pre>
+
+  <h3>比較と交換の回数</h3>
+
+  <p>
+    比較の回数は、パスごとに n − 1, n − 2, …, 1 回であり、最悪で合計 n(n − 1)/2 回となる。
+    O記法では O(n²) である。例の配列では、パス6 で終了するため 7 + 6 + 5 + 4 + 3 + 2 = 27 回の比較を要した。
+    手順 4 の打ち切りにより、最初から整列済みの入力であれば1回のパス（n − 1 回の比較）で終わる。
+  </p>
+
+  <p>
+    交換の回数は入力の並びによって決まる。配列の中で、前にある値のほうが大きい組を
+    <span class="term">転倒</span><span class="en">(inversion)</span> と呼ぶ。
+    例の配列では 7 と 6、7 と 3、6 と 3 などが転倒であり、全部で 19 組ある。
+    隣り合う転倒を1回交換すると、その組の転倒だけが解消し、他の組の前後関係は変わらない。
+    したがって<strong>バブルソートの交換の回数は、転倒の個数に一致する</strong>。
+    図 2-1 の交換の合計 6 + 5 + 4 + 3 + 1 = 19 はこれと一致している。
+    逆順の入力ではすべての組が転倒であるため、交換も n(n − 1)/2 回に達する。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      配列 <code>3, 5, 1, 4, 2</code> をバブルソートで昇順に整列する。
+      整列が完了するまでに起きる交換の総数として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>3 回</li>
+      <li>4 回</li>
+      <li>6 回</li>
+      <li>10 回</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          交換の総数は転倒の個数に一致する。3 より後ろにある小さい値は 1・2 の 2 個、
+          5 より後ろは 1・4・2 の 3 個、4 より後ろは 2 の 1 個であり、合計 6 組である。
+          実際に追うと、パス1 で 3 回、パス2 で 2 回、パス3 で 1 回の交換が起き、パス4 で交換が起きずに終了する。
+        </p>
+        <p>
+          (A) はパス1 の交換だけを数えている。
+          (B) は交換の回数ではなく、打ち切りを確かめるパスまで含めたパスの回数である。
+          (D) は n = 5 のときの比較の回数 n(n − 1)/2 であり、交換の回数と取り違えている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 選択ソート ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>選択ソート — 最小値を探してから1回だけ交換する</h2>
+
+  <p>
+    <span class="term">選択ソート</span><span class="en">(selection sort)</span> は、
+    未整列部分から最小値を探し、それを未整列部分の先頭と交換する操作を繰り返す手法である。
+    1回のパスで未整列部分の先頭に最小値が確定し、確定した部分が先頭から1つずつ伸びる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 322" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 に選択ソートを適用したとき、各パスの終了時点の状態を並べた図。パスごとに未整列部分の最小値が先頭と交換され、先頭から1つずつ値が確定する">
+      <text x="119" y="26" class="svg-mono">[0]</text>
+      <text x="165" y="26" class="svg-mono">[1]</text>
+      <text x="211" y="26" class="svg-mono">[2]</text>
+      <text x="257" y="26" class="svg-mono">[3]</text>
+      <text x="303" y="26" class="svg-mono">[4]</text>
+      <text x="349" y="26" class="svg-mono">[5]</text>
+      <text x="395" y="26" class="svg-mono">[6]</text>
+      <text x="441" y="26" class="svg-mono">[7]</text>
+      <rect x="96" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="142" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="188" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="234" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="280" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="326" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="372" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="34" width="46" height="28" class="svg-cell"/>
+      <text x="119" y="53" class="svg-text">7</text>
+      <text x="165" y="53" class="svg-text">6</text>
+      <text x="211" y="53" class="svg-text">3</text>
+      <text x="257" y="53" class="svg-text">8</text>
+      <text x="303" y="53" class="svg-text">2</text>
+      <text x="349" y="53" class="svg-text">1</text>
+      <text x="395" y="53" class="svg-text">5</text>
+      <text x="441" y="53" class="svg-text">4</text>
+      <text x="24" y="52" class="svg-small" style="text-anchor:start">初期</text>
+      <rect x="142" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="188" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="234" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="280" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="326" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="372" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="96" y="70" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="89" class="svg-text">1</text>
+      <text x="165" y="89" class="svg-text">6</text>
+      <text x="211" y="89" class="svg-text">3</text>
+      <text x="257" y="89" class="svg-text">8</text>
+      <text x="303" y="89" class="svg-text">2</text>
+      <text x="349" y="89" class="svg-text">7</text>
+      <text x="395" y="89" class="svg-text">5</text>
+      <text x="441" y="89" class="svg-text">4</text>
+      <text x="24" y="88" class="svg-small" style="text-anchor:start">パス1</text>
+      <text x="478" y="88" class="svg-small" style="text-anchor:start">1 と 7 を交換</text>
+      <rect x="188" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="234" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="280" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="326" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="372" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="96" y="106" width="46" height="28" class="svg-hl"/>
+      <rect x="142" y="106" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="125" class="svg-text">1</text>
+      <text x="165" y="125" class="svg-text">2</text>
+      <text x="211" y="125" class="svg-text">3</text>
+      <text x="257" y="125" class="svg-text">8</text>
+      <text x="303" y="125" class="svg-text">6</text>
+      <text x="349" y="125" class="svg-text">7</text>
+      <text x="395" y="125" class="svg-text">5</text>
+      <text x="441" y="125" class="svg-text">4</text>
+      <text x="24" y="124" class="svg-small" style="text-anchor:start">パス2</text>
+      <text x="478" y="124" class="svg-small" style="text-anchor:start">2 と 6 を交換</text>
+      <rect x="234" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="280" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="326" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="372" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="96" y="142" width="46" height="28" class="svg-hl"/>
+      <rect x="142" y="142" width="46" height="28" class="svg-hl"/>
+      <rect x="188" y="142" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="161" class="svg-text">1</text>
+      <text x="165" y="161" class="svg-text">2</text>
+      <text x="211" y="161" class="svg-text">3</text>
+      <text x="257" y="161" class="svg-text">8</text>
+      <text x="303" y="161" class="svg-text">6</text>
+      <text x="349" y="161" class="svg-text">7</text>
+      <text x="395" y="161" class="svg-text">5</text>
+      <text x="441" y="161" class="svg-text">4</text>
+      <text x="24" y="160" class="svg-small" style="text-anchor:start">パス3</text>
+      <text x="478" y="160" class="svg-small" style="text-anchor:start">3 はその位置</text>
+      <rect x="280" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="326" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="372" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="96" y="178" width="46" height="28" class="svg-hl"/>
+      <rect x="142" y="178" width="46" height="28" class="svg-hl"/>
+      <rect x="188" y="178" width="46" height="28" class="svg-hl"/>
+      <rect x="234" y="178" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="197" class="svg-text">1</text>
+      <text x="165" y="197" class="svg-text">2</text>
+      <text x="211" y="197" class="svg-text">3</text>
+      <text x="257" y="197" class="svg-text">4</text>
+      <text x="303" y="197" class="svg-text">6</text>
+      <text x="349" y="197" class="svg-text">7</text>
+      <text x="395" y="197" class="svg-text">5</text>
+      <text x="441" y="197" class="svg-text">8</text>
+      <text x="24" y="196" class="svg-small" style="text-anchor:start">パス4</text>
+      <text x="478" y="196" class="svg-small" style="text-anchor:start">4 と 8 を交換</text>
+      <rect x="326" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="372" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="96" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="142" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="188" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="234" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="280" y="214" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="233" class="svg-text">1</text>
+      <text x="165" y="233" class="svg-text">2</text>
+      <text x="211" y="233" class="svg-text">3</text>
+      <text x="257" y="233" class="svg-text">4</text>
+      <text x="303" y="233" class="svg-text">5</text>
+      <text x="349" y="233" class="svg-text">7</text>
+      <text x="395" y="233" class="svg-text">6</text>
+      <text x="441" y="233" class="svg-text">8</text>
+      <text x="24" y="232" class="svg-small" style="text-anchor:start">パス5</text>
+      <text x="478" y="232" class="svg-small" style="text-anchor:start">5 と 6 を交換</text>
+      <rect x="372" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="418" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="96" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="142" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="188" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="234" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="280" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="326" y="250" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="269" class="svg-text">1</text>
+      <text x="165" y="269" class="svg-text">2</text>
+      <text x="211" y="269" class="svg-text">3</text>
+      <text x="257" y="269" class="svg-text">4</text>
+      <text x="303" y="269" class="svg-text">5</text>
+      <text x="349" y="269" class="svg-text">6</text>
+      <text x="395" y="269" class="svg-text">7</text>
+      <text x="441" y="269" class="svg-text">8</text>
+      <text x="24" y="268" class="svg-small" style="text-anchor:start">パス6</text>
+      <text x="478" y="268" class="svg-small" style="text-anchor:start">6 と 7 を交換</text>
+      <rect x="96" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="142" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="188" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="234" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="280" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="326" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="372" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="418" y="286" width="46" height="28" class="svg-hl"/>
+      <text x="119" y="305" class="svg-text">1</text>
+      <text x="165" y="305" class="svg-text">2</text>
+      <text x="211" y="305" class="svg-text">3</text>
+      <text x="257" y="305" class="svg-text">4</text>
+      <text x="303" y="305" class="svg-text">5</text>
+      <text x="349" y="305" class="svg-text">6</text>
+      <text x="395" y="305" class="svg-text">7</text>
+      <text x="441" y="305" class="svg-text">8</text>
+      <text x="24" y="304" class="svg-small" style="text-anchor:start">パス7</text>
+      <text x="478" y="304" class="svg-small" style="text-anchor:start">7 はその位置</text>
+    </svg>
+    <figcaption>
+      図 3-1　配列 7, 6, 3, 8, 2, 1, 5, 4 に選択ソートを適用した各パスの終了時点。
+      強調した部分が確定した値である。各パスで交換は1回だけ行い、
+      最小値がすでに先頭にある場合（パス3・パス7）は、その位置のまま確定する。
+    </figcaption>
+  </figure>
+
+  <pre><code>選択ソート(配列 a, 要素数 n):
+1. i を 0 から n − 2 まで 1 ずつ増やしながら、2〜3 を繰り返す
+2. m ← a[i] 〜 a[n − 1] のうち最小値の位置
+3. a[i] と a[m] を交換する</code></pre>
+
+  <p>
+    最小値を探すには、未整列部分の値をすべて調べる必要がある。
+    比較の回数は n − 1, n − 2, …, 1 回の合計 n(n − 1)/2 回であり、
+    <strong>入力がどのように並んでいても変わらない</strong>。
+    整列済みの入力であっても、最小値が先頭にあることは全体を調べるまで分からないためである。
+    一方で交換はパスごとに1回だけであり、合計 n − 1 回に固定される。
+    例の配列では、比較 28 回に対し交換は 7 回である。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      バブルソートと選択ソートは、いずれもパスごとに1つずつ値が確定するため混同しやすい。
+      バブルソートは<strong>隣どうしの交換を繰り返して最大値を末尾へ運ぶ</strong>。
+      選択ソートは<strong>最小値の位置を探し終えてから、先頭と1回だけ交換する</strong>。
+      交換の回数が転倒の個数になるか、n − 1 回に固定されるかの違いは、この手順の違いから生じる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      配列 <code>4, 2, 5, 1, 3</code> を昇順に整列する。最初のパスを終えた時点の状態のうち、
+      選択ソートの結果として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>1, 2, 5, 4, 3</code></li>
+      <li><code>2, 4, 1, 3, 5</code></li>
+      <li><code>2, 4, 5, 1, 3</code></li>
+      <li><code>1, 4, 2, 5, 3</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          最初のパスでは配列全体から最小値 1 を探し、先頭の 4 と交換する。
+          交換に関わらない 2・5・3 は元の位置に残る。
+        </p>
+        <p>
+          (B) はバブルソートの最初のパスの結果であり、最大値 5 が末尾に運ばれている。
+          (C) は挿入ソートで 2 を差し込んだ時点の状態である。
+          (D) は最小値 1 を先頭に移し、間の値を1つずつ右へずらした状態である。
+          選択ソートは先頭の値と入れ替えるだけで、他の値をずらさない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 挿入ソート ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>挿入ソート — 整列済みの列へ1つずつ差し込む</h2>
+
+  <p>
+    <span class="term">挿入ソート</span><span class="en">(insertion sort)</span> は、
+    配列の左側を整列済みの部分とみなし、右側から値を1つずつ取り出して、整列済みの部分の正しい位置へ差し込む手法である。
+    手札のトランプを並べ替えるとき、新しく引いた札を並んだ札の間へ差し込む動作と同じである。
+  </p>
+
+  <p>
+    差し込む位置は、整列済みの部分を右端から左へ比べて探す。
+    取り出した値より大きい値を1つずつ右へずらし、それ以下の値に出会ったところで、空いた位置に値を置く。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 322" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 に挿入ソートを適用したとき、値を1つ差し込むごとの状態を並べた図。左側の整列済み部分に、右側から取り出した値を差し込み、それより大きい値を右へずらす">
+      <text x="133" y="26" class="svg-mono">[0]</text>
+      <text x="179" y="26" class="svg-mono">[1]</text>
+      <text x="225" y="26" class="svg-mono">[2]</text>
+      <text x="271" y="26" class="svg-mono">[3]</text>
+      <text x="317" y="26" class="svg-mono">[4]</text>
+      <text x="363" y="26" class="svg-mono">[5]</text>
+      <text x="409" y="26" class="svg-mono">[6]</text>
+      <text x="455" y="26" class="svg-mono">[7]</text>
+      <rect x="156" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="202" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="248" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="294" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="340" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="386" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="34" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="110" y="34" width="46" height="28" class="svg-cell"/>
+      <text x="133" y="53" class="svg-text">7</text>
+      <text x="179" y="53" class="svg-text">6</text>
+      <text x="225" y="53" class="svg-text">3</text>
+      <text x="271" y="53" class="svg-text">8</text>
+      <text x="317" y="53" class="svg-text">2</text>
+      <text x="363" y="53" class="svg-text">1</text>
+      <text x="409" y="53" class="svg-text">5</text>
+      <text x="455" y="53" class="svg-text">4</text>
+      <text x="24" y="52" class="svg-small" style="text-anchor:start">初期</text>
+      <rect x="202" y="70" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="248" y="70" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="294" y="70" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="340" y="70" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="386" y="70" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="70" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="156" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="110" y="70" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="89" class="svg-text">6</text>
+      <text x="179" y="89" class="svg-text">7</text>
+      <text x="225" y="89" class="svg-text">3</text>
+      <text x="271" y="89" class="svg-text">8</text>
+      <text x="317" y="89" class="svg-text">2</text>
+      <text x="363" y="89" class="svg-text">1</text>
+      <text x="409" y="89" class="svg-text">5</text>
+      <text x="455" y="89" class="svg-text">4</text>
+      <text x="24" y="88" class="svg-small" style="text-anchor:start">6 を挿入</text>
+      <text x="492" y="88" class="svg-small" style="text-anchor:start">ずらす 1</text>
+      <rect x="248" y="106" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="294" y="106" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="340" y="106" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="386" y="106" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="106" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="156" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="110" y="106" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="125" class="svg-text">3</text>
+      <text x="179" y="125" class="svg-text">6</text>
+      <text x="225" y="125" class="svg-text">7</text>
+      <text x="271" y="125" class="svg-text">8</text>
+      <text x="317" y="125" class="svg-text">2</text>
+      <text x="363" y="125" class="svg-text">1</text>
+      <text x="409" y="125" class="svg-text">5</text>
+      <text x="455" y="125" class="svg-text">4</text>
+      <text x="24" y="124" class="svg-small" style="text-anchor:start">3 を挿入</text>
+      <text x="492" y="124" class="svg-small" style="text-anchor:start">ずらす 2</text>
+      <rect x="294" y="142" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="340" y="142" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="386" y="142" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="142" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="110" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="142" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="161" class="svg-text">3</text>
+      <text x="179" y="161" class="svg-text">6</text>
+      <text x="225" y="161" class="svg-text">7</text>
+      <text x="271" y="161" class="svg-text">8</text>
+      <text x="317" y="161" class="svg-text">2</text>
+      <text x="363" y="161" class="svg-text">1</text>
+      <text x="409" y="161" class="svg-text">5</text>
+      <text x="455" y="161" class="svg-text">4</text>
+      <text x="24" y="160" class="svg-small" style="text-anchor:start">8 を挿入</text>
+      <text x="492" y="160" class="svg-small" style="text-anchor:start">ずらす 0</text>
+      <rect x="340" y="178" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="386" y="178" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="178" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="156" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="110" y="178" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="197" class="svg-text">2</text>
+      <text x="179" y="197" class="svg-text">3</text>
+      <text x="225" y="197" class="svg-text">6</text>
+      <text x="271" y="197" class="svg-text">7</text>
+      <text x="317" y="197" class="svg-text">8</text>
+      <text x="363" y="197" class="svg-text">1</text>
+      <text x="409" y="197" class="svg-text">5</text>
+      <text x="455" y="197" class="svg-text">4</text>
+      <text x="24" y="196" class="svg-small" style="text-anchor:start">2 を挿入</text>
+      <text x="492" y="196" class="svg-small" style="text-anchor:start">ずらす 4</text>
+      <rect x="386" y="214" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="214" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="156" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="110" y="214" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="233" class="svg-text">1</text>
+      <text x="179" y="233" class="svg-text">2</text>
+      <text x="225" y="233" class="svg-text">3</text>
+      <text x="271" y="233" class="svg-text">6</text>
+      <text x="317" y="233" class="svg-text">7</text>
+      <text x="363" y="233" class="svg-text">8</text>
+      <text x="409" y="233" class="svg-text">5</text>
+      <text x="455" y="233" class="svg-text">4</text>
+      <text x="24" y="232" class="svg-small" style="text-anchor:start">1 を挿入</text>
+      <text x="492" y="232" class="svg-small" style="text-anchor:start">ずらす 5</text>
+      <rect x="432" y="250" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="110" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="250" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="269" class="svg-text">1</text>
+      <text x="179" y="269" class="svg-text">2</text>
+      <text x="225" y="269" class="svg-text">3</text>
+      <text x="271" y="269" class="svg-text">5</text>
+      <text x="317" y="269" class="svg-text">6</text>
+      <text x="363" y="269" class="svg-text">7</text>
+      <text x="409" y="269" class="svg-text">8</text>
+      <text x="455" y="269" class="svg-text">4</text>
+      <text x="24" y="268" class="svg-small" style="text-anchor:start">5 を挿入</text>
+      <text x="492" y="268" class="svg-small" style="text-anchor:start">ずらす 3</text>
+      <rect x="110" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="432" y="286" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="286" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="305" class="svg-text">1</text>
+      <text x="179" y="305" class="svg-text">2</text>
+      <text x="225" y="305" class="svg-text">3</text>
+      <text x="271" y="305" class="svg-text">4</text>
+      <text x="317" y="305" class="svg-text">5</text>
+      <text x="363" y="305" class="svg-text">6</text>
+      <text x="409" y="305" class="svg-text">7</text>
+      <text x="455" y="305" class="svg-text">8</text>
+      <text x="24" y="304" class="svg-small" style="text-anchor:start">4 を挿入</text>
+      <text x="492" y="304" class="svg-small" style="text-anchor:start">ずらす 4</text>
+    </svg>
+    <figcaption>
+      図 4-1　配列 7, 6, 3, 8, 2, 1, 5, 4 に挿入ソートを適用し、値を1つ差し込むごとの状態。
+      塗りのあるセルが整列済みの部分、枠線だけのセルが未処理の部分であり、強調したセルが差し込んだ値である。
+      右の数は、差し込むために右へずらした値の個数を表す。
+    </figcaption>
+  </figure>
+
+  <pre><code>挿入ソート(配列 a, 要素数 n):
+1. i を 1 から n − 1 まで 1 ずつ増やしながら、2〜4 を繰り返す
+2. x ← a[i]、j ← i − 1
+3. j ≥ 0 かつ a[j] &gt; x の間、a[j + 1] ← a[j]、j ← j − 1 を繰り返す
+4. a[j + 1] ← x</code></pre>
+
+  <p>
+    値をずらす回数は、差し込む値より前にあって、その値より大きい値の個数である。
+    これは転倒の個数の合計にあたり、例の配列では図 4-1 の右の数を合計した 19 回となる。
+    逆順の入力ではすべての組が転倒であるため、比較もずらしも n(n − 1)/2 回に達し、O(n²) となる。
+  </p>
+
+  <p>
+    逆に、<strong>ほぼ整列済みの入力では挿入ソートは非常に速い</strong>。
+    各値が差し込まれる位置はすぐ左隣か、その数個先であり、1回か数回の比較で位置が定まる。
+    完全に整列済みであれば、比較は各値で1回ずつ、合計 n − 1 回で済み、O(n) となる。
+    選択ソートには入力の並びを利用する仕組みがないため、整列済みでも比較は n(n − 1)/2 回のままである。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      配列 <code>6, 2, 9, 4, 7</code> を挿入ソートで昇順に整列する。
+      2 番目の値から順に差し込み、3 個の値（2・9・4）を差し込み終えた時点の状態として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>2, 4, 6, 9, 7</code></li>
+      <li><code>2, 4, 6, 7, 9</code></li>
+      <li><code>2, 6, 4, 9, 7</code></li>
+      <li><code>2, 6, 9, 4, 7</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          2 を差し込むと 6 が右へずれて <code>2, 6, 9, 4, 7</code> となる。
+          9 は左隣の 6 より大きいため動かない。4 を差し込むと 9 と 6 が右へずれ、
+          <code>2, 4, 6, 9, 7</code> となる。未処理の 7 は元の位置に残る。
+        </p>
+        <p>
+          (B) はすべての値を差し込み終えた最終状態である。
+          (C) は 4 を左隣の 9 と1回だけ交換した状態であり、差し込む位置を探す途中で止めている。
+          (D) は 2 と 9 を差し込んだ時点の状態であり、差し込んだ個数を1つ少なく数えている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 基本的なソートの比較 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>基本的なソートの比較 — O(n²) にとどまる理由</h2>
+
+  <p>
+    バブルソート・選択ソート・挿入ソートは、いずれも最悪の場合に O(n²) の比較を要する。
+    これらをまとめて基本的なソートと呼ぶのは、手順が単純であることに加え、
+    1回のパスで位置を決める値が1つに限られる点が共通するためである。
+    違いは比較と移動の回数の内訳と、入力の並びへの反応に現れる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　基本的なソートの比較・移動の回数（要素数 n）。右端の列は、例の配列 7, 6, 3, 8, 2, 1, 5, 4 での比較／移動の実測値である。
+      最悪の計算量はいずれも O(n²) であるが、移動の回数と、整列済みの入力に対する振る舞いが異なる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手法</th><th>比較（最悪）</th><th>交換・移動（最悪）</th><th>整列済みの入力</th><th>例の配列</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>バブルソート</td>
+          <td>n(n − 1)/2</td>
+          <td>転倒の個数（最大 n(n − 1)/2）</td>
+          <td>比較 n − 1、交換 0 で O(n)</td>
+          <td class="num-cell">27 ／ 19</td>
+        </tr>
+        <tr>
+          <td>選択ソート</td>
+          <td>n(n − 1)/2（常に）</td>
+          <td>n − 1（常に）</td>
+          <td>比較は減らず O(n²)</td>
+          <td class="num-cell">28 ／ 7</td>
+        </tr>
+        <tr>
+          <td>挿入ソート</td>
+          <td>n(n − 1)/2</td>
+          <td>転倒の個数（最大 n(n − 1)/2）</td>
+          <td>比較 n − 1、移動 0 で O(n)</td>
+          <td class="num-cell">22 ／ 19</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>移動の少なさが効く条件</h3>
+
+  <p>
+    選択ソートの交換が n − 1 回に固定されることは、1件のデータが大きく、
+    動かすたびに多くの記憶域を書き換える場合に利点となる。
+    ただし、データそのものではなくデータの位置（参照）を並べ替える実装では、
+    1回の移動は小さな値の書き換えで済むため、この利点は選択を左右しない。
+    その場合は、整列済みに近い入力で速くなる挿入ソートのほうが有利な場面が多い。
+  </p>
+
+  <h3>安定性</h3>
+
+  <p>
+    同じキーを持つ値どうしの元の順序が、整列後も保たれる性質を
+    <span class="term">安定性</span><span class="en">(stability)</span> と呼び、
+    この性質を持つ手法を安定なソートと呼ぶ。
+    たとえば学籍番号の順に並んだ名簿を点数で並べ替えるとき、
+    安定なソートであれば同じ点数の学生は学籍番号の順のまま残る。
+    バブルソートと挿入ソートは隣どうしの値だけを入れ替え、等しい値の前後を入れ替えないため安定である。
+    選択ソートは離れた位置の値を交換するため、<code>3ᵃ, 3ᵇ, 1</code> の先頭と 1 を交換すると
+    <code>1, 3ᵇ, 3ᵃ</code> となり、等しい値の順序が入れ替わる。
+  </p>
+
+  <h3>O(n²) にとどまる理由</h3>
+
+  <p>
+    バブルソートと挿入ソートは、値を隣の位置へ1つずつ動かす。
+    隣どうしの交換1回で解消できる転倒は、その2つの値の組だけである。
+    逆順の入力には n(n − 1)/2 組の転倒があるため、
+    <strong>隣どうしの交換だけに頼る限り、最悪で n(n − 1)/2 回の交換を避けられない</strong>。
+    選択ソートは交換こそ少ないが、最小値を探すために毎回残りをすべて比較する。
+    探した結果を次のパスに引き継がないため、比較の回数が減らない。
+  </p>
+
+  <p>
+    これより速く並べ替えるには、次のいずれかが必要になる。
+    一つは、離れた位置の値を一度に大きく動かし、1回の移動で多くの転倒を解消すること。
+    もう一つは、比較の結果を捨てずに構造として残し、以降の比較を減らすことである。
+    高速なソートはいずれも、このどちらかの考え方に立っている。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      1件ごとのデータが非常に大きく、データを1回動かす手間が比較の手間をはるかに上回る。
+      基本的なソートのうち最も適した手法と、その根拠の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>選択ソート ― 比較は n(n − 1)/2 回のままだが、交換が入力によらず n − 1 回で済むから</li>
+      <li>選択ソート ― 整列済みに近い入力では、比較の回数が n − 1 回まで減るから</li>
+      <li>挿入ソート ― 値を1つずつずらすだけなので、1回の移動の手間が小さいから</li>
+      <li>バブルソート ― 隣どうしの交換しか行わず、離れた位置への移動が起きないから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          選択ソートは最小値の位置を探し終えてから1回だけ交換するため、交換は常に n − 1 回である。
+          移動の手間が支配的な条件では、比較の多さよりこの少なさが効く。
+        </p>
+        <p>
+          (B) は挿入ソートの性質と取り違えている。選択ソートの比較の回数は入力によらず一定である。
+          (C) と (D) は1回あたりの手間に着目しているが、挿入ソートとバブルソートの移動の回数は
+          転倒の個数に一致し、最悪で n(n − 1)/2 回に達する。1回の移動が重い条件では、
+          回数の多さがそのまま所要時間に表れる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      隣り合う値の交換だけで並べ替える手法は、逆順の入力に対して O(n²) の手間を要する。
+      その理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>隣どうしの交換1回で解消できる転倒は1組だけであり、逆順の入力には n(n − 1)/2 組の転倒があるから</li>
+      <li>要素数が増えると、1回の比較に要する時間が要素数に比例して長くなるから</li>
+      <li>交換のたびに、配列全体を別の領域へ複写し直す必要があるから</li>
+      <li>逆順の入力では、パスの回数が n² 回に達するから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          隣り合う2つを交換しても、他の値どうしの前後関係は変わらない。
+          そのため1回の交換で減る転倒は1組であり、n(n − 1)/2 組の転倒を解消するには同じ回数の交換を要する。
+        </p>
+        <p>
+          (B) の1回の比較に要する時間は要素数によらない。回数が増えることと、1回あたりが遅くなることを取り違えている。
+          (C) の交換は2つの位置の値を入れ替えるだけであり、配列全体の複写は伴わない。
+          (D) のパスの回数は高々 n − 1 回である。n² に比例するのはパスの回数ではなく、全パスの比較の合計である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. シェルソート ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>シェルソート — 離れた要素どうしを先に整える</h2>
+
+  <p>
+    挿入ソートは、ほぼ整列済みの入力では速いが、値を1つずつ隣へずらすため、
+    遠くへ運ぶべき値があると多くの移動を要する。
+    <span class="term">シェルソート</span><span class="en">(Shell sort)</span> は、この弱点を補うために、
+    <strong>一定の間隔だけ離れた値どうしを組にして、先に挿入ソートを行う</strong>手法である。
+    考案者 D. L. Shell の名に由来する。
+  </p>
+
+  <p>
+    間隔を h とすると、添字が h ずつ離れた値が一つの組になる。
+    たとえば h = 4 であれば、添字 0 と 4、1 と 5、2 と 6、3 と 7 がそれぞれ組である。
+    各組の中で挿入ソートを行うと、値は1回の移動で h 個先まで動く。
+    間隔を少しずつ縮めながらこれを繰り返し、最後に間隔 1、すなわち通常の挿入ソートを行う。
+    最後の段階に入る時点で配列はほぼ整列済みになっているため、挿入ソートの得意な状況で仕上げられる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 250" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 にシェルソートを適用し、間隔4、間隔2、間隔1の挿入ソートを順に行ったときの状態を並べた図。各段階で値が動いた位置を強調している。間隔4と間隔2の段階を経た後は、間隔1の段階で2と1を入れ替えるだけで済む">
+      <text x="134" y="26" class="svg-mono">[0]</text>
+      <text x="182" y="26" class="svg-mono">[1]</text>
+      <text x="230" y="26" class="svg-mono">[2]</text>
+      <text x="278" y="26" class="svg-mono">[3]</text>
+      <text x="326" y="26" class="svg-mono">[4]</text>
+      <text x="374" y="26" class="svg-mono">[5]</text>
+      <text x="422" y="26" class="svg-mono">[6]</text>
+      <text x="470" y="26" class="svg-mono">[7]</text>
+      <rect x="110" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="398" y="34" width="48" height="30" class="svg-cell"/>
+      <rect x="446" y="34" width="48" height="30" class="svg-cell"/>
+      <text x="134" y="54" class="svg-text">7</text>
+      <text x="182" y="54" class="svg-text">6</text>
+      <text x="230" y="54" class="svg-text">3</text>
+      <text x="278" y="54" class="svg-text">8</text>
+      <text x="326" y="54" class="svg-text">2</text>
+      <text x="374" y="54" class="svg-text">1</text>
+      <text x="422" y="54" class="svg-text">5</text>
+      <text x="470" y="54" class="svg-text">4</text>
+      <text x="24" y="53" class="svg-small" style="text-anchor:start">初期</text>
+      <text x="24" y="80" class="svg-small" style="text-anchor:start">間隔4 の組</text>
+      <text x="134" y="80" class="svg-mono">1</text>
+      <text x="182" y="80" class="svg-mono">2</text>
+      <text x="230" y="80" class="svg-mono">3</text>
+      <text x="278" y="80" class="svg-mono">4</text>
+      <text x="326" y="80" class="svg-mono">1</text>
+      <text x="374" y="80" class="svg-mono">2</text>
+      <text x="422" y="80" class="svg-mono">3</text>
+      <text x="470" y="80" class="svg-mono">4</text>
+      <rect x="206" y="94" width="48" height="30" class="svg-cell"/>
+      <rect x="398" y="94" width="48" height="30" class="svg-cell"/>
+      <rect x="110" y="94" width="48" height="30" class="svg-hl"/>
+      <rect x="158" y="94" width="48" height="30" class="svg-hl"/>
+      <rect x="254" y="94" width="48" height="30" class="svg-hl"/>
+      <rect x="302" y="94" width="48" height="30" class="svg-hl"/>
+      <rect x="350" y="94" width="48" height="30" class="svg-hl"/>
+      <rect x="446" y="94" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="114" class="svg-text">2</text>
+      <text x="182" y="114" class="svg-text">1</text>
+      <text x="230" y="114" class="svg-text">3</text>
+      <text x="278" y="114" class="svg-text">4</text>
+      <text x="326" y="114" class="svg-text">7</text>
+      <text x="374" y="114" class="svg-text">6</text>
+      <text x="422" y="114" class="svg-text">5</text>
+      <text x="470" y="114" class="svg-text">8</text>
+      <text x="24" y="113" class="svg-small" style="text-anchor:start">間隔4 の後</text>
+      <text x="508" y="113" class="svg-small" style="text-anchor:start">移動 3</text>
+      <text x="24" y="140" class="svg-small" style="text-anchor:start">間隔2 の組</text>
+      <text x="134" y="140" class="svg-mono">1</text>
+      <text x="182" y="140" class="svg-mono">2</text>
+      <text x="230" y="140" class="svg-mono">1</text>
+      <text x="278" y="140" class="svg-mono">2</text>
+      <text x="326" y="140" class="svg-mono">1</text>
+      <text x="374" y="140" class="svg-mono">2</text>
+      <text x="422" y="140" class="svg-mono">1</text>
+      <text x="470" y="140" class="svg-mono">2</text>
+      <rect x="110" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="158" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="206" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="446" y="154" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="154" width="48" height="30" class="svg-hl"/>
+      <rect x="398" y="154" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="174" class="svg-text">2</text>
+      <text x="182" y="174" class="svg-text">1</text>
+      <text x="230" y="174" class="svg-text">3</text>
+      <text x="278" y="174" class="svg-text">4</text>
+      <text x="326" y="174" class="svg-text">5</text>
+      <text x="374" y="174" class="svg-text">6</text>
+      <text x="422" y="174" class="svg-text">7</text>
+      <text x="470" y="174" class="svg-text">8</text>
+      <text x="24" y="173" class="svg-small" style="text-anchor:start">間隔2 の後</text>
+      <text x="508" y="173" class="svg-small" style="text-anchor:start">移動 1</text>
+      <rect x="206" y="204" width="48" height="30" class="svg-cell"/>
+      <rect x="254" y="204" width="48" height="30" class="svg-cell"/>
+      <rect x="302" y="204" width="48" height="30" class="svg-cell"/>
+      <rect x="350" y="204" width="48" height="30" class="svg-cell"/>
+      <rect x="398" y="204" width="48" height="30" class="svg-cell"/>
+      <rect x="446" y="204" width="48" height="30" class="svg-cell"/>
+      <rect x="110" y="204" width="48" height="30" class="svg-hl"/>
+      <rect x="158" y="204" width="48" height="30" class="svg-hl"/>
+      <text x="134" y="224" class="svg-text">1</text>
+      <text x="182" y="224" class="svg-text">2</text>
+      <text x="230" y="224" class="svg-text">3</text>
+      <text x="278" y="224" class="svg-text">4</text>
+      <text x="326" y="224" class="svg-text">5</text>
+      <text x="374" y="224" class="svg-text">6</text>
+      <text x="422" y="224" class="svg-text">7</text>
+      <text x="470" y="224" class="svg-text">8</text>
+      <text x="24" y="223" class="svg-small" style="text-anchor:start">間隔1 の後</text>
+      <text x="508" y="223" class="svg-small" style="text-anchor:start">移動 1</text>
+    </svg>
+    <figcaption>
+      図 6-1　配列 7, 6, 3, 8, 2, 1, 5, 4 に、間隔 4・2・1 の順でシェルソートを適用した状態。
+      同じ番号の位置どうしが一つの組であり、強調したセルはその段階で値が動いた位置を表す。
+      間隔 4 の段階で大きな値が後半へ、小さな値が前半へまとめて運ばれ、
+      移動の合計は 5 回となる。同じ配列に挿入ソートを直接適用すると 19 回を要する。
+    </figcaption>
+  </figure>
+
+  <pre><code>シェルソート(配列 a, 要素数 n):
+1. h ← ⌊n / 2⌋
+2. h ≥ 1 の間、3〜4 を繰り返す
+3. 比べる相手を h 個前として、挿入ソートを行う
+4. h ← ⌊h / 2⌋</code></pre>
+
+  <p>
+    手順 3 は、挿入ソートの擬似コードの「1 つ前・1 つ後」を「h 個前・h 個後」に置き換えたものである。
+    すなわち i を h から始め、i − 1・j − 1・j + 1 をそれぞれ i − h・j − h・j + h とする。
+    値を差し込むときは、自身より大きい値を h 個先へずらす。
+  </p>
+
+  <p>
+    計算量は間隔の列の選び方で決まる。上の擬似コードのように間隔を半分ずつにする列は単純であるが、
+    最悪の場合は O(n²) のままである。間隔を 1, 4, 13, 40, …（h ← 3h + 1 で作る列）のように選ぶと
+    最悪の場合も O(n<sup>1.5</sup>) に抑えられ、実際の入力では O(n<sup>1.25</sup>) 程度で動作することが知られている。
+    離れた値を交換するため、安定なソートではない。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      配列 <code>8, 3, 6, 1, 2, 7, 5, 4</code> にシェルソートを適用する。
+      間隔 4 の段階を終えた時点の状態として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>2, 3, 5, 1, 8, 7, 6, 4</code></li>
+      <li><code>1, 2, 3, 4, 5, 6, 7, 8</code></li>
+      <li><code>3, 8, 1, 6, 2, 7, 4, 5</code></li>
+      <li><code>1, 3, 6, 8, 2, 4, 5, 7</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          間隔 4 の組は、添字 0 と 4（8 と 2）、1 と 5（3 と 7）、2 と 6（6 と 5）、3 と 7（1 と 4）である。
+          各組を昇順にすると 8 と 2、6 と 5 が入れ替わり、<code>2, 3, 5, 1, 8, 7, 6, 4</code> となる。
+        </p>
+        <p>
+          (B) は全体の整列が終わった状態であり、間隔 4 の段階だけで整列が完了すると考えている。
+          (C) は隣り合う2個ずつを組にして並べた状態であり、間隔の意味を取り違えている。
+          (D) は前半4個と後半4個をそれぞれ並べた状態であり、間隔 4 を「4個ずつの区間」と誤解している。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. クイックソート ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>クイックソート — 基準値で二つに分けて繰り返す</h2>
+
+  <p>
+    <span class="term">クイックソート</span><span class="en">(quicksort)</span> は、
+    配列から1つの値を選び、それより小さい値を左側へ、大きい値を右側へ集める。
+    選んだ値を<span class="term">基準値</span><span class="en">(pivot)</span>、
+    この操作を<span class="term">分割</span><span class="en">(partition)</span> と呼ぶ。
+    分割を終えると、<strong>基準値は最終的な位置に確定し、左右の値は互いに比較する必要がなくなる</strong>。
+    左側のどの値も右側のどの値より小さいことが、分割によってすでに保証されているためである。
+    残る左右の区間に同じ手順を繰り返せば、全体が整列する。
+  </p>
+
+  <p>
+    大きな問題を同じ形の小さな問題に分け、それぞれを解いて全体の答えを得る考え方を
+    <span class="term">分割統治法</span><span class="en">(divide and conquer)</span> と呼ぶ。
+    クイックソートは分割統治法に基づく手法であり、区間に対する処理を、より短い区間に対する同じ処理として再帰的に書ける。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 212" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 を、末尾の 4 を基準値として分割した前後を上下に並べた図。分割後は 4 より小さい 3, 2, 1 が左に、4 より大きい 6, 7, 5, 8 が右に集まり、4 は最終的な位置に確定する">
+      <path d="M 290 80 L 290 118" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 102 172 L 238 172" class="svg-line"/>
+      <path d="M 294 172 L 478 172" class="svg-line"/>
+      <text x="98" y="26" class="svg-small" style="text-anchor:start">分割前（基準値は末尾の 4）</text>
+      <rect x="98" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="146" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="194" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="242" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="290" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="338" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="386" y="40" width="48" height="32" class="svg-cell"/>
+      <rect x="434" y="40" width="48" height="32" class="svg-hl"/>
+      <text x="122" y="61" class="svg-text">7</text>
+      <text x="170" y="61" class="svg-text">6</text>
+      <text x="218" y="61" class="svg-text">3</text>
+      <text x="266" y="61" class="svg-text">8</text>
+      <text x="314" y="61" class="svg-text">2</text>
+      <text x="362" y="61" class="svg-text">1</text>
+      <text x="410" y="61" class="svg-text">5</text>
+      <text x="458" y="61" class="svg-text">4</text>
+      <text x="300" y="104" class="svg-small" style="text-anchor:start">分割</text>
+      <rect x="98" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="146" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="194" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="290" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="338" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="386" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="434" y="128" width="48" height="32" class="svg-cell"/>
+      <rect x="242" y="128" width="48" height="32" class="svg-hl"/>
+      <text x="122" y="149" class="svg-text">3</text>
+      <text x="170" y="149" class="svg-text">2</text>
+      <text x="218" y="149" class="svg-text">1</text>
+      <text x="266" y="149" class="svg-text">4</text>
+      <text x="314" y="149" class="svg-text">6</text>
+      <text x="362" y="149" class="svg-text">7</text>
+      <text x="410" y="149" class="svg-text">5</text>
+      <text x="458" y="149" class="svg-text">8</text>
+      <text x="170" y="194" class="svg-small">4 より小さい</text>
+      <text x="266" y="194" class="svg-small">確定</text>
+      <text x="386" y="194" class="svg-small">4 より大きい</text>
+    <defs>
+      <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+        <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+      </marker>
+    </defs>
+    </svg>
+    <figcaption>
+      図 7-1　配列 7, 6, 3, 8, 2, 1, 5, 4 を、末尾の 4 を基準値として分割した前後。
+      分割後、4 より小さい値は左に、大きい値は右に集まり、4 はこの位置から動かない。
+      左の 3, 2, 1 と右の 6, 7, 5, 8 は、それぞれ独立に並べ替えればよい。
+    </figcaption>
+  </figure>
+
+  <p>
+    分割の手順にはいくつかの方式がある。次の擬似コードは、区間の末尾を基準値とし、
+    基準値より小さい値を左端から順に詰めていく方式である。
+  </p>
+
+  <pre><code>クイックソート(配列 a, 左端 lo, 右端 hi):
+1. lo ≥ hi ならば、何もせず終了する
+2. p ← 分割(a, lo, hi)
+3. クイックソート(a, lo, p − 1)
+4. クイックソート(a, p + 1, hi)
+
+分割(配列 a, 左端 lo, 右端 hi):
+1. x ← a[hi]、i ← lo
+2. j を lo から hi − 1 まで 1 ずつ増やしながら、3 を繰り返す
+3. a[j] &lt; x ならば、a[i] と a[j] を交換し、i ← i + 1
+4. a[i] と a[hi] を交換する
+5. i を返す</code></pre>
+
+  <h3>計算量は分割の偏りで決まる</h3>
+
+  <p>
+    1回の分割では、区間の値をすべて基準値と比較する。
+    区間が分かれた後の同じ深さの分割を一つの段とみなすと、各段の比較の合計は約 n 回である。
+    したがって手間は<strong>段の数 × n</strong> で決まり、段の数は分割の偏りに左右される。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 244" role="img" aria-label="クイックソートの分割の段数を比較した図。左は分割が毎回均等になる場合で、区間が半分ずつに分かれ、段数は約 log₂ n になる。右は毎回偏る場合で、区間が1個ずつしか減らず、段数は約 n になる">
+      <path d="M 293 36 L 293 236" class="svg-line"/>
+      <text x="152" y="24" class="svg-small">均等に分かれる場合</text>
+      <rect x="32" y="40" width="240" height="20" class="svg-cell"/>
+      <rect x="32" y="72" width="118" height="20" class="svg-cell"/>
+      <rect x="154" y="72" width="118" height="20" class="svg-cell"/>
+      <rect x="32" y="104" width="57" height="20" class="svg-cell"/>
+      <rect x="93" y="104" width="57" height="20" class="svg-cell"/>
+      <rect x="154" y="104" width="57" height="20" class="svg-cell"/>
+      <rect x="215" y="104" width="57" height="20" class="svg-cell"/>
+      <rect x="32" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="62.5" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="93" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="123.5" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="154" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="184.5" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="215" y="136" width="26.5" height="20" class="svg-cell"/>
+      <rect x="245.5" y="136" width="26.5" height="20" class="svg-cell"/>
+      <text x="152" y="182" class="svg-small">…</text>
+      <text x="152" y="210" class="svg-small">段数は約 log₂ n</text>
+      <text x="152" y="230" class="svg-small">各段の比較の合計は約 n</text>
+      <text x="434" y="24" class="svg-small">毎回偏る場合</text>
+      <rect x="314" y="40" width="240" height="20" class="svg-cell"/>
+      <rect x="314" y="72" width="210" height="20" class="svg-cell"/>
+      <rect x="314" y="104" width="180" height="20" class="svg-cell"/>
+      <rect x="314" y="136" width="150" height="20" class="svg-cell"/>
+      <rect x="314" y="168" width="120" height="20" class="svg-cell"/>
+      <text x="434" y="210" class="svg-small">段数は約 n</text>
+      <text x="434" y="230" class="svg-small">各段の比較は n−1, n−2, … と減る</text>
+    </svg>
+    <figcaption>
+      図 7-2　分割が均等な場合と、毎回偏る場合の段の数。均等であれば区間が半分ずつ短くなり、
+      段の数は約 log₂ n であるため、全体で O(n log n) となる。
+      基準値が毎回区間の最小値か最大値になると、区間は1個ずつしか短くならず、
+      段の数が約 n となって O(n²) に退化する。
+    </figcaption>
+  </figure>
+
+  <p>
+    基準値が区間の中央付近の値になれば分割は均等に近づき、平均の計算量は O(n log n) である。
+    最悪の場合は、<strong>末尾を基準値とする方式に整列済みの入力を与えたとき</strong>に起きる。
+    基準値が常に区間の最大値となり、分割のたびに区間が1個しか短くならないためである。
+    整列済みの値を順に挿入した二分探索木が一列に退化するのと同じく、入力の並びが構造の形を偏らせる。
+    この偏りを避けるために、実用では区間の先頭・中央・末尾の3つの値の中央値を基準値とする、
+    あるいは基準値を無作為に選ぶ、といった工夫が用いられる。
+  </p>
+
+  <p>
+    再帰の呼び出しは、段の数だけ深くなる。そのため配列のほかに、均等な分割であれば O(log n) の記憶域を要する。
+    離れた位置の値を交換するため、安定なソートではない。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      区間の末尾を基準値とするクイックソートで、計算量が O(n²) となる入力と、その理由の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>整列済みの入力 ― 基準値が常に区間の最大値となり、分割のたびに区間が1個しか短くならないから</li>
+      <li>無作為に並んだ入力 ― 基準値の大小が予測できず、分割の結果が定まらないから</li>
+      <li>要素数が 2 のべき乗でない入力 ― 区間をちょうど半分ずつに分けられないから</li>
+      <li>整列済みの入力 ― 比較の回数は O(n log n) のままだが、交換の回数が増えるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          整列済みの区間では末尾が最大値であるため、分割後の右側は空、左側は1個少ないだけの区間になる。
+          段の数が約 n となり、各段で区間の長さに比例する比較を要するため、合計は約 n²/2 回となる。
+        </p>
+        <p>
+          (B) の無作為な入力では、基準値が中央付近になる確率が高く、平均の O(n log n) となる。
+          (C) は均等の意味を厳密に取りすぎている。区間の長さが1個ずれる程度の偏りでは、段の数は log n の程度にとどまる。
+          (D) は入力の判断は正しいが根拠が誤っている。段の数が約 n になるため、
+          比較の回数そのものが約 n²/2 回に増える。比較が O(n log n) のままという前提が成り立たない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. ヒープソート ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>ヒープソート — 最大値が根に来る木から取り出す</h2>
+
+  <p>
+    選択ソートは、最小値を探すたびに残りをすべて比較し、その結果を次のパスに引き継がなかった。
+    <span class="term">ヒープソート</span><span class="en">(heapsort)</span> は、
+    比較の結果を木の形で残しておき、<strong>最大値を毎回 log n 程度の手間で取り出す</strong>ことで、選択ソートの弱点を解消する手法である。
+  </p>
+
+  <h3>ヒープ — 配列で表す二分木</h3>
+
+  <p>
+    根から順に、各段を左から隙間なく埋めた二分木を<span class="term">完全二分木</span><span class="en">(complete binary tree)</span> と呼ぶ。
+    完全二分木は、節点を上の段から、同じ段では左から順に配列へ並べると、ポインタを使わずに表せる。
+    添字 i の節点の子は添字 2i + 1 と 2i + 2 に、親は添字 ⌊(i − 1)/2⌋ にある。
+  </p>
+
+  <p>
+    すべての節点で、親の値が子の値以上である完全二分木を<span class="term">ヒープ</span><span class="en">(heap)</span> と呼ぶ。
+    この条件から、<strong>ヒープの最大値は必ず根、すなわち配列の先頭にある</strong>。
+    二分探索木とは異なり、左右の子の大小や、兄弟の部分木どうしの大小は定めない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 330" role="img" aria-label="ヒープ 8, 7, 5, 6, 2, 1, 3, 4 を、上段に配列として、下段に完全二分木として描き、添字の対応を示した図。添字 i の節点の子は添字 2i+1 と 2i+2 にあり、どの親も子以上の値を持つ">
+      <path d="M 290 138 L 170 170" class="svg-line"/>
+      <path d="M 290 138 L 410 170" class="svg-line"/>
+      <path d="M 170 198 L 110 230" class="svg-line"/>
+      <path d="M 170 198 L 230 230" class="svg-line"/>
+      <path d="M 410 198 L 350 230" class="svg-line"/>
+      <path d="M 410 198 L 470 230" class="svg-line"/>
+      <path d="M 110 258 L 80 290" class="svg-line"/>
+      <text x="122" y="24" class="svg-mono">[0]</text>
+      <text x="170" y="24" class="svg-mono">[1]</text>
+      <text x="218" y="24" class="svg-mono">[2]</text>
+      <text x="266" y="24" class="svg-mono">[3]</text>
+      <text x="314" y="24" class="svg-mono">[4]</text>
+      <text x="362" y="24" class="svg-mono">[5]</text>
+      <text x="410" y="24" class="svg-mono">[6]</text>
+      <text x="458" y="24" class="svg-mono">[7]</text>
+      <rect x="146" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="194" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="242" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="290" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="338" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="386" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="434" y="32" width="48" height="32" class="svg-cell"/>
+      <rect x="98" y="32" width="48" height="32" class="svg-hl"/>
+      <text x="122" y="53" class="svg-text">8</text>
+      <text x="170" y="53" class="svg-text">7</text>
+      <text x="218" y="53" class="svg-text">5</text>
+      <text x="266" y="53" class="svg-text">6</text>
+      <text x="314" y="53" class="svg-text">2</text>
+      <text x="362" y="53" class="svg-text">1</text>
+      <text x="410" y="53" class="svg-text">3</text>
+      <text x="458" y="53" class="svg-text">4</text>
+      <rect x="268" y="110" width="44" height="28" class="svg-hl"/>
+      <text x="290" y="129" class="svg-text">8</text>
+      <text x="316" y="129" class="svg-mono" style="text-anchor:start">[0]</text>
+      <rect x="148" y="170" width="44" height="28" class="svg-cell"/>
+      <text x="170" y="189" class="svg-text">7</text>
+      <text x="196" y="189" class="svg-mono" style="text-anchor:start">[1]</text>
+      <rect x="388" y="170" width="44" height="28" class="svg-cell"/>
+      <text x="410" y="189" class="svg-text">5</text>
+      <text x="436" y="189" class="svg-mono" style="text-anchor:start">[2]</text>
+      <rect x="88" y="230" width="44" height="28" class="svg-cell"/>
+      <text x="110" y="249" class="svg-text">6</text>
+      <text x="136" y="249" class="svg-mono" style="text-anchor:start">[3]</text>
+      <rect x="208" y="230" width="44" height="28" class="svg-cell"/>
+      <text x="230" y="249" class="svg-text">2</text>
+      <text x="256" y="249" class="svg-mono" style="text-anchor:start">[4]</text>
+      <rect x="328" y="230" width="44" height="28" class="svg-cell"/>
+      <text x="350" y="249" class="svg-text">1</text>
+      <text x="376" y="249" class="svg-mono" style="text-anchor:start">[5]</text>
+      <rect x="448" y="230" width="44" height="28" class="svg-cell"/>
+      <text x="470" y="249" class="svg-text">3</text>
+      <text x="496" y="249" class="svg-mono" style="text-anchor:start">[6]</text>
+      <rect x="58" y="290" width="44" height="28" class="svg-cell"/>
+      <text x="80" y="309" class="svg-text">4</text>
+      <text x="106" y="309" class="svg-mono" style="text-anchor:start">[7]</text>
+      <text x="330" y="300" class="svg-small" style="text-anchor:start">添字 i の子は 2i+1 と 2i+2</text>
+      <text x="330" y="320" class="svg-small" style="text-anchor:start">どの親も子以上の値を持つ</text>
+    </svg>
+    <figcaption>
+      図 8-1　ヒープ 8, 7, 5, 6, 2, 1, 3, 4 を配列と木の両方で表した図。
+      木の節点の右に添えた数が配列の添字である。どの親も子以上の値を持つため、最大値 8 が根にある。
+      左右の子の大小は定めないため、深さ1 の 5 が深さ2 の 6 より小さいこともありうる。
+    </figcaption>
+  </figure>
+
+  <h3>ダウンヒープ — 根から下へ値を沈める</h3>
+
+  <p>
+    根の値だけがヒープの条件を満たさない場合、根の値を子のうち大きい方と比べ、子のほうが大きければ交換する。
+    交換した先でも同じ比較を行い、子がなくなるか、子のいずれよりも大きくなったところで止める。
+    この操作を<span class="term">ダウンヒープ</span><span class="en">(sift down)</span> と呼ぶ。
+    1段ごとに2回の比較で済み、たどる段の数は木の高さ、すなわち約 log₂ n で収まる。
+  </p>
+
+  <pre><code>ダウンヒープ(配列 a, 位置 i, ヒープの要素数 m):
+1. 2i + 1 ≥ m ならば（子がなければ）終了する
+2. c ← 位置 i の子のうち、値の大きい方の位置
+3. a[i] ≥ a[c] ならば終了する
+4. a[i] と a[c] を交換し、i ← c として 1 へ戻る</code></pre>
+
+  <h3>ヒープソートの手順</h3>
+
+  <p>
+    まず、入力の配列をヒープに作り変える。葉でない最後の節点（添字 ⌊n/2⌋ − 1）から根に向かって、
+    各節点でダウンヒープを行えばよい。例の配列 7, 6, 3, 8, 2, 1, 5, 4 は、これにより
+    8, 7, 5, 6, 2, 1, 3, 4 というヒープになる。
+  </p>
+
+  <p>
+    次に、根の最大値を末尾と交換し、末尾を確定させる。根には末尾にあった値が来てヒープの条件が崩れるため、
+    確定した部分を除いた範囲でダウンヒープを行って修復する。
+    これを繰り返すと、大きい値から順に末尾へ確定していく。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 196" role="img" aria-label="ヒープ 8, 7, 5, 6, 2, 1, 3, 4 から最大値を1回取り出す手順を並べた図。根の 8 と末尾の 4 を交換して 8 を確定させ、根に来た 4 を子のうち大きい方と交換しながら下へ進め、7, 6, 5, 4, 2, 1, 3 というヒープに戻す">
+      <text x="144" y="26" class="svg-mono">[0]</text>
+      <text x="184" y="26" class="svg-mono">[1]</text>
+      <text x="224" y="26" class="svg-mono">[2]</text>
+      <text x="264" y="26" class="svg-mono">[3]</text>
+      <text x="304" y="26" class="svg-mono">[4]</text>
+      <text x="344" y="26" class="svg-mono">[5]</text>
+      <text x="384" y="26" class="svg-mono">[6]</text>
+      <text x="424" y="26" class="svg-mono">[7]</text>
+      <rect x="164" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="204" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="244" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="284" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="324" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="364" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="404" y="34" width="40" height="30" class="svg-cell"/>
+      <rect x="124" y="34" width="40" height="30" class="svg-hl"/>
+      <text x="144" y="54" class="svg-text">8</text>
+      <text x="184" y="54" class="svg-text">7</text>
+      <text x="224" y="54" class="svg-text">5</text>
+      <text x="264" y="54" class="svg-text">6</text>
+      <text x="304" y="54" class="svg-text">2</text>
+      <text x="344" y="54" class="svg-text">1</text>
+      <text x="384" y="54" class="svg-text">3</text>
+      <text x="424" y="54" class="svg-text">4</text>
+      <text x="24" y="53" class="svg-small" style="text-anchor:start">取り出し前</text>
+      <text x="452" y="53" class="svg-small" style="text-anchor:start">根が最大値</text>
+      <rect x="404" y="74" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="164" y="74" width="40" height="30" class="svg-cell"/>
+      <rect x="204" y="74" width="40" height="30" class="svg-cell"/>
+      <rect x="244" y="74" width="40" height="30" class="svg-cell"/>
+      <rect x="284" y="74" width="40" height="30" class="svg-cell"/>
+      <rect x="324" y="74" width="40" height="30" class="svg-cell"/>
+      <rect x="364" y="74" width="40" height="30" class="svg-cell"/>
+      <rect x="124" y="74" width="40" height="30" class="svg-hl"/>
+      <text x="144" y="94" class="svg-text">4</text>
+      <text x="184" y="94" class="svg-text">7</text>
+      <text x="224" y="94" class="svg-text">5</text>
+      <text x="264" y="94" class="svg-text">6</text>
+      <text x="304" y="94" class="svg-text">2</text>
+      <text x="344" y="94" class="svg-text">1</text>
+      <text x="384" y="94" class="svg-text">3</text>
+      <text x="424" y="94" class="svg-text">8</text>
+      <text x="24" y="93" class="svg-small" style="text-anchor:start">根と末尾を交換</text>
+      <text x="452" y="93" class="svg-small" style="text-anchor:start">8 が確定</text>
+      <rect x="404" y="114" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="124" y="114" width="40" height="30" class="svg-cell"/>
+      <rect x="204" y="114" width="40" height="30" class="svg-cell"/>
+      <rect x="244" y="114" width="40" height="30" class="svg-cell"/>
+      <rect x="284" y="114" width="40" height="30" class="svg-cell"/>
+      <rect x="324" y="114" width="40" height="30" class="svg-cell"/>
+      <rect x="364" y="114" width="40" height="30" class="svg-cell"/>
+      <rect x="164" y="114" width="40" height="30" class="svg-hl"/>
+      <text x="144" y="134" class="svg-text">7</text>
+      <text x="184" y="134" class="svg-text">4</text>
+      <text x="224" y="134" class="svg-text">5</text>
+      <text x="264" y="134" class="svg-text">6</text>
+      <text x="304" y="134" class="svg-text">2</text>
+      <text x="344" y="134" class="svg-text">1</text>
+      <text x="384" y="134" class="svg-text">3</text>
+      <text x="424" y="134" class="svg-text">8</text>
+      <text x="24" y="133" class="svg-small" style="text-anchor:start">1 段下へ</text>
+      <text x="452" y="133" class="svg-small" style="text-anchor:start">子 7・5 の大きい方</text>
+      <rect x="404" y="154" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="124" y="154" width="40" height="30" class="svg-cell"/>
+      <rect x="164" y="154" width="40" height="30" class="svg-cell"/>
+      <rect x="204" y="154" width="40" height="30" class="svg-cell"/>
+      <rect x="284" y="154" width="40" height="30" class="svg-cell"/>
+      <rect x="324" y="154" width="40" height="30" class="svg-cell"/>
+      <rect x="364" y="154" width="40" height="30" class="svg-cell"/>
+      <rect x="244" y="154" width="40" height="30" class="svg-hl"/>
+      <text x="144" y="174" class="svg-text">7</text>
+      <text x="184" y="174" class="svg-text">6</text>
+      <text x="224" y="174" class="svg-text">5</text>
+      <text x="264" y="174" class="svg-text">4</text>
+      <text x="304" y="174" class="svg-text">2</text>
+      <text x="344" y="174" class="svg-text">1</text>
+      <text x="384" y="174" class="svg-text">3</text>
+      <text x="424" y="174" class="svg-text">8</text>
+      <text x="24" y="173" class="svg-small" style="text-anchor:start">2 段下へ</text>
+      <text x="452" y="173" class="svg-small" style="text-anchor:start">子 6・2 の大きい方</text>
+    </svg>
+    <figcaption>
+      図 8-2　ヒープ 8, 7, 5, 6, 2, 1, 3, 4 から最大値を1回取り出す手順。
+      根の 8 を末尾と交換して確定させ（枠線だけのセル）、根に来た 4 を子のうち大きい方と交換しながら下へ沈める。
+      4 が添字 3 に達すると子がヒープの範囲外となり、残りの 7 個が再びヒープになる。
+    </figcaption>
+  </figure>
+
+  <pre><code>ヒープソート(配列 a, 要素数 n):
+1. i を ⌊n/2⌋ − 1 から 0 まで減らしながら、ダウンヒープ(a, i, n)
+2. m を n − 1 から 1 まで 1 ずつ減らしながら、3〜4 を繰り返す
+3. a[0] と a[m] を交換する
+4. ダウンヒープ(a, 0, m)</code></pre>
+
+  <p>
+    取り出しは n − 1 回であり、1回ごとのダウンヒープは高々 log₂ n 段で終わる。
+    ヒープを最初に作る手間は O(n) で済むことが知られており、全体の計算量は O(n log n) である。
+    完全二分木は値の並びによらず形が決まっているため、<strong>入力がどのように並んでいても O(n log n) を保つ</strong>。
+    この点で、入力によって分割が偏るクイックソートとは異なる。
+    配列の中だけで値を入れ替えるため、追加の記憶域も要らない。
+    離れた位置の値を交換するため、安定なソートではない。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 8-1</span>
+    <p class="q-body">
+      次の配列のうち、添字 i の子を添字 2i + 1 と 2i + 2 とみなしたとき、ヒープ（すべての親が子以上の値を持つ）の条件を満たすものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>9, 7, 8, 3, 5, 6, 4</code></li>
+      <li><code>9, 5, 8, 7, 3, 6, 4</code></li>
+      <li><code>3, 4, 6, 5, 7, 8, 9</code></li>
+      <li><code>6, 3, 8, 1, 4, 7, 9</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          根の 9 は子の 7・8 以上、添字 1 の 7 は子の 3・5 以上、添字 2 の 8 は子の 6・4 以上であり、すべての親で条件を満たす。
+        </p>
+        <p>
+          (B) は根が最大値であるが、添字 1 の 5 が子の 7 より小さい。根だけでなく、すべての親で条件を満たす必要がある。
+          (C) はすべての親が子以下であり、大小の向きが逆である。
+          (D) は左の子が親より小さく、右の子が親より大きいという二分探索木の条件で並べたものであり、ヒープの条件とは異なる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 8-2</span>
+    <p class="q-body">
+      ヒープソートの計算量が、入力の並びによらず O(n log n) となる理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>ヒープは常に完全二分木の形を保つため高さが約 log₂ n に定まり、1回の取り出しに伴うダウンヒープがその段数で終わるから</li>
+      <li>基準値として、常に区間の中央値を選ぶから</li>
+      <li>配列を半分ずつに分割し、それぞれを再帰的に並べ替えるから</li>
+      <li>根と末尾の交換を n − 1 回行うだけで、値どうしの比較を必要としないから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          完全二分木の形は要素数だけで決まり、値の並びに左右されない。
+          そのため1回のダウンヒープは常に木の高さ log₂ n 段以内で終わり、n − 1 回の取り出しで O(n log n) となる。
+        </p>
+        <p>
+          (B) と (C) はクイックソートの考え方と混同している。ヒープソートは基準値を選ばず、区間の分割も行わない。
+          (D) は交換の回数だけを見ている。各交換の後にダウンヒープで子との比較を繰り返す手間が、log n の因子を生む。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 9. 高速なソートの比較と使い分け ============ -->
+<section id="s9">
+  <h2><span class="num">9</span>高速なソートの比較と使い分け</h2>
+
+  <p>
+    シェルソート・クイックソート・ヒープソートは、基本的なソートが O(n²) にとどまる原因を、それぞれ異なる方法で取り除いている。
+    シェルソートは離れた値を先に動かして1回の移動で多くの転倒を解消し、
+    クイックソートは分割によって互いに比較する必要のない値の組をまとめて除き、
+    ヒープソートは比較の結果をヒープとして残して最大値を速く取り出す。
+    比較だけに頼って並べ替える手法では、最悪の場合に n log n に比例する回数より少ない比較で済ませることはできないことが知られている。
+    クイックソートの平均とヒープソートは、この限界に達している。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 9-1　本ページで扱ったソートの計算量・安定性・追加の記憶域。
+      シェルソートの平均と最悪は間隔の列によって決まり、クイックソートの追加の記憶域は再帰の深さにあたる。
+      高速なソートは平均で基本的なソートを大きく上回るが、最悪の場合の保証と安定性はそれぞれ異なる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手法</th><th>最良</th><th>平均</th><th>最悪</th><th>安定性</th><th>追加の記憶域</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>バブルソート</td>
+          <td>O(n)</td>
+          <td>O(n²)</td>
+          <td>O(n²)</td>
+          <td>あり</td>
+          <td>O(1)</td>
+        </tr>
+        <tr>
+          <td>選択ソート</td>
+          <td>O(n²)</td>
+          <td>O(n²)</td>
+          <td>O(n²)</td>
+          <td>なし</td>
+          <td>O(1)</td>
+        </tr>
+        <tr>
+          <td>挿入ソート</td>
+          <td>O(n)</td>
+          <td>O(n²)</td>
+          <td>O(n²)</td>
+          <td>あり</td>
+          <td>O(1)</td>
+        </tr>
+        <tr>
+          <td>シェルソート</td>
+          <td>O(n log n)</td>
+          <td>O(n<sup>1.25</sup>) 程度</td>
+          <td>O(n<sup>1.5</sup>)〜O(n²)</td>
+          <td>なし</td>
+          <td>O(1)</td>
+        </tr>
+        <tr>
+          <td>クイックソート</td>
+          <td>O(n log n)</td>
+          <td>O(n log n)</td>
+          <td>O(n²)</td>
+          <td>なし</td>
+          <td>O(log n)</td>
+        </tr>
+        <tr>
+          <td>ヒープソート</td>
+          <td>O(n log n)</td>
+          <td>O(n log n)</td>
+          <td>O(n log n)</td>
+          <td>なし</td>
+          <td>O(1)</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>条件に応じた選び方</h3>
+
+  <ul>
+    <li>
+      <strong>平均で最も速いのはクイックソート</strong>である。同じ O(n log n) のヒープソートより速いことが多いのは、
+      分割が配列を端から順に読み進めるのに対し、ヒープソートは添字 i と 2i + 1 のように離れた位置を行き来するためである。
+      計算機は近い位置の記憶域を続けて読むほうが速い。ただし最悪の O(n²) は、基準値の選び方の工夫で起きにくくなるだけで、なくなるわけではない。
+    </li>
+    <li>
+      <strong>どのような入力でも処理時間の上限を保証する必要がある場合はヒープソート</strong>が適する。
+      応答時間に上限がある処理や、入力を意図的に偏らせて処理を遅くさせる攻撃を想定すべき場面がこれにあたる。
+    </li>
+    <li>
+      <strong>要素数が少ない場合や、ほぼ整列済みの入力では挿入ソート</strong>が適する。
+      数十個程度までであれば、O(n²) の不利より、手順の単純さによる1回あたりの手間の小ささが勝る。
+    </li>
+    <li>
+      <strong>シェルソート</strong>は、再帰を使わず追加の記憶域も要らないうえに手順が短いため、
+      使える記憶域や呼び出しの深さが限られた環境で、中程度の要素数を並べ替える場合に用いられる。
+    </li>
+    <li>
+      <strong>同じキーの順序を保つ必要がある場合</strong>は安定なソートを選ぶ。
+      高速なソートのうち本ページで扱った手法はいずれも安定でないため、
+      要素数が多い場合はここで扱っていない安定な高速ソート（マージソートなど）を用いる。
+    </li>
+  </ul>
+
+  <p>
+    多くのプログラミング言語が標準で備える整列の機能は、単一の手法ではなく複数の手法を組み合わせている。
+    よく用いられるのは、クイックソートを基本とし、区間が短くなったところで挿入ソートに切り替え、
+    分割の偏りで再帰が深くなりすぎたときにはヒープソートに切り替える構成である。
+    各手法が得意な条件で使われるように組み合わせることで、平均の速さと最悪の場合の保証を両立している。
+    バブルソートと選択ソートが実用で単独に用いられることはほとんどないが、
+    手順と計算量の関係を最も直接に示すため、ソートの考え方の出発点となる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-1</span>
+    <p class="q-body">
+      数百万件のデータを並べ替える。どのような入力に対しても処理時間の上限を保証する必要があり、
+      配列のほかに使える記憶域はほとんどない。最も適した手法と、その根拠の組合せとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>ヒープソート ― 入力によらず O(n log n) であり、配列の中だけで並べ替えられるから</li>
+      <li>クイックソート ― 平均で最も速く、O(n log n) で動作するから</li>
+      <li>挿入ソート ― ほぼ整列済みの入力では O(n) で終わるから</li>
+      <li>シェルソート ― 追加の記憶域が要らず、間隔の列によらず O(n log n) が保証されるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          ヒープソートは完全二分木の形が入力に左右されないため、最悪でも O(n log n) である。
+          追加の記憶域も O(1) であり、両方の要件を満たす。
+        </p>
+        <p>
+          (B) のクイックソートは平均では速いが、分割が偏ると O(n²) となり、上限を保証できない。
+          (C) の O(n) はほぼ整列済みの場合に限られ、一般の入力では O(n²) である。
+          (D) のシェルソートは追加の記憶域が要らない点は正しいが、計算量は間隔の列によって決まり、
+          O(n log n) が保証されるわけではない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-2</span>
+    <p class="q-body">
+      学籍番号の順に並んだ 40 人分の成績表を、点数の高い順に並べ替える。
+      同じ点数の学生は学籍番号の順のまま残したい。本ページで扱った手法のうち、この要件を満たすものはどれか。
+    </p>
+    <ol class="choices">
+      <li>選択ソート</li>
+      <li>挿入ソート</li>
+      <li>クイックソート</li>
+      <li>ヒープソート</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          同じキーの順序を保つには安定なソートが必要である。挿入ソートは、差し込む値より大きい値だけを右へずらし、
+          等しい値は追い越さないため安定である。要素数が 40 程度であれば、O(n²) の手間も問題にならない。
+        </p>
+        <p>
+          (A) の選択ソートは、最小値（降順であれば最大値）を先頭と交換する際に、等しい値を追い越すことがある。
+          (C) のクイックソートと (D) のヒープソートも離れた位置の値を交換するため、等しい値の順序が入れ替わりうる。
+          計算量の速さは、安定性とは別の性質である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 10. 総括 ============ -->
+<section id="s10">
+  <h2><span class="num">10</span>総括</h2>
+
+  <ul>
+    <li>
+      ソートはデータをキーの順に並べ替える処理であり、二分探索をはじめ多くの処理の前提となる。
+      手間は比較と、交換・移動の回数に分けて見積もる。
+    </li>
+    <li>
+      バブルソートは隣どうしの交換で最大値を末尾へ運ぶ。交換の回数は転倒の個数に一致する。
+      交換が起きないパスで打ち切れば、整列済みの入力は O(n) で終わる。
+    </li>
+    <li>
+      選択ソートは最小値を探してから先頭と1回だけ交換する。比較は入力によらず n(n − 1)/2 回、交換は n − 1 回である。
+    </li>
+    <li>
+      挿入ソートは整列済みの部分へ値を1つずつ差し込む。最悪は O(n²) であるが、ほぼ整列済みの入力では O(n) に近づく。
+    </li>
+    <li>
+      基本的なソートは、隣どうしの交換で転倒を1組ずつ解消するか、比較の結果を捨てるために O(n²) にとどまる。
+      安定性は、同じキーの値の順序が保たれる性質であり、計算量とは別に判断する。
+    </li>
+    <li>
+      シェルソートは間隔を縮めながら挿入ソートを繰り返し、離れた値を先に動かす。計算量は間隔の列で決まる。
+    </li>
+    <li>
+      クイックソートは基準値による分割を繰り返す分割統治法である。平均は O(n log n) であるが、
+      分割が毎回偏ると O(n²) に退化する。
+    </li>
+    <li>
+      ヒープソートは、すべての親が子以上の値を持つ完全二分木から最大値を取り出し、ダウンヒープで修復することを繰り返す。
+      入力によらず O(n log n) であり、追加の記憶域を要しない。
+    </li>
+    <li>
+      手法の選択は、平均の速さ、最悪の場合の保証、入力の性質、安定性の要否、使える記憶域によって決まる。
+      実用の整列処理は、これらの手法を得意な条件ごとに組み合わせている。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／ソートアルゴリズム（基本的なソート・高速なソート）<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
