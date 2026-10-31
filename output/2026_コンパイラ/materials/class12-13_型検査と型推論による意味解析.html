@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>型検査と型推論による意味解析 | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>型検査と型推論による意味解析</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">構文が正しくても成り立たないプログラム</a></li>
+    <li><a href="#s2">記号表とスコープ — 名前を宣言に結び付ける</a></li>
+    <li><a href="#s3">型検査 — 構文木をたどって型規則を当てはめる</a></li>
+    <li><a href="#s4">意味エラーの検出と報告</a></li>
+    <li><a href="#s5">型推論 — 書かれていない型を求める</a></li>
+    <li><a href="#s6">型を書くか、推論させるか</a></li>
+    <li><a href="#s7">型検査器の実装の手引き</a></li>
+    <li><a href="#s8">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 構文が正しくても成り立たないプログラム ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>構文が正しくても成り立たないプログラム</h2>
+
+  <p>
+    構文解析は、トークン列が文法に従っているかを調べ、従っていれば
+    <span class="term">抽象構文木</span><span class="en">(abstract syntax tree, AST)</span> を組み立てる。
+    抽象構文木では、括弧や区切り記号は節点として残らず、演算子の優先順位は木の形として表される。
+    しかし、文法に従っていることは、プログラムが意味をなすことを保証しない。次の擬似コードは、どの行も文法の上では正しい。
+  </p>
+
+  <pre><code>1. 変数 n : 整数 ← 真
+2. 変数 n : 整数 ← 3
+3. もし n ならば
+4.   total ← n + 1</code></pre>
+
+  <p>
+    1行目は整数型と宣言した変数に真偽値を入れている。2行目は同じ名前を二度宣言している。
+    3行目は条件に整数を与えている。4行目の <code>total</code> はどこにも宣言されていない。
+    いずれも「識別子 ← 式」「もし 式 ならば 文」という並び方としては正しいため、構文解析は受理する。
+    文法が記述するのは語の並び方であり、<strong>名前が何を指すか、値がどの型を持つかは文法の外にある</strong>ためである。
+  </p>
+
+  <p>
+    これらを調べる工程が <span class="term">意味解析</span><span class="en">(semantic analysis)</span> である。
+    入力は構文解析が組み立てた抽象構文木であり、出力は各節点に型を書き込んだ <span class="term">注釈付き構文木</span><span class="en">(annotated syntax tree)</span> と、見つかった誤りの一覧である。
+    誤りが一件でもあれば、後段の最適化・コード生成には進まない。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 1-1　構文解析を通過するが意味の上で成り立たない誤りと、その検出に要する情報。
+      名前に関する誤りは宣言の記録を、値に関する誤りは型の規則を参照して初めて判定できる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>誤りの例</th><th>誤りの種類</th><th>検出に要する情報</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>total ← n + 1</code>（<code>total</code> の宣言が無い）</td>
+          <td>未宣言の名前の使用</td>
+          <td>宣言の記録（記号表）</td>
+        </tr>
+        <tr>
+          <td>同じブロックで <code>n</code> を二度宣言する</td>
+          <td>重複宣言</td>
+          <td>宣言の記録とスコープ</td>
+        </tr>
+        <tr>
+          <td><code>変数 n : 整数 ← 真</code></td>
+          <td>型の不整合</td>
+          <td>型規則（宣言の型と値の型の一致）</td>
+        </tr>
+        <tr>
+          <td><code>もし n ならば …</code>（<code>n</code> は整数型）</td>
+          <td>条件の型の誤り</td>
+          <td>型規則（条件は真偽値）</td>
+        </tr>
+        <tr>
+          <td>引数を一つとる関数 <code>f</code> を <code>f(1, 2)</code> と呼ぶ</td>
+          <td>引数の個数・型の不一致</td>
+          <td>宣言の記録と型規則</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    意味解析の中心は二つの仕組みである。名前をその宣言に結び付ける<strong>記号表</strong>と、
+    式や文が型の上で整合しているかを判定する<strong>型検査</strong>である。
+    静的型付けの言語では、変数の型が変換時に確定しているため、この型検査を実行前に済ませられる。
+    動的型付けの言語では同じ検査が実行時に行われる。検査の中身は同じであり、違うのは行う時期である。
+  </p>
+
+  <p>本講では次の内容を扱う。</p>
+
+  <ul>
+    <li>記号表とスコープによる名前の管理</li>
+    <li>抽象構文木をたどって型規則を当てはめる型検査</li>
+    <li>意味エラーの検出と報告の方法</li>
+    <li>型を書かずに済ませるための型推論（制約の生成と単一化）</li>
+    <li>抽象構文木を走査する型検査器の実装</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>記号表とスコープの仕組みを用いて、名前の参照がどの宣言に結び付くかを説明できる</li>
+      <li>型規則に従って抽象構文木の各節点の型を求め、不整合の位置を指摘できる</li>
+      <li>型推論が制約の生成と単一化によって型を求める仕組みを説明できる</li>
+      <li>抽象構文木を走査する簡単な型検査器を、記号表と誤りの報告を含めて実装できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      次の誤りのうち、構文解析を通過し、意味解析で初めて誤りとして検出されるものはどれか。
+    </p>
+    <ol class="choices">
+      <li>式 <code>(a + b</code> の閉じ括弧が欠けている</li>
+      <li>言語のアルファベットに含まれない文字 <code>@</code> が式の中に現れる</li>
+      <li>宣言されていない変数 <code>count</code> を式の中で参照している</li>
+      <li>実行中に変数 <code>d</code> の値が 0 となり、式 <code>x / d</code> が 0 による除算となる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          <code>count</code> を参照する式は、識別子を含む式として文法に従っている。
+          宣言があるかどうかは語の並び方では決まらず、宣言の記録と照合して初めて判定できるため、意味解析が検出する。
+        </p>
+        <p>
+          (A) の括弧の対応は語の並び方の規則そのものであり、構文解析が検出する。
+          (B) の未知の文字はトークンに切り出せないため、字句解析の段階で誤りとなる。
+          (D) は変換時には値が分からず、実行して初めて判明する。型の上では整数どうしの除算として整合しており、意味解析は通過する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 記号表とスコープ — 名前を宣言に結び付ける ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>記号表とスコープ — 名前を宣言に結び付ける</h2>
+
+  <p>
+    型検査をするには、式に現れた名前の型が分かっていなければならない。
+    宣言と使用は抽象構文木の上で任意に離れうるため、宣言を読んだ時点でその内容を記録し、
+    使用箇所では記録を名前で探す。この記録が <span class="term">記号表</span><span class="en">(symbol table)</span> である。
+  </p>
+
+  <p>記号表の一行（項目）には、一般に次の情報を記録する。</p>
+
+  <ul>
+    <li><strong>名前</strong> — 探すときの鍵</li>
+    <li><strong>種別</strong> — 変数・関数・型名などの区別</li>
+    <li><strong>型</strong> — 変数であればその型、関数であれば引数の型と戻り値の型</li>
+    <li><strong>宣言位置</strong> — 誤りを報告するときに「どこで宣言されたか」を示すための行・列</li>
+  </ul>
+
+  <p>
+    記号表に対する基本操作は、宣言を読んだときに項目を加える<strong>登録</strong>と、
+    使用箇所で名前から項目を引く<strong>探索</strong>の二つである。
+    探索で項目が見つからなければ、その名前は未宣言である。
+  </p>
+
+  <h3>スコープ</h3>
+
+  <p>
+    多くの言語では、ブロックの中で宣言した名前はそのブロックの中でのみ有効である。
+    名前の宣言が有効な範囲を <span class="term">スコープ</span><span class="en">(scope)</span> と呼ぶ。
+    スコープを扱うために、記号表を一枚の表ではなく、<strong>スコープごとの表を積み重ねたもの</strong>として持つ。
+  </p>
+
+  <ul>
+    <li>ブロックに入るとき、空の表を一枚積む</li>
+    <li>宣言は、いちばん上（最も内側）の表に登録する</li>
+    <li>探索は、いちばん上の表から順に下（外側）へ向かって調べ、最初に見つかった項目を採る</li>
+    <li>ブロックを出るとき、いちばん上の表を取り除く。そのブロックで宣言した名前は以後見つからない</li>
+  </ul>
+
+  <p>
+    名前がどの宣言を指すかがソースコードの入れ子構造だけで定まる方式を
+    <span class="term">静的スコープ</span><span class="en">(static scope / lexical scope)</span> と呼ぶ。
+    多くの言語がこれを採用しており、上の積み重ねた表はこの方式をそのまま実現する。次の擬似コードで動作を確かめる。
+  </p>
+
+  <pre><code>1. 変数 x : 整数 ← 1
+2. 変数 y : 整数 ← 2
+3. ブロック開始
+4.   変数 x : 実数 ← 0.5
+5.   x と y を表示する
+6. ブロック終了
+7. x を表示する</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 580 292" role="img" aria-label="5行目を検査している時点の記号表を示す図。上に内側のスコープの表があり、4行目で宣言した実数型の x が記録されている。下に大域スコープの表があり、1行目の整数型の x と2行目の整数型の y が記録されている。5行目の x は内側の表の x に、5行目の y は内側の表に無いため外側の表の y に結び付く。1行目の x は覆い隠されている。">
+      <path d="M 104 103 L 192 103" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 104 243 L 192 243" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 510 100 L 510 238" class="svg-arrow" marker-end="url(#ah1)"/>
+
+      <text x="290" y="18" class="svg-small">5行目を検査している時点の記号表（上が内側のスコープ）</text>
+
+      <text x="200" y="52" class="svg-small" style="text-anchor:start">内側のスコープ（3〜6行目のブロック）</text>
+      <rect x="200" y="60" width="80" height="28" class="svg-cell-plain"/>
+      <rect x="280" y="60" width="100" height="28" class="svg-cell-plain"/>
+      <rect x="380" y="60" width="100" height="28" class="svg-cell-plain"/>
+      <rect x="200" y="88" width="80" height="30" class="svg-hl"/>
+      <rect x="280" y="88" width="100" height="30" class="svg-hl"/>
+      <rect x="380" y="88" width="100" height="30" class="svg-hl"/>
+
+      <text x="200" y="162" class="svg-small" style="text-anchor:start">大域スコープ（プログラム全体）</text>
+      <rect x="200" y="170" width="80" height="28" class="svg-cell-plain"/>
+      <rect x="280" y="170" width="100" height="28" class="svg-cell-plain"/>
+      <rect x="380" y="170" width="100" height="28" class="svg-cell-plain"/>
+      <rect x="200" y="198" width="80" height="30" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="280" y="198" width="100" height="30" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="380" y="198" width="100" height="30" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="200" y="228" width="80" height="30" class="svg-hl"/>
+      <rect x="280" y="228" width="100" height="30" class="svg-hl"/>
+      <rect x="380" y="228" width="100" height="30" class="svg-hl"/>
+
+      <text x="240" y="79" class="svg-small">名前</text>
+      <text x="330" y="79" class="svg-small">型</text>
+      <text x="430" y="79" class="svg-small">宣言位置</text>
+      <text x="240" y="108" class="svg-mono">x</text>
+      <text x="330" y="108" class="svg-text">実数</text>
+      <text x="430" y="108" class="svg-text">4行目</text>
+
+      <text x="240" y="189" class="svg-small">名前</text>
+      <text x="330" y="189" class="svg-small">型</text>
+      <text x="430" y="189" class="svg-small">宣言位置</text>
+      <text x="240" y="218" class="svg-mono">x</text>
+      <text x="330" y="218" class="svg-text">整数</text>
+      <text x="430" y="218" class="svg-text">1行目</text>
+      <text x="240" y="248" class="svg-mono">y</text>
+      <text x="330" y="248" class="svg-text">整数</text>
+      <text x="430" y="248" class="svg-text">2行目</text>
+
+      <text x="16" y="108" class="svg-small" style="text-anchor:start">5行目の x</text>
+      <text x="16" y="248" class="svg-small" style="text-anchor:start">5行目の y</text>
+      <text x="545" y="164" class="svg-small">内側から</text>
+      <text x="545" y="180" class="svg-small">外側へ</text>
+      <text x="200" y="282" class="svg-small" style="text-anchor:start">破線の行（1行目の x）は内側の x に覆い隠される</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-1　5行目を検査している時点の記号表。探索は内側の表から外側の表へ進み、最初に見つかった項目を採る。
+      5行目の x は内側の表で見つかるため実数型であり、y は内側に無いため外側で見つかり整数型である。
+    </figcaption>
+  </figure>
+
+  <p>
+    5行目の <code>x</code> は、内側の表で4行目の宣言が先に見つかるため、実数型の変数を指す。
+    1行目の <code>x</code> は外側の表に残っているが、探索がそこまで届かない。
+    内側の宣言が外側の同名の宣言を見えなくすることを <span class="term">覆い隠し</span><span class="en">(shadowing)</span> と呼ぶ。
+    6行目でブロックを出ると内側の表が取り除かれるため、7行目の <code>x</code> は再び1行目の整数型の変数を指す。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      重複宣言の検査は、<strong>いちばん上の表だけ</strong>を調べて行う。4行目の <code>x</code> は外側に同名の宣言があるが、
+      別のスコープへの宣言であるため誤りではない。表全体を探索して「既にある」と判定すると、正しい覆い隠しまで誤りとして報告してしまう。
+      なお、内側での同名の宣言そのものを禁止する言語もあり、この扱いは言語によって異なる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      静的スコープの言語で次の擬似コードを検査する。6行目と8行目に現れる <code>a</code> は、それぞれ何行目の宣言に結び付くか。
+    </p>
+    <pre><code>1. 変数 a : 整数 ← 1
+2. ブロック開始
+3.   変数 b : 整数 ← a + 1
+4.   ブロック開始
+5.     変数 a : 実数 ← 2.5
+6.     a を表示する
+7.   ブロック終了
+8.   a を表示する
+9. ブロック終了</code></pre>
+    <ol class="choices">
+      <li>6行目は5行目、8行目は1行目の宣言に結び付く</li>
+      <li>6行目も8行目も1行目の宣言に結び付く</li>
+      <li>6行目も8行目も5行目の宣言に結び付く</li>
+      <li>5行目が重複宣言の誤りとなり、結び付く宣言は定まらない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          6行目の時点では、4行目で積んだ表に5行目の <code>a</code> が登録されている。探索は内側の表から始まるため、5行目の宣言が見つかる。
+          7行目でその表が取り除かれるので、8行目の探索は2行目で積んだ表（<code>b</code> のみ）を経て大域の表に達し、1行目の宣言が見つかる。
+        </p>
+        <p>
+          (B) は探索を外側の表から始めると考えた誤りである。外側から探すと、内側で宣言した名前が常に外側の同名の宣言に負けてしまう。
+          (C) は、ブロックを出た後も内側の表が残る、あるいは最後に読んだ宣言が有効になると考えた誤りである。表はブロックを出るときに取り除かれる。
+          (D) は覆い隠しと重複宣言を混同している。重複宣言はいちばん上の表に同名の項目がある場合に限られ、5行目の時点でその表は空である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 型検査 — 構文木をたどって型規則を当てはめる ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>型検査 — 構文木をたどって型規則を当てはめる</h2>
+
+  <p>
+    <span class="term">型検査</span><span class="en">(type checking)</span> は、抽象構文木の各節点について型を求め、
+    言語の定める規則に合っているかを判定する工程である。この規則を <span class="term">型規則</span><span class="en">(typing rule)</span> と呼ぶ。
+    型規則は「子の型が〜であれば、この節点の型は〜である」という<strong>前提と結論</strong>の形で書ける。
+  </p>
+
+  <pre><code>前提: e1 の型が 整数、かつ e2 の型が 整数
+結論: e1 + e2 の型は 整数</code></pre>
+
+  <p>
+    前提が満たされなければ、その節点で型の不整合が見つかったことになる。
+    変数の型は記号表から得る。型規則の文脈では、名前から型への対応を <span class="term">型環境</span><span class="en">(type environment)</span> と呼ぶが、実装上は記号表がこれを担う。
+    本講で用いる小さな言語の型規則を表 3-1 に示す。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　本講で用いる言語の型規則。式の規則は節点の型を結論とし、文の規則は文が正しいかを結論とする。
+      いずれの規則も、子の型だけを見て判定できる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>節点</th><th>前提</th><th>結論</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>整数の定数（<code>3</code> など）</td><td>なし</td><td>整数</td></tr>
+        <tr><td>真偽値の定数（<code>真</code>, <code>偽</code>）</td><td>なし</td><td>真偽値</td></tr>
+        <tr><td>変数の参照 <code>x</code></td><td>記号表で <code>x</code> の型が T</td><td>T</td></tr>
+        <tr><td><code>e1 + e2</code>（<code>-</code>, <code>*</code>, <code>/</code> も同じ）</td><td>e1 が整数、e2 が整数</td><td>整数</td></tr>
+        <tr><td><code>e1 &lt; e2</code>（<code>=</code>, <code>≠</code> 等も同じ）</td><td>e1 が整数、e2 が整数</td><td>真偽値</td></tr>
+        <tr><td><code>e1 かつ e2</code>（<code>または</code> も同じ）</td><td>e1 が真偽値、e2 が真偽値</td><td>真偽値</td></tr>
+        <tr><td>宣言 <code>変数 x : T ← e</code></td><td>e の型が T</td><td>正しい文（<code>x</code> を型 T で登録）</td></tr>
+        <tr><td>代入 <code>x ← e</code></td><td>記号表で <code>x</code> の型が T、e の型が T</td><td>正しい文</td></tr>
+        <tr><td><code>もし c ならば …</code>、<code>c の間繰り返す</code></td><td>c が真偽値、本体が正しい文</td><td>正しい文</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>子を先に、親を後に</h3>
+
+  <p>
+    表 3-1 の式の規則は、どれも子の型を前提とする。したがって、ある節点の型を決める前に、その子の型が全て決まっていなければならない。
+    これを満たすたどり方は、子を全て訪れてから親を処理する <span class="term">後順走査</span><span class="en">(post-order traversal)</span> である。
+    <strong>型は葉で決まり、規則を一段ずつ当てはめながら根へ向かって決まっていく。</strong>
+  </p>
+
+  <p>
+    式 <code>a * (b + c) &lt; d</code> を例にとる。<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code> はいずれも整数型と宣言済みとする。
+    抽象構文木には括弧の節点は無く、<code>b + c</code> が先に結び付くことは、<code>+</code> の節点が <code>*</code> の子になっているという木の形で表されている（図 3-1）。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 304" role="img" aria-label="式 a かける 括弧 b たす c 括弧閉じ 小なり d の抽象構文木。根は小なり、その左の子がかけ算、右の子が d。かけ算の左の子が a、右の子がたし算で、たし算の子が b と c。各節点の左に型が決まる順序、右に求めた型が書かれ、葉と算術演算の節点は整数、根の小なりは真偽値である。">
+      <path d="M 290 60 L 180 100" class="svg-line"/>
+      <path d="M 290 60 L 420 100" class="svg-line"/>
+      <path d="M 180 130 L 110 170" class="svg-line"/>
+      <path d="M 180 130 L 260 170" class="svg-line"/>
+      <path d="M 260 200 L 200 240" class="svg-line"/>
+      <path d="M 260 200 L 320 240" class="svg-line"/>
+
+      <rect x="152" y="100" width="56" height="30" class="svg-cell"/>
+      <rect x="392" y="100" width="56" height="30" class="svg-cell"/>
+      <rect x="82"  y="170" width="56" height="30" class="svg-cell"/>
+      <rect x="232" y="170" width="56" height="30" class="svg-cell"/>
+      <rect x="172" y="240" width="56" height="30" class="svg-cell"/>
+      <rect x="292" y="240" width="56" height="30" class="svg-cell"/>
+      <rect x="262" y="30"  width="56" height="30" class="svg-hl"/>
+
+      <text x="290" y="50"  class="svg-mono">&lt;</text>
+      <text x="180" y="120" class="svg-mono">*</text>
+      <text x="420" y="120" class="svg-mono">d</text>
+      <text x="110" y="190" class="svg-mono">a</text>
+      <text x="260" y="190" class="svg-mono">+</text>
+      <text x="200" y="260" class="svg-mono">b</text>
+      <text x="320" y="260" class="svg-mono">c</text>
+
+      <text x="256" y="50"  class="svg-mono" style="text-anchor:end">(7)</text>
+      <text x="146" y="120" class="svg-mono" style="text-anchor:end">(5)</text>
+      <text x="386" y="120" class="svg-mono" style="text-anchor:end">(6)</text>
+      <text x="76"  y="190" class="svg-mono" style="text-anchor:end">(1)</text>
+      <text x="226" y="190" class="svg-mono" style="text-anchor:end">(4)</text>
+      <text x="166" y="260" class="svg-mono" style="text-anchor:end">(2)</text>
+      <text x="286" y="260" class="svg-mono" style="text-anchor:end">(3)</text>
+
+      <text x="324" y="50"  class="svg-small" style="text-anchor:start">真偽値</text>
+      <text x="214" y="120" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="454" y="120" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="144" y="190" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="294" y="190" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="234" y="260" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="354" y="260" class="svg-small" style="text-anchor:start">整数</text>
+
+      <text x="24" y="296" class="svg-small" style="text-anchor:start">(n) は型が決まる順序。子を全て検査してから親を検査する（後順走査）</text>
+    </svg>
+    <figcaption>
+      図 3-1　式 a * (b + c) &lt; d の抽象構文木と、各節点の型が決まる順序。葉の型は記号表から得て、
+      演算の節点では子の型に型規則を当てはめる。根の <code>&lt;</code> だけが、子と異なる型（真偽値）を結論とする。
+    </figcaption>
+  </figure>
+
+  <p>
+    (1)〜(3) の葉は記号表を引いて整数型と決まる。(4) の <code>+</code> は子が二つとも整数であるから、規則により整数となる。
+    (5) の <code>*</code> も同様に整数、(6) の <code>d</code> は整数、(7) の <code>&lt;</code> は子が整数と整数であるから真偽値となる。
+    この式を <code>もし … ならば</code> の条件に置けば、条件が真偽値であるという文の規則も満たされる。
+  </p>
+
+  <p>
+    節点の種類ごとに規則が一つ対応するという構造は、再帰下降構文解析で非終端記号ごとに一つの関数を用意したのと同じ考え方である。
+    型検査器は「節点を受け取り、子を再帰的に検査してから、その節点の種類に応じた規則を当てはめる」手続きとして書ける。
+  </p>
+
+  <div class="note">
+    <span class="label">補足: 暗黙の型変換</span>
+    <p>
+      整数と実数の加算を許す言語では、規則を「一方が実数ならば結果は実数」とし、整数側の子と <code>+</code> の間に
+      「整数を実数に変換する」節点を挿入することが多い。このように処理系が自動で行う変換を
+      <span class="term">暗黙の型変換</span><span class="en">(implicit conversion / coercion)</span> と呼ぶ。
+      どの組合せで変換を許すかは言語によって大きく異なり、全く許さない言語もある。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      <code>x</code> と <code>y</code> を整数型、<code>f</code> を真偽値型と宣言した。式 <code>(x + y) &lt; 2 * f</code> を表 3-1 の規則で後順走査により検査したとき、
+      型の不整合が最初に見つかる節点はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>*</code> の節点</li>
+      <li><code>&lt;</code> の節点</li>
+      <li>括弧 <code>( )</code> に対応する節点</li>
+      <li>不整合は見つからず、式全体の型は真偽値となる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          抽象構文木の根は <code>&lt;</code> であり、左の子が <code>x + y</code>、右の子が <code>2 * f</code> である。
+          後順走査では左の部分木を先に検査し、<code>x + y</code> は整数となる。続いて右の部分木で <code>2</code> が整数、<code>f</code> が真偽値と決まり、
+          <code>*</code> の節点で「両方が整数」という前提が満たされないことが分かる。
+        </p>
+        <p>
+          (B) は検査が根から始まると考えた誤りである。根の規則を当てはめるには子の型が必要であり、子の検査が先に済む。
+          (C) は括弧が節点として残ると考えた誤りである。抽象構文木では括弧は木の形に吸収され、節点にはならない。
+          (D) は <code>&lt;</code> の結論が真偽値であることだけを見て、子の検査を省いた誤りである。型規則は前提を満たした場合にのみ結論を与える。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 意味エラーの検出と報告 ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>意味エラーの検出と報告</h2>
+
+  <p>
+    型検査や記号表の探索で見つかった誤りを <span class="term">意味エラー</span><span class="en">(semantic error)</span> と呼ぶ。
+    誤りを見つけることと同じくらい、<strong>それを利用者が直せる形で伝えること</strong>が重要である。
+    報告には一般に次の要素を含める。
+  </p>
+
+  <ul>
+    <li><strong>位置</strong> — 行と列。字句解析がトークンに付けた位置を、構文解析が抽象構文木の節点へ引き継いでおく</li>
+    <li><strong>誤りの種類</strong> — 未宣言、重複宣言、型の不整合など</li>
+    <li><strong>期待したものと実際のもの</strong> — 「条件には真偽値が必要だが、整数が与えられた」のように両方を示す</li>
+    <li><strong>関連する位置</strong> — 重複宣言であれば、先に宣言された位置。記号表の宣言位置がここで使われる</li>
+  </ul>
+
+  <p>
+    位置が抽象構文木に残っていなければ、意味解析は誤りの存在を知りながら場所を示せない。
+    節点に位置を持たせることは、構文解析の段階で済ませておく必要がある。
+  </p>
+
+  <h3>最初の誤りで止めない</h3>
+
+  <p>
+    誤りを一件見つけるたびに処理を打ち切ると、利用者は一件直すごとに変換をやり直すことになる。
+    そこで型検査器は、誤りを一覧に記録したうえで検査を続け、最後にまとめて報告する。
+  </p>
+
+  <p>
+    ただし、そのまま続けると一つの誤りが連鎖して多数の報告を生む。
+    <code>p</code> を宣言し忘れた <code>x ← p * 2 + 1</code> では、<code>p</code> の型が決まらないため、
+    <code>*</code> も <code>+</code> も代入も前提を満たせず、それぞれが誤りを報告してしまう。
+    利用者にとって意味があるのは最初の一件だけである。
+  </p>
+
+  <p>
+    これを防ぐために、型が決まらなかった節点には特別な <span class="term">誤り型</span><span class="en">(error type)</span> を与える。
+    誤り型は「既に報告済みの誤りに由来する」ことを表し、<strong>子に誤り型がある節点は、自らは報告せずに誤り型を親へ渡す</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 304" role="img" aria-label="代入 x ← p * 2 + 1 の抽象構文木。根は代入、その子が x とたし算、たし算の子がかけ算と 1、かけ算の子が p と 2。宣言されていない p だけが強調され、誤り型を返して誤りを報告する。かけ算、たし算、代入は誤り型を受け取るが報告はしない。x、1、2 は整数型である。">
+      <path d="M 290 60 L 180 100" class="svg-line"/>
+      <path d="M 290 60 L 400 100" class="svg-line"/>
+      <path d="M 400 130 L 330 170" class="svg-line"/>
+      <path d="M 400 130 L 470 170" class="svg-line"/>
+      <path d="M 330 200 L 260 240" class="svg-line"/>
+      <path d="M 330 200 L 400 240" class="svg-line"/>
+
+      <rect x="262" y="30"  width="56" height="30" class="svg-cell"/>
+      <rect x="152" y="100" width="56" height="30" class="svg-cell"/>
+      <rect x="372" y="100" width="56" height="30" class="svg-cell"/>
+      <rect x="302" y="170" width="56" height="30" class="svg-cell"/>
+      <rect x="442" y="170" width="56" height="30" class="svg-cell"/>
+      <rect x="372" y="240" width="56" height="30" class="svg-cell"/>
+      <rect x="232" y="240" width="56" height="30" class="svg-hl"/>
+
+      <text x="290" y="50"  class="svg-mono">←</text>
+      <text x="180" y="120" class="svg-mono">x</text>
+      <text x="400" y="120" class="svg-mono">+</text>
+      <text x="330" y="190" class="svg-mono">*</text>
+      <text x="470" y="190" class="svg-mono">1</text>
+      <text x="260" y="260" class="svg-mono">p</text>
+      <text x="400" y="260" class="svg-mono">2</text>
+
+      <text x="324" y="50"  class="svg-small" style="text-anchor:start">検査を続ける（報告しない）</text>
+      <text x="214" y="120" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="434" y="120" class="svg-small" style="text-anchor:start">誤り型（報告しない）</text>
+      <text x="296" y="190" class="svg-small" style="text-anchor:end">誤り型（報告しない）</text>
+      <text x="504" y="190" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="226" y="260" class="svg-small" style="text-anchor:end">未宣言 → 誤り型（報告する）</text>
+      <text x="434" y="260" class="svg-small" style="text-anchor:start">整数</text>
+
+      <text x="24" y="296" class="svg-small" style="text-anchor:start">報告は p の 1 件だけになる。誤り型を受け取った節点は報告を重ねない</text>
+    </svg>
+    <figcaption>
+      図 4-1　誤り型による連鎖の抑制。未宣言の p で一件だけ報告し、そこから根へ向かう節点は誤り型を受け渡すだけである。
+      誤り型が無ければ、<code>*</code>・<code>+</code>・代入の三箇所でも誤りが報告され、原因が一つであることが読み取りにくくなる。
+    </figcaption>
+  </figure>
+
+  <p>
+    誤り型を受け取った節点は報告しないが、検査そのものは続く。兄弟の部分木に別の独立した誤りがあれば、それは別に報告される。
+    抑えられるのは<strong>同じ原因に由来する報告だけ</strong>である。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      <code>p</code> と <code>q</code> がともに宣言されていない状態で、宣言文 <code>変数 r : 整数 ← p * 2 + q</code> を検査する。
+      誤り型による連鎖の抑制を行う型検査器が報告する誤りは何件か。
+    </p>
+    <ol class="choices">
+      <li>1 件</li>
+      <li>2 件</li>
+      <li>3 件</li>
+      <li>5 件</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          <code>p</code> と <code>q</code> はそれぞれ独立に未宣言であり、どちらも記号表の探索で見つからないため、一件ずつ報告される。
+          <code>*</code> は子の <code>p</code> が誤り型、<code>+</code> は両方の子が誤り型、宣言文は初期化式が誤り型であるため、いずれも報告しない。
+        </p>
+        <p>
+          (A) は最初の誤りで検査を打ち切ると考えた誤りである。誤り型は検査を止めるものではなく、同じ原因に由来する報告を抑えるものである。
+          (C) は、宣言文で「整数型の変数に誤り型の値を入れる」不整合を別に報告すると考えた誤りである。初期化式の誤り型は既に報告済みの誤りに由来する。
+          (D) は連鎖を抑えない場合の件数（<code>p</code>, <code>q</code>, <code>*</code>, <code>+</code>, 宣言文）である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 型推論 — 書かれていない型を求める ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>型推論 — 書かれていない型を求める</h2>
+
+  <p>
+    ここまでの型検査は、全ての変数と引数の型が宣言に書かれていることを前提としていた。
+    しかし <code>変数 n : 整数 ← 3</code> の <code>整数</code> は、右辺の <code>3</code> から明らかである。
+    書かれていない型を、型規則に基づいて処理系が求めることを <span class="term">型推論</span><span class="en">(type inference)</span> と呼ぶ。
+    型推論は型検査を省くものではなく、<strong>型を求めたうえで型検査を行う</strong>ものであり、静的型付けの一種である。
+  </p>
+
+  <p>
+    変数の初期化式のように、子の型が全て分かっている場合は、後順走査で求めた型をそのまま変数の型とすればよい。
+    難しいのは、引数のように<strong>使われ方からしか型が分からない</strong>名前である。次の関数を考える。
+  </p>
+
+  <pre><code>関数 f(a, b) = (a + 1) &lt; b</code></pre>
+
+  <p>
+    <code>a</code> と <code>b</code> の型はどこにも書かれていない。<code>a</code> が整数でなければならないことは、<code>a</code> を検査する時点ではなく、親の <code>+</code> を検査する時点で初めて分かる。
+    そこで型推論は、型検査を次の二段階に分ける。
+  </p>
+
+  <ol>
+    <li><strong>制約の生成</strong> — 型の分からない箇所に未知数を置き、各節点の型規則が要求する等式を集める</li>
+    <li><strong>制約の解決</strong> — 集めた等式を全て満たす未知数の値を求める</li>
+  </ol>
+
+  <h3>制約の生成</h3>
+
+  <p>
+    型の未知数を <span class="term">型変数</span><span class="en">(type variable)</span> と呼び、α, β, t1 のように書く。
+    抽象構文木を後順走査し、各節点で型規則の前提と結論を、型どうしの等式として書き出す。
+    この等式を <span class="term">型制約</span><span class="en">(type constraint)</span> と呼ぶ。
+    検査ではその場で前提の成否を判定していたが、推論では<strong>判定を保留して等式として記録する</strong>点が異なる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 216" role="img" aria-label="関数 f(a, b) = (a + 1) &lt; b の抽象構文木と、生成される型制約を示す図。a に型変数 α、b に β、たし算の節点に t1、小なりの節点に t2 を割り当てる。たし算の節点からは α = 整数、整数 = 整数、t1 = 整数 の三つ、小なりの節点からは t1 = 整数、β = 整数、t2 = 真偽値 の三つの等式が生成される。">
+      <path d="M 170 66 L 100 106" class="svg-line"/>
+      <path d="M 170 66 L 250 106" class="svg-line"/>
+      <path d="M 100 136 L 50 176" class="svg-line"/>
+      <path d="M 100 136 L 150 176" class="svg-line"/>
+
+      <text x="170" y="18" class="svg-small">型変数を置いた抽象構文木</text>
+      <text x="445" y="18" class="svg-small">生成される型制約</text>
+
+      <rect x="142" y="36"  width="56" height="30" class="svg-cell"/>
+      <rect x="72"  y="106" width="56" height="30" class="svg-cell"/>
+      <rect x="122" y="176" width="56" height="30" class="svg-cell"/>
+      <rect x="222" y="106" width="56" height="30" class="svg-hl"/>
+      <rect x="22"  y="176" width="56" height="30" class="svg-hl"/>
+
+      <text x="170" y="56"  class="svg-mono">&lt;</text>
+      <text x="100" y="126" class="svg-mono">+</text>
+      <text x="250" y="126" class="svg-mono">b</text>
+      <text x="50"  y="196" class="svg-mono">a</text>
+      <text x="150" y="196" class="svg-mono">1</text>
+
+      <text x="204" y="56"  class="svg-mono" style="text-anchor:start">t2</text>
+      <text x="134" y="126" class="svg-mono" style="text-anchor:start">t1</text>
+      <text x="284" y="126" class="svg-mono" style="text-anchor:start">β</text>
+      <text x="84"  y="196" class="svg-mono" style="text-anchor:start">α</text>
+      <text x="184" y="196" class="svg-small" style="text-anchor:start">整数</text>
+
+      <text x="330" y="50"  class="svg-mono" style="text-anchor:start">(1) α  = 整数</text>
+      <text x="330" y="78"  class="svg-mono" style="text-anchor:start">(2) 整数 = 整数</text>
+      <text x="330" y="106" class="svg-mono" style="text-anchor:start">(3) t1 = 整数</text>
+      <text x="330" y="134" class="svg-mono" style="text-anchor:start">(4) t1 = 整数</text>
+      <text x="330" y="162" class="svg-mono" style="text-anchor:start">(5) β  = 整数</text>
+      <text x="330" y="190" class="svg-mono" style="text-anchor:start">(6) t2 = 真偽値</text>
+
+      <text x="470" y="50"  class="svg-small" style="text-anchor:start">+ の左の子</text>
+      <text x="470" y="78"  class="svg-small" style="text-anchor:start">+ の右の子</text>
+      <text x="470" y="106" class="svg-small" style="text-anchor:start">+ の結果</text>
+      <text x="470" y="134" class="svg-small" style="text-anchor:start">&lt; の左の子</text>
+      <text x="470" y="162" class="svg-small" style="text-anchor:start">&lt; の右の子</text>
+      <text x="470" y="190" class="svg-small" style="text-anchor:start">&lt; の結果</text>
+    </svg>
+    <figcaption>
+      図 5-1　型が書かれていない引数 a, b（強調）と演算の結果に型変数を置き、各節点の型規則を等式として書き出す。
+      等式 (1)〜(3) は <code>+</code> の規則、(4)〜(6) は <code>&lt;</code> の規則に由来する。この時点では、どの型変数の値もまだ決めていない。
+    </figcaption>
+  </figure>
+
+  <h3>単一化による制約の解決</h3>
+
+  <p>
+    集めた等式を一つずつ取り出し、型変数に当てはまる型を決めていく。この手続きを <span class="term">単一化</span><span class="en">(unification)</span> と呼ぶ。
+    決まった「型変数 → 型」の対応の集まりを <span class="term">置換</span><span class="en">(substitution)</span> と呼び、等式を取り出すたびに、まずそれまでの置換を当てはめてから次の規則で処理する。
+  </p>
+
+  <ul>
+    <li><strong>両辺が同じ型</strong>（<code>整数 = 整数</code> など） — 何もしない</li>
+    <li><strong>一方が型変数</strong>（<code>α = 整数</code> など） — 置換に「α → 整数」を加える</li>
+    <li><strong>両辺が同じ形の複合型</strong>（関数型 <code>(α) → β</code> と <code>(整数) → 真偽値</code> など） — 対応する部分どうしの等式に分けて処理する</li>
+    <li><strong>両辺が異なる型</strong>（<code>整数 = 真偽値</code> など） — 解が存在しない。型の誤りとして報告する</li>
+  </ul>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　図 5-1 の型制約を順に単一化した経過。等式を取り出すたびにそれまでの置換を当てはめるため、
+      (4) は (3) で決まった t1 によって「整数 = 整数」となり、何もせずに済む。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>等式</th><th>置換を当てはめた形</th><th>処理</th><th>処理後の置換</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>(1) α = 整数</td><td>α = 整数</td><td>型変数に型を対応させる</td><td>α → 整数</td></tr>
+        <tr><td>(2) 整数 = 整数</td><td>整数 = 整数</td><td>同じ型なので何もしない</td><td>α → 整数</td></tr>
+        <tr><td>(3) t1 = 整数</td><td>t1 = 整数</td><td>型変数に型を対応させる</td><td>α → 整数, t1 → 整数</td></tr>
+        <tr><td>(4) t1 = 整数</td><td>整数 = 整数</td><td>同じ型なので何もしない</td><td>α → 整数, t1 → 整数</td></tr>
+        <tr><td>(5) β = 整数</td><td>β = 整数</td><td>型変数に型を対応させる</td><td>α → 整数, t1 → 整数, β → 整数</td></tr>
+        <tr><td>(6) t2 = 真偽値</td><td>t2 = 真偽値</td><td>型変数に型を対応させる</td><td>α → 整数, t1 → 整数, β → 整数, t2 → 真偽値</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    全ての等式を処理し終えると、<code>a</code> は整数、<code>b</code> は整数、関数の結果は真偽値と決まる。
+    すなわち <code>f</code> の型は <code>(整数, 整数) → 真偽値</code> である。型を一つも書かずに、型を書いた場合と同じ検査が行えたことになる。
+  </p>
+
+  <h3>解が無い場合 — 推論による誤りの検出</h3>
+
+  <p>
+    条件式を値として持つ次の関数を考える。<code>もし c ならば e1 そうでなければ e2</code> の型規則は、
+    「c が真偽値、かつ e1 と e2 が同じ型 T であれば、全体の型は T」とする。
+  </p>
+
+  <pre><code>関数 g(x) = もし x ならば x + 1 そうでなければ 0</code></pre>
+
+  <p>
+    <code>x</code> に α を置いて後順走査すると、<code>x + 1</code> の節点から <code>α = 整数</code> が、条件式の節点から <code>α = 真偽値</code> が生成される。
+    前者で置換に「α → 整数」が加わった後、後者に当てはめると <code>整数 = 真偽値</code> となり、解が存在しない。
+    <strong>同じ <code>x</code> に対して、二つの使用箇所が異なる型を要求している</strong>ことが、単一化の失敗として検出される。
+  </p>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      プログラム全体の制約を集めて単一化する方式は、多くの関数型言語の基礎となっており、
+      考案者の名から <span class="term">Hindley–Milner 型推論</span><span class="en">(Hindley–Milner type inference)</span> と呼ばれる。
+      この方式は、引数の型が使われ方から一つに定まらない関数（受け取った値をそのまま返す関数など）に対して、
+      「任意の型 α について <code>(α) → α</code>」という型を与えることもできる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      関数 <code>h(x, y) = もし x &lt; y ならば x そうでなければ 0</code> の型を、表 3-1 の規則と本節の条件式の規則に基づいて推論した。
+      <code>h</code> の型として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>(整数, 整数) → 整数</code></li>
+      <li><code>(整数, 整数) → 真偽値</code></li>
+      <li><code>(α, β) → α</code>（型が書かれていないため、具体的な型は定まらない）</li>
+      <li><code>(整数, β) → 整数</code>（<code>y</code> は条件にしか現れないため、任意の型でよい）</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          <code>x</code> に α、<code>y</code> に β を置く。<code>x &lt; y</code> の節点から <code>α = 整数</code>, <code>β = 整数</code> と、条件が真偽値であることが得られる。
+          条件式の節点からは、二つの分岐 <code>x</code> と <code>0</code> が同じ型であること、すなわち <code>α = 整数</code> が得られ、全体の型も整数となる。
+        </p>
+        <p>
+          (B) は条件 <code>x &lt; y</code> の型を関数全体の型と取り違えている。条件式全体の型は、条件ではなく分岐の型で決まる。
+          (C) は型推論の役割を見落としている。型が書かれていなくても、使われ方から生成した制約によって型変数の値が定まる。
+          (D) は <code>&lt;</code> が右の子にも整数を要求することを見落としている。条件の中に現れる名前にも、その節点の規則による制約が生成される。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      ある式から、型制約 <code>α = β</code>, <code>β = 整数</code>, <code>α = 真偽値</code> がこの順に生成された。これを順に単一化した結果として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>3つ目の等式に置換を当てはめると <code>整数 = 真偽値</code> となり、型の誤りとして報告される</li>
+      <li>α は真偽値、β は整数と決まり、単一化は成功する</li>
+      <li>1つ目の等式の時点で失敗する。両辺が型変数の等式は解けないためである</li>
+      <li>単一化は成功し、α は整数と真偽値のどちらの値も取りうる型となる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          1つ目で「α → β」、2つ目で「β → 整数」が置換に加わり、α も整数を指すことになる。
+          3つ目の <code>α = 真偽値</code> に置換を当てはめると <code>整数 = 真偽値</code> となり、両辺が異なる型であるため解が存在しない。
+        </p>
+        <p>
+          (B) は置換を等式に当てはめずに処理した誤りである。1つ目の等式で α と β は同じ型でなければならないと決まっており、別々の型にはできない。
+          (C) は型変数どうしの等式を扱えないと考えた誤りである。一方が型変数であれば、もう一方が型変数であっても対応を置換に加えられる。
+          (D) は単一化の失敗を「複数の型を取りうる」と解釈した誤りである。一つの変数が同時に二つの異なる型を持つことは、型規則の上で許されない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 型を書くか、推論させるか ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>型を書くか、推論させるか</h2>
+
+  <p>
+    型の扱いには、全ての型を書いて検査する方式、一部を推論させる方式、プログラム全体を推論させる方式がある。
+    さらに、変換時には検査せず実行時に検査する動的型付けも比較の対象となる。
+    これらは型の整合性を確かめる時期と、利用者が書く情報の量で異なり、同じ型規則の上に成り立つ点で一つの表で比べられる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　型の扱い方の対比。上の方式ほど利用者が書く情報が多く、誤りの報告位置が原因に近い。
+      記述量の差が効くのは型名が長い場合や入れ子になる場合であり、短い型名ばかりのプログラムでは差は小さい。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>方式</th><th>利用者が書く型</th><th>誤りが判明する時点</th><th>誤りの報告位置</th><th>向く条件</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>型注釈による検査</td>
+          <td>全ての宣言・引数・戻り値</td>
+          <td>変換時</td>
+          <td>原因の近く。宣言と使用の食い違いとして示される</td>
+          <td>多人数・長期にわたって保守し、型を文書として残したい場合</td>
+        </tr>
+        <tr>
+          <td>局所的な型推論</td>
+          <td>関数の引数・戻り値。変数は初期化式から推論</td>
+          <td>変換時</td>
+          <td>原因の近く。推論が関数の内側で閉じるため</td>
+          <td>記述量と報告の分かりやすさを両立させたい場合。現在の静的型付けの言語に広く見られる</td>
+        </tr>
+        <tr>
+          <td>全体の型推論</td>
+          <td>原則として不要</td>
+          <td>変換時</td>
+          <td>原因から離れることがある</td>
+          <td>小さな関数を組み合わせて書く場合。関数型言語に多い</td>
+        </tr>
+        <tr>
+          <td>動的型付け</td>
+          <td>不要</td>
+          <td>実行時、その箇所に到達したとき</td>
+          <td>実行中の値で判明する。到達しない箇所の誤りは現れない</td>
+          <td>短いプログラムを試しながら書く場合</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>推論が報告位置を遠ざける理由</h3>
+
+  <p>
+    § 5 の関数 <code>g</code> では、利用者の意図が「<code>x</code> は整数で、条件を書き誤った」なのか「<code>x</code> は真偽値で、<code>x + 1</code> を書き誤った」なのかは、等式からは決まらない。
+    単一化は二つの要求が衝突した時点で失敗を報告するため、報告されるのは<strong>後から処理された使用箇所</strong>であり、誤りを書いた箇所とは限らない。
+    制約がプログラム全体から集められるほど、衝突する二つの使用箇所は離れうる。
+  </p>
+
+  <p>
+    この問題が実際に効くのは、推論が関数の境界を越えて広がり、衝突する使用箇所が別の関数にある場合である。
+    局所的な型推論を採る言語が関数の引数と戻り値には型を書かせるのは、この境界で推論を区切り、誤りの報告位置を書いた箇所の近くに留めるためでもある。
+    一つの関数の内側で推論が閉じている限り、報告位置のずれは数行にとどまり、記述量を減らす利点が上回る。
+  </p>
+
+  <h3>検査の結果は後段で使われる</h3>
+
+  <p>
+    意味解析が節点に書き込んだ型は、誤りの検出に使われるだけではない。後段の処理は、この注釈を前提に動く。
+  </p>
+
+  <ul>
+    <li><strong>命令の選択</strong> — 同じ <code>+</code> でも、整数どうしなら整数の加算命令、実数どうしなら浮動小数点の加算命令を生成する</li>
+    <li><strong>記憶域の大きさ</strong> — 変数に割り当てる領域の大きさは、その型から決まる</li>
+    <li><strong>変換の挿入</strong> — 暗黙の型変換を許す言語では、変換の節点を挿入した木がコード生成に渡る</li>
+    <li><strong>開発環境の支援</strong> — 入力中のプログラムに対して意味解析を繰り返し行い、名前の補完や誤りの表示に用いる</li>
+  </ul>
+
+  <p>
+    動的型付けの言語では、これらの判断も実行時に値を見て行うことになる。
+    実行のたびに型を調べる手間が生じるが、それが実行時間を左右するのは、同じ演算を大量に繰り返す処理に限られる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      型注釈を書かずにプログラム全体を推論させる方式では、型の誤りが報告される位置が、実際に誤りを書いた位置から離れることがある。その理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>矛盾は二つの使用箇所の要求が衝突した時点で判明し、どちらが誤りかは制約からは決まらないため</li>
+      <li>型推論は実行時に行われるため、誤った箇所に到達するまで矛盾が判明しないため</li>
+      <li>型推論は抽象構文木を根から葉の順にたどるため、葉にある誤りが最後に処理されるため</li>
+      <li>単一化は計算量が大きく、処理系が途中で推論を打ち切って残りをまとめて報告するため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          単一化が失敗するのは、同じ型変数に対して異なる型を要求する等式がそろった時点である。
+          二つの要求のどちらが利用者の意図に反するかは等式には現れないため、処理系は後から処理した側の位置で報告するしかない。
+        </p>
+        <p>
+          (B) は型推論と動的型付けを混同している。型推論は変換時に行われる静的な検査である。
+          (C) は走査の順序を誤っている。制約の生成は後順走査で行い、葉から根へ向かう。報告位置がずれる理由は順序ではなく、どちらの使用箇所が誤りかを決められない点にある。
+          (D) は関係のない要因を原因としている。報告位置のずれは推論を打ち切らなくても生じる、等式の性質に由来するものである。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 型検査器の実装の手引き ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>型検査器の実装の手引き</h2>
+
+  <p>
+    ここまでの仕組みを、抽象構文木を走査する型検査器として実装する。型検査器は次の部品からなる。
+  </p>
+
+  <ul>
+    <li><strong>抽象構文木</strong> — 構文解析器の出力。各節点に種類・子・位置を持ち、型を書き込む欄を用意する</li>
+    <li><strong>記号表</strong> — スコープごとの表を積み重ねたもの。登録・探索・スコープの開始と終了を提供する</li>
+    <li><strong>式を検査する手続き</strong> — 式の節点を受け取り、その型を返す</li>
+    <li><strong>文を検査する手続き</strong> — 文の節点を受け取り、誤りがあれば一覧に記録する</li>
+    <li><strong>誤りの一覧</strong> — 位置と内容を記録し、検査の最後にまとめて報告する</li>
+  </ul>
+
+  <h3>節点の表現</h3>
+
+  <p>
+    節点は「種類」と、種類ごとに決まった欄を持つ記録として表す。全ての節点に共通して、位置（行・列）と型の欄を持たせる。
+    型の欄は構文解析の時点では空であり、型検査器が書き込む。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　節点の種類と、それぞれが持つ欄。全ての節点は、このほかに位置と型の欄を持つ。
+      型検査器はこの種類ごとに一つずつ規則を実装する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>種類</th><th>子</th><th>その他の欄</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>整数の定数</td><td>なし</td><td>値</td></tr>
+        <tr><td>真偽値の定数</td><td>なし</td><td>値</td></tr>
+        <tr><td>変数の参照</td><td>なし</td><td>名前</td></tr>
+        <tr><td>二項演算</td><td>左、右</td><td>演算子</td></tr>
+        <tr><td>宣言</td><td>初期化式</td><td>名前、宣言された型</td></tr>
+        <tr><td>代入</td><td>右辺</td><td>名前</td></tr>
+        <tr><td>条件分岐</td><td>条件、真の場合の文、偽の場合の文</td><td>なし</td></tr>
+        <tr><td>繰り返し</td><td>条件、本体</td><td>なし</td></tr>
+        <tr><td>ブロック</td><td>文の並び</td><td>なし</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>記号表</h3>
+
+  <p>
+    記号表 S は、名前から項目（型と宣言位置）への対応表を、スタックとして積み重ねたものである。
+    多くの言語に用意されている連想配列（辞書）を一枚の表に用いれば、各操作は数行で書ける。
+  </p>
+
+  <pre><code>手続き スコープ開始()
+1. 空の表を S の先頭に積む
+
+手続き スコープ終了()
+1. S の先頭の表を取り除く
+
+手続き 登録(名前, 型, 位置)
+1. もし S の先頭の表に 名前 があるならば
+2.   先の項目 ← S の先頭の表の 名前 の項目
+3.   誤りを記録する(位置, 「名前 は既に 先の項目.位置 で宣言されている」)
+4. そうでなければ
+5.   S の先頭の表に 名前 → (型, 位置) を加える
+
+手続き 探索(名前)
+1. S の表を先頭から順に調べ、名前 があればその項目を返す
+2. どの表にも無ければ「無し」を返す</code></pre>
+
+  <h3>式の検査</h3>
+
+  <p>
+    式を検査する手続きは、子を先に検査し、その結果に型規則を当てはめる。誤り型の受け渡しもここで行う。
+    演算子ごとの規則（表 3-1）は、手続きの中に条件として書き並べるより、
+    「演算子と左右の型の組 → 結果の型」の対応表として持つほうが、規則を追加するときに見通しがよい。
+  </p>
+
+  <pre><code>手続き 式を検査(e)   ※ e の型を返す
+1. e の種類で場合を分ける
+2.   整数の定数の場合: 結果 ← 整数
+3.   真偽値の定数の場合: 結果 ← 真偽値
+4.   変数の参照の場合:
+5.     項目 ← 探索(e.名前)
+6.     もし 項目 が「無し」ならば
+7.       誤りを記録する(e.位置, 「e.名前 は宣言されていない」)
+8.       結果 ← 誤り型
+9.     そうでなければ 結果 ← 項目.型
+10.  二項演算の場合:
+11.    左 ← 式を検査(e.左)
+12.    右 ← 式を検査(e.右)
+13.    もし 左 が誤り型 または 右 が誤り型 ならば
+14.      結果 ← 誤り型          ※ 報告済みの誤りに由来するので記録しない
+15.    そうでなければ
+16.      結果 ← 演算規則の表で (e.演算子, 左, 右) を引いた型
+17.      もし 該当する規則が無いならば
+18.        誤りを記録する(e.位置, 「e.演算子 は 左 と 右 に適用できない」)
+19.        結果 ← 誤り型
+20. e.型 ← 結果               ※ 注釈付き構文木にする
+21. 結果 を返す</code></pre>
+
+  <h3>文の検査</h3>
+
+  <p>
+    文を検査する手続きは、式の型を求めて文の規則を確かめる。ブロックではスコープを開始・終了する。
+  </p>
+
+  <pre><code>手続き 文を検査(s)
+1. s の種類で場合を分ける
+2.   宣言の場合:
+3.     t ← 式を検査(s.初期化式)
+4.     もし t が誤り型でなく、かつ t ≠ s.宣言された型 ならば
+5.       誤りを記録する(s.位置, 「s.宣言された型 の変数に t の値は入れられない」)
+6.     登録(s.名前, s.宣言された型, s.位置)
+7.   代入の場合:
+8.     t ← 式を検査(s.右辺)
+9.     項目 ← 探索(s.名前)
+10.    もし 項目 が「無し」ならば 未宣言の誤りを記録する
+11.    そうでなく、t が誤り型でなく、かつ t ≠ 項目.型 ならば 型の不整合を記録する
+12.  条件分岐・繰り返しの場合:
+13.    c ← 式を検査(s.条件)
+14.    もし c が誤り型でなく、かつ c ≠ 真偽値 ならば
+15.      誤りを記録する(s.条件.位置, 「条件には真偽値が必要だが c が与えられた」)
+16.    子の文をそれぞれ 文を検査 する
+17.  ブロックの場合:
+18.    スコープ開始()
+19.    s の文を先頭から順に 文を検査 する
+20.    スコープ終了()</code></pre>
+
+  <p>
+    宣言の場合に、初期化式を検査してから登録している点に注意を要する。
+    この順序では <code>変数 x : 整数 ← x + 1</code> の右辺の <code>x</code> は外側の宣言を指し、外側に無ければ未宣言となる。
+    登録を先に行う言語もあり、どちらを採るかは言語の仕様として決める事柄である。
+  </p>
+
+  <h3>誤りの報告</h3>
+
+  <p>
+    誤りは「行:列: 種類: 内容」のような一定の形式で一覧に記録し、検査を終えた後に位置の順に並べて出力する。
+    形式を固定しておくと、検証のときに期待する出力と機械的に照合できる。
+  </p>
+
+  <pre><code>3:12: 型の不整合: * は 整数 と 真偽値 に適用できない
+7:5: 重複宣言: x は既に 2:5 で宣言されている</code></pre>
+
+  <p>
+    一覧が空でなければ、注釈付き構文木を後段に渡さずに処理を終える。
+  </p>
+
+  <h3>実装の順序と検証</h3>
+
+  <p>
+    一度に全てを書くより、検証できる単位で積み上げるほうが誤りを見つけやすい。
+    定数と二項演算の検査 → 変数の参照と宣言（スコープなし） → ブロックとスコープ → 条件分岐・繰り返し → 誤り型による連鎖の抑制、の順に進め、
+    各段階で表 7-2 のうち該当する入力を与えて確かめる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-2　型検査器の検証に用いる入力と期待する結果。誤りの種類ごとに、それだけを含む入力を一つずつ用意する。
+      誤りが無い入力で誤りを報告しないことも、誤りを検出することと同じく確かめる必要がある。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>確かめる事柄</th><th>入力の例</th><th>期待する結果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>正しいプログラム</td><td><code>変数 x : 整数 ← 1</code> の後に <code>x ← x + 2</code></td><td>誤り 0 件。全ての式の節点に型が書き込まれている</td></tr>
+        <tr><td>未宣言の名前</td><td>宣言の無い <code>y ← 1</code></td><td>未宣言 1 件</td></tr>
+        <tr><td>重複宣言</td><td>同じブロックで <code>x</code> を二度宣言</td><td>重複宣言 1 件（先の宣言位置を含む）</td></tr>
+        <tr><td>覆い隠し</td><td>外側と内側のブロックで <code>x</code> をそれぞれ宣言</td><td>誤り 0 件</td></tr>
+        <tr><td>スコープの終了</td><td>ブロック内で宣言した <code>z</code> をブロックの外で参照</td><td>未宣言 1 件</td></tr>
+        <tr><td>型の不整合</td><td><code>変数 x : 整数 ← 真</code></td><td>型の不整合 1 件</td></tr>
+        <tr><td>条件の型</td><td><code>もし 1 ならば …</code></td><td>条件の型の誤り 1 件</td></tr>
+        <tr><td>連鎖の抑制</td><td><code>p</code> を宣言せずに <code>変数 x : 整数 ← p * 2 + 1</code></td><td>未宣言 1 件のみ</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      本節の型検査器（宣言は初期化式を検査してから登録し、誤り型による連鎖の抑制を行う）に次のプログラムを与えた。記録される誤りとして正しいものはどれか。
+    </p>
+    <pre><code>1. 変数 n : 整数 ← 10
+2. ブロック開始
+3.   変数 n : 真偽値 ← 偽
+4.   変数 m : 整数 ← n + 1
+5. ブロック終了
+6. m ← n</code></pre>
+    <ol class="choices">
+      <li>4行目の型の不整合と、6行目の未宣言の 2 件</li>
+      <li>3行目の重複宣言と、4行目の型の不整合の 2 件</li>
+      <li>誤りは記録されない</li>
+      <li>4行目の型の不整合、4行目の宣言の型の不一致、6行目の未宣言の 3 件</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          4行目の <code>n</code> は、内側の表にある3行目の真偽値型の宣言を指す。<code>+</code> は真偽値と整数に適用できないため型の不整合を記録し、誤り型を返す。
+          4行目の宣言は初期化式が誤り型であるため記録せず、<code>m</code> を内側の表に登録する。
+          5行目で内側の表が取り除かれるため、6行目では <code>m</code> が見つからず、未宣言を記録する。
+        </p>
+        <p>
+          (B) は覆い隠しを重複宣言と混同している。3行目の時点で、いちばん上の表（2行目で積んだ表）に <code>n</code> は無い。
+          (C) は4行目の <code>n</code> が1行目の整数型の宣言を指し、かつ <code>m</code> がブロックを出た後も残ると考えた誤りである。
+          (D) は連鎖を抑えない場合の結果である。4行目の宣言の不一致は、<code>+</code> で記録済みの誤りに由来する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li>
+      <strong>構文が正しくても成り立たないプログラム</strong> — 名前が何を指すか、値がどの型を持つかは文法の外にある。
+      意味解析は抽象構文木を受け取り、注釈付き構文木と誤りの一覧を出す。
+    </li>
+    <li>
+      <strong>記号表とスコープ</strong> — 宣言を登録し、使用箇所で探索する。スコープごとの表を積み重ね、内側から外側へ探すことで静的スコープと覆い隠しを実現する。
+      重複宣言はいちばん上の表だけで判定する。
+    </li>
+    <li>
+      <strong>型検査</strong> — 型規則は子の型を前提とし、節点の型を結論とする。後順走査で葉から根へ型を決め、前提が満たされない節点で不整合を見つける。
+    </li>
+    <li>
+      <strong>意味エラーの検出と報告</strong> — 位置・種類・期待したものと実際のものを示す。誤り型を親へ渡すことで、一つの原因から報告が連鎖することを防ぐ。
+    </li>
+    <li>
+      <strong>型推論</strong> — 型の分からない箇所に型変数を置いて型制約を集め、単一化で解く。両辺が異なる型の等式が現れれば、型の誤りとして検出される。
+    </li>
+    <li>
+      <strong>型を書くか、推論させるか</strong> — 推論の範囲が広いほど記述は減るが、誤りの報告位置が原因から離れうる。
+      関数の境界で型を書かせる方式は、その中間をとる。意味解析が書き込んだ型は、命令の選択や記憶域の大きさの決定に使われる。
+    </li>
+    <li>
+      <strong>型検査器の実装</strong> — 節点の種類ごとに規則を一つずつ実装し、記号表と誤りの一覧を組み合わせる。誤りの種類ごとに一つずつ入力を用意して検証する。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／型検査と型推論による意味解析<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
