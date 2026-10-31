@@ -784,13 +784,13 @@
 
   <div class="table-block">
     <p class="table-caption">
-      表 5-1　基本的なソートの比較・移動の回数（要素数 n）。右端の列は、例の配列 7, 6, 3, 8, 2, 1, 5, 4 での比較／移動の実測値である。
+      表 5-1　基本的なソートの比較・移動の回数（要素数 n）。
       最悪の計算量はいずれも O(n²) であるが、移動の回数と、整列済みの入力に対する振る舞いが異なる。
     </p>
     <div class="table-scroll">
     <table>
       <thead>
-        <tr><th>手法</th><th>比較（最悪）</th><th>交換・移動（最悪）</th><th>整列済みの入力</th><th>例の配列</th></tr>
+        <tr><th>手法</th><th>比較（最悪）</th><th>交換・移動（最悪）</th><th>整列済みの入力</th></tr>
       </thead>
       <tbody>
         <tr>
@@ -798,26 +798,69 @@
           <td>n(n − 1)/2</td>
           <td>転倒の個数（最大 n(n − 1)/2）</td>
           <td>比較 n − 1、交換 0 で O(n)</td>
-          <td class="num-cell">27 ／ 19</td>
         </tr>
         <tr>
           <td>選択ソート</td>
           <td>n(n − 1)/2（常に）</td>
           <td>n − 1（常に）</td>
           <td>比較は減らず O(n²)</td>
-          <td class="num-cell">28 ／ 7</td>
         </tr>
         <tr>
           <td>挿入ソート</td>
           <td>n(n − 1)/2</td>
           <td>転倒の個数（最大 n(n − 1)/2）</td>
           <td>比較 n − 1、移動 0 で O(n)</td>
-          <td class="num-cell">22 ／ 19</td>
         </tr>
       </tbody>
     </table>
     </div>
   </div>
+
+  <p>
+    同じ要素数でも、入力の並びによって回数は大きく変わる。
+    表 5-2 は、例の配列に加えて、逆順の入力と、隣り合う2組だけが入れ替わったほぼ整列済みの入力で回数を数えたものである。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-2　要素数 8 の3種類の入力に対する比較／移動の回数。例の配列は 7, 6, 3, 8, 2, 1, 5, 4、
+      逆順は 8, 7, 6, 5, 4, 3, 2, 1、ほぼ整列済みは 1, 2, 4, 3, 5, 6, 8, 7 である。
+      逆順ではバブルソートと挿入ソートが最悪の 28 ／ 28 に達し、ほぼ整列済みでは挿入ソートの比較が 9 回まで減る。
+      選択ソートの回数は入力によらない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手法</th><th>例の配列</th><th>逆順</th><th>ほぼ整列済み</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>バブルソート</td>
+          <td class="num-cell">27 ／ 19</td>
+          <td class="num-cell">28 ／ 28</td>
+          <td class="num-cell">13 ／ 2</td>
+        </tr>
+        <tr>
+          <td>選択ソート</td>
+          <td class="num-cell">28 ／ 7</td>
+          <td class="num-cell">28 ／ 7</td>
+          <td class="num-cell">28 ／ 7</td>
+        </tr>
+        <tr>
+          <td>挿入ソート</td>
+          <td class="num-cell">22 ／ 19</td>
+          <td class="num-cell">28 ／ 28</td>
+          <td class="num-cell">9 ／ 2</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    ほぼ整列済みの入力では、転倒が 4 と 3、8 と 7 の 2 組しかない。挿入ソートは各値を左隣と1回比べるだけでほぼ位置が定まる。
+    バブルソートは1回目のパスで2組を解消するが、整列済みであることを確かめる2回目のパスが必要なため、比較が 13 回となる。
+  </p>
 
   <h3>移動の少なさが効く条件</h3>
 
@@ -1062,8 +1105,24 @@
 
   <p>
     計算量は間隔の列の選び方で決まる。上の擬似コードのように間隔を半分ずつにする列は単純であるが、
-    最悪の場合は O(n²) のままである。間隔を 1, 4, 13, 40, …（h ← 3h + 1 で作る列）のように選ぶと
-    最悪の場合も O(n<sup>1.5</sup>) に抑えられ、実際の入力では O(n<sup>1.25</sup>) 程度で動作することが知られている。
+    最悪の場合は O(n²) のままである。原因は、間隔 1 より前の間隔がすべて偶数であるため、
+    <strong>偶数番目と奇数番目の値が、間隔 1 の段階まで一度も比べられない</strong>ことにある。
+  </p>
+
+  <p>
+    たとえば <code>1, 5, 2, 6, 3, 7, 4, 8</code> では、偶数番目（添字 0, 2, 4, 6）の 1, 2, 3, 4 と、
+    奇数番目の 5, 6, 7, 8 がそれぞれ整列済みである。間隔 4 の組も間隔 2 の組も同じ偶奇の中で作られるため、
+    この二つの段階では何も動かない。間隔 1 の段階で 5・6・7 を後ろへずらす移動が 6 回生じ、
+    挿入ソートを直接適用した場合と変わらない。同じ形の入力は要素数を増やしても作れるため、
+    最後の段階に約 n²/8 回の移動が残る。
+  </p>
+
+  <p>
+    間隔を 1, 4, 13, 40, …（h ← 3h + 1 で作る列）のように選ぶと、隣り合う間隔が共通の約数を持たないため、
+    ある段階で別の組だった値どうしが次の段階で比べられる。これにより最悪の場合も O(n<sup>1.5</sup>) に抑えられ、
+    実際の入力では O(n<sup>1.25</sup>) 程度で動作することが知られている。
+    ただし要素数 8 程度では使われる間隔が 4, 1 だけとなり、上の例でも差は表れない。
+    差が効くのは、使われる間隔の段階が多くなる大きな要素数の場合である。
     離れた値を交換するため、安定なソートではない。
   </p>
 
@@ -1190,6 +1249,129 @@
 4. a[i] と a[hi] を交換する
 5. i を返す</code></pre>
 
+  <p>
+    i は「基準値より小さい値を次に置く位置」、j は「いま調べている位置」を指す。
+    j が基準値より小さい値に出会うたびに a[i] と交換して i を1つ進めるため、
+    <strong>a[lo] 〜 a[i − 1] には常に基準値より小さい値だけが集まる</strong>。
+    最後に基準値を a[i] へ移せば、その左はすべて小さく、右はすべて基準値以上となる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 288" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 を末尾の 4 を基準値として分割する手順を、交換が起きる時点ごとに並べた図。j が 4 より小さい 3, 2, 1 に出会うたびに a[i] と交換して i を1つ進め、最後に基準値を a[3] と交換する">
+      <text x="131" y="26" class="svg-mono">[0]</text>
+      <text x="173" y="26" class="svg-mono">[1]</text>
+      <text x="215" y="26" class="svg-mono">[2]</text>
+      <text x="257" y="26" class="svg-mono">[3]</text>
+      <text x="299" y="26" class="svg-mono">[4]</text>
+      <text x="341" y="26" class="svg-mono">[5]</text>
+      <text x="383" y="26" class="svg-mono">[6]</text>
+      <text x="425" y="26" class="svg-mono">[7]</text>
+      <rect x="110" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="152" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="194" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="236" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="278" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="320" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="362" y="34" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="404" y="34" width="42" height="28" class="svg-cell"/>
+      <text x="131" y="53" class="svg-text">7</text>
+      <text x="173" y="53" class="svg-text">6</text>
+      <text x="215" y="53" class="svg-text">3</text>
+      <text x="257" y="53" class="svg-text">8</text>
+      <text x="299" y="53" class="svg-text">2</text>
+      <text x="341" y="53" class="svg-text">1</text>
+      <text x="383" y="53" class="svg-text">5</text>
+      <text x="425" y="53" class="svg-text">4</text>
+      <text x="24" y="52" class="svg-small" style="text-anchor:start">開始</text>
+      <text x="456" y="52" class="svg-small" style="text-anchor:start">x = 4、i = 0</text>
+      <text x="131" y="78" class="svg-mono">i</text>
+      <rect x="236" y="84" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="278" y="84" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="320" y="84" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="362" y="84" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="152" y="84" width="42" height="28" class="svg-cell"/>
+      <rect x="404" y="84" width="42" height="28" class="svg-cell"/>
+      <rect x="110" y="84" width="42" height="28" class="svg-hl"/>
+      <rect x="194" y="84" width="42" height="28" class="svg-hl"/>
+      <text x="131" y="103" class="svg-text">3</text>
+      <text x="173" y="103" class="svg-text">6</text>
+      <text x="215" y="103" class="svg-text">7</text>
+      <text x="257" y="103" class="svg-text">8</text>
+      <text x="299" y="103" class="svg-text">2</text>
+      <text x="341" y="103" class="svg-text">1</text>
+      <text x="383" y="103" class="svg-text">5</text>
+      <text x="425" y="103" class="svg-text">4</text>
+      <text x="24" y="102" class="svg-small" style="text-anchor:start">j = 0〜2</text>
+      <text x="456" y="102" class="svg-small" style="text-anchor:start">3 を a[0] と交換</text>
+      <text x="173" y="128" class="svg-mono">i</text>
+      <text x="215" y="128" class="svg-mono">j</text>
+      <rect x="320" y="134" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="362" y="134" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="110" y="134" width="42" height="28" class="svg-cell"/>
+      <rect x="194" y="134" width="42" height="28" class="svg-cell"/>
+      <rect x="236" y="134" width="42" height="28" class="svg-cell"/>
+      <rect x="404" y="134" width="42" height="28" class="svg-cell"/>
+      <rect x="152" y="134" width="42" height="28" class="svg-hl"/>
+      <rect x="278" y="134" width="42" height="28" class="svg-hl"/>
+      <text x="131" y="153" class="svg-text">3</text>
+      <text x="173" y="153" class="svg-text">2</text>
+      <text x="215" y="153" class="svg-text">7</text>
+      <text x="257" y="153" class="svg-text">8</text>
+      <text x="299" y="153" class="svg-text">6</text>
+      <text x="341" y="153" class="svg-text">1</text>
+      <text x="383" y="153" class="svg-text">5</text>
+      <text x="425" y="153" class="svg-text">4</text>
+      <text x="24" y="152" class="svg-small" style="text-anchor:start">j = 3〜4</text>
+      <text x="456" y="152" class="svg-small" style="text-anchor:start">2 を a[1] と交換</text>
+      <text x="215" y="178" class="svg-mono">i</text>
+      <text x="299" y="178" class="svg-mono">j</text>
+      <rect x="362" y="184" width="42" height="28" class="svg-cell-plain"/>
+      <rect x="110" y="184" width="42" height="28" class="svg-cell"/>
+      <rect x="152" y="184" width="42" height="28" class="svg-cell"/>
+      <rect x="236" y="184" width="42" height="28" class="svg-cell"/>
+      <rect x="278" y="184" width="42" height="28" class="svg-cell"/>
+      <rect x="404" y="184" width="42" height="28" class="svg-cell"/>
+      <rect x="194" y="184" width="42" height="28" class="svg-hl"/>
+      <rect x="320" y="184" width="42" height="28" class="svg-hl"/>
+      <text x="131" y="203" class="svg-text">3</text>
+      <text x="173" y="203" class="svg-text">2</text>
+      <text x="215" y="203" class="svg-text">1</text>
+      <text x="257" y="203" class="svg-text">8</text>
+      <text x="299" y="203" class="svg-text">6</text>
+      <text x="341" y="203" class="svg-text">7</text>
+      <text x="383" y="203" class="svg-text">5</text>
+      <text x="425" y="203" class="svg-text">4</text>
+      <text x="24" y="202" class="svg-small" style="text-anchor:start">j = 5</text>
+      <text x="456" y="202" class="svg-small" style="text-anchor:start">1 を a[2] と交換</text>
+      <text x="257" y="228" class="svg-mono">i</text>
+      <text x="341" y="228" class="svg-mono">j</text>
+      <rect x="110" y="234" width="42" height="28" class="svg-cell"/>
+      <rect x="152" y="234" width="42" height="28" class="svg-cell"/>
+      <rect x="194" y="234" width="42" height="28" class="svg-cell"/>
+      <rect x="278" y="234" width="42" height="28" class="svg-cell"/>
+      <rect x="320" y="234" width="42" height="28" class="svg-cell"/>
+      <rect x="362" y="234" width="42" height="28" class="svg-cell"/>
+      <rect x="236" y="234" width="42" height="28" class="svg-hl"/>
+      <rect x="404" y="234" width="42" height="28" class="svg-hl"/>
+      <text x="131" y="253" class="svg-text">3</text>
+      <text x="173" y="253" class="svg-text">2</text>
+      <text x="215" y="253" class="svg-text">1</text>
+      <text x="257" y="253" class="svg-text">4</text>
+      <text x="299" y="253" class="svg-text">6</text>
+      <text x="341" y="253" class="svg-text">7</text>
+      <text x="383" y="253" class="svg-text">5</text>
+      <text x="425" y="253" class="svg-text">8</text>
+      <text x="24" y="252" class="svg-small" style="text-anchor:start">j = 6 の後</text>
+      <text x="456" y="252" class="svg-small" style="text-anchor:start">基準値を a[3] へ</text>
+      <text x="257" y="278" class="svg-mono">i</text>
+    </svg>
+    <figcaption>
+      図 7-2　例の配列で分割の擬似コードを追った過程。強調したセルはその行で交換した2つの位置、
+      枠線だけのセルはまだ j が調べていない位置を表す。7・6・8・5 は基準値 4 以上なので j が通り過ぎるだけであり、
+      交換は 3・2・1 に出会った3回と、最後に基準値を a[3] へ移す1回である。比較は j の動いた 7 回である。
+    </figcaption>
+  </figure>
+
   <h3>計算量は分割の偏りで決まる</h3>
 
   <p>
@@ -1197,6 +1379,104 @@
     区間が分かれた後の同じ深さの分割を一つの段とみなすと、各段の比較の合計は約 n 回である。
     したがって手間は<strong>段の数 × n</strong> で決まり、段の数は分割の偏りに左右される。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 274" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 にクイックソートを適用したとき、同じ深さの分割を段として上から並べた図。各段で分割する区間を塗りのあるセル、その基準値を強調、確定した値を枠線だけのセルで示す。比較は段ごとに 7, 5, 3, 1 回で、合計 16 回である">
+      <text x="133" y="26" class="svg-mono">[0]</text>
+      <text x="179" y="26" class="svg-mono">[1]</text>
+      <text x="225" y="26" class="svg-mono">[2]</text>
+      <text x="271" y="26" class="svg-mono">[3]</text>
+      <text x="317" y="26" class="svg-mono">[4]</text>
+      <text x="363" y="26" class="svg-mono">[5]</text>
+      <text x="409" y="26" class="svg-mono">[6]</text>
+      <text x="455" y="26" class="svg-mono">[7]</text>
+      <rect x="110" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="432" y="34" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="53" class="svg-text">7</text>
+      <text x="179" y="53" class="svg-text">6</text>
+      <text x="225" y="53" class="svg-text">3</text>
+      <text x="271" y="53" class="svg-text">8</text>
+      <text x="317" y="53" class="svg-text">2</text>
+      <text x="363" y="53" class="svg-text">1</text>
+      <text x="409" y="53" class="svg-text">5</text>
+      <text x="455" y="53" class="svg-text">4</text>
+      <text x="24" y="52" class="svg-small" style="text-anchor:start">段1</text>
+      <text x="494" y="52" class="svg-small" style="text-anchor:start">計 7</text>
+      <text x="294" y="76" class="svg-small">比較 7</text>
+      <rect x="248" y="84" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="110" y="84" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="84" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="84" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="84" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="84" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="84" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="84" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="103" class="svg-text">3</text>
+      <text x="179" y="103" class="svg-text">2</text>
+      <text x="225" y="103" class="svg-text">1</text>
+      <text x="271" y="103" class="svg-text">4</text>
+      <text x="317" y="103" class="svg-text">6</text>
+      <text x="363" y="103" class="svg-text">7</text>
+      <text x="409" y="103" class="svg-text">5</text>
+      <text x="455" y="103" class="svg-text">8</text>
+      <text x="24" y="102" class="svg-small" style="text-anchor:start">段2</text>
+      <text x="494" y="102" class="svg-small" style="text-anchor:start">計 5</text>
+      <text x="179" y="126" class="svg-small">比較 2</text>
+      <text x="386" y="126" class="svg-small">比較 3</text>
+      <rect x="110" y="134" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="248" y="134" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="134" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="156" y="134" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="134" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="134" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="134" width="46" height="28" class="svg-hl"/>
+      <rect x="386" y="134" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="153" class="svg-text">1</text>
+      <text x="179" y="153" class="svg-text">2</text>
+      <text x="225" y="153" class="svg-text">3</text>
+      <text x="271" y="153" class="svg-text">4</text>
+      <text x="317" y="153" class="svg-text">6</text>
+      <text x="363" y="153" class="svg-text">7</text>
+      <text x="409" y="153" class="svg-text">5</text>
+      <text x="455" y="153" class="svg-text">8</text>
+      <text x="24" y="152" class="svg-small" style="text-anchor:start">段3</text>
+      <text x="494" y="152" class="svg-small" style="text-anchor:start">計 3</text>
+      <text x="202" y="176" class="svg-small">比較 1</text>
+      <text x="363" y="176" class="svg-small">比較 2</text>
+      <rect x="110" y="184" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="156" y="184" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="202" y="184" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="248" y="184" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="294" y="184" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="432" y="184" width="46" height="28" class="svg-cell-plain"/>
+      <rect x="340" y="184" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="184" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="203" class="svg-text">1</text>
+      <text x="179" y="203" class="svg-text">2</text>
+      <text x="225" y="203" class="svg-text">3</text>
+      <text x="271" y="203" class="svg-text">4</text>
+      <text x="317" y="203" class="svg-text">5</text>
+      <text x="363" y="203" class="svg-text">7</text>
+      <text x="409" y="203" class="svg-text">6</text>
+      <text x="455" y="203" class="svg-text">8</text>
+      <text x="24" y="202" class="svg-small" style="text-anchor:start">段4</text>
+      <text x="494" y="202" class="svg-small" style="text-anchor:start">計 1</text>
+      <text x="386" y="226" class="svg-small">比較 1</text>
+      <text x="24" y="262" class="svg-small" style="text-anchor:start">段の数は 4、比較の合計は 7 + 5 + 3 + 1 = 16 回</text>
+    </svg>
+    <figcaption>
+      図 7-3　例の配列にクイックソートを適用したときの分割を、同じ深さごとに段として並べた図。
+      塗りのあるセルがその段で分割する区間、強調したセルが各区間の基準値、枠線だけのセルが確定した値である。
+      区間の長さは 8 から 3 と 4、2 と 3、2 と短くなり、4 段で終わる。比較の合計 16 回は、
+      基本的なソートの 22〜28 回より少ない。
+    </figcaption>
+  </figure>
 
   <figure>
     <svg viewBox="0 0 580 244" role="img" aria-label="クイックソートの分割の段数を比較した図。左は分割が毎回均等になる場合で、区間が半分ずつに分かれ、段数は約 log₂ n になる。右は毎回偏る場合で、区間が1個ずつしか減らず、段数は約 n になる">
@@ -1230,7 +1510,7 @@
       <text x="434" y="230" class="svg-small">各段の比較は n−1, n−2, … と減る</text>
     </svg>
     <figcaption>
-      図 7-2　分割が均等な場合と、毎回偏る場合の段の数。均等であれば区間が半分ずつ短くなり、
+      図 7-4　分割が均等な場合と、毎回偏る場合の段の数。均等であれば区間が半分ずつ短くなり、
       段の数は約 log₂ n であるため、全体で O(n log n) となる。
       基準値が毎回区間の最小値か最大値になると、区間は1個ずつしか短くならず、
       段の数が約 n となって O(n²) に退化する。
@@ -1241,6 +1521,9 @@
     基準値が区間の中央付近の値になれば分割は均等に近づき、平均の計算量は O(n log n) である。
     最悪の場合は、<strong>末尾を基準値とする方式に整列済みの入力を与えたとき</strong>に起きる。
     基準値が常に区間の最大値となり、分割のたびに区間が1個しか短くならないためである。
+    整列済みの 1, 2, …, 8 を与えると、比較は 7 + 6 + … + 1 = 28 回となり、
+    基本的なソートの最悪と同じ n(n − 1)/2 回に達する。n = 1000 であれば、均等な分割で約 1 万回（n log₂ n）のところ、
+    約 50 万回を要する。
     整列済みの値を順に挿入した二分探索木が一列に退化するのと同じく、入力の並びが構造の形を偏らせる。
     この偏りを避けるために、実用では区間の先頭・中央・末尾の3つの値の中央値を基準値とする、
     あるいは基準値を無作為に選ぶ、といった工夫が用いられる。
@@ -1390,10 +1673,119 @@
   <h3>ヒープソートの手順</h3>
 
   <p>
-    まず、入力の配列をヒープに作り変える。葉でない最後の節点（添字 ⌊n/2⌋ − 1）から根に向かって、
-    各節点でダウンヒープを行えばよい。例の配列 7, 6, 3, 8, 2, 1, 5, 4 は、これにより
-    8, 7, 5, 6, 2, 1, 3, 4 というヒープになる。
+    まず、入力の配列をヒープに作り変える。葉は子を持たないため、それだけでヒープの条件を満たす。
+    そこで葉でない最後の節点（添字 ⌊n/2⌋ − 1）から根に向かって、各節点でダウンヒープを行う。
+    ある節点を処理する時点で、その子を根とする部分木はすでにヒープになっているため、
+    ダウンヒープだけで条件を回復できる。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 404" role="img" aria-label="配列 7, 6, 3, 8, 2, 1, 5, 4 をヒープに作り変える手順を、添字 3, 2, 1, 0 の節点で順にダウンヒープを行った後の木として4つ並べた図。i が 3 のときは動かず、i が 2 で 3 と 5、i が 1 で 6 と 8、i が 0 で 7 と 8 を交換し、8, 7, 5, 6, 2, 1, 3, 4 のヒープになる">
+      <path d="M 290 8 L 290 396" class="svg-line"/>
+      <path d="M 8 202 L 572 202" class="svg-line"/>
+      <path d="M 140 58 L 75 78" class="svg-line"/>
+      <path d="M 140 58 L 205 78" class="svg-line"/>
+      <path d="M 75 102 L 40 122" class="svg-line"/>
+      <path d="M 75 102 L 110 122" class="svg-line"/>
+      <path d="M 205 102 L 170 122" class="svg-line"/>
+      <path d="M 205 102 L 240 122" class="svg-line"/>
+      <path d="M 40 146 L 22 166" class="svg-line"/>
+      <path d="M 430 58 L 365 78" class="svg-line"/>
+      <path d="M 430 58 L 495 78" class="svg-line"/>
+      <path d="M 365 102 L 330 122" class="svg-line"/>
+      <path d="M 365 102 L 400 122" class="svg-line"/>
+      <path d="M 495 102 L 460 122" class="svg-line"/>
+      <path d="M 495 102 L 530 122" class="svg-line"/>
+      <path d="M 330 146 L 312 166" class="svg-line"/>
+      <path d="M 140 264 L 75 284" class="svg-line"/>
+      <path d="M 140 264 L 205 284" class="svg-line"/>
+      <path d="M 75 308 L 40 328" class="svg-line"/>
+      <path d="M 75 308 L 110 328" class="svg-line"/>
+      <path d="M 205 308 L 170 328" class="svg-line"/>
+      <path d="M 205 308 L 240 328" class="svg-line"/>
+      <path d="M 40 352 L 22 372" class="svg-line"/>
+      <path d="M 430 264 L 365 284" class="svg-line"/>
+      <path d="M 430 264 L 495 284" class="svg-line"/>
+      <path d="M 365 308 L 330 328" class="svg-line"/>
+      <path d="M 365 308 L 400 328" class="svg-line"/>
+      <path d="M 495 308 L 460 328" class="svg-line"/>
+      <path d="M 495 308 L 530 328" class="svg-line"/>
+      <path d="M 330 352 L 312 372" class="svg-line"/>
+      <text x="14" y="20" class="svg-small" style="text-anchor:start">i = 3：8 は子の 4 以上で動かない</text>
+      <rect x="125" y="34" width="30" height="24" class="svg-cell"/>
+      <rect x="60" y="78" width="30" height="24" class="svg-cell"/>
+      <rect x="190" y="78" width="30" height="24" class="svg-cell"/>
+      <rect x="95" y="122" width="30" height="24" class="svg-cell"/>
+      <rect x="155" y="122" width="30" height="24" class="svg-cell"/>
+      <rect x="225" y="122" width="30" height="24" class="svg-cell"/>
+      <rect x="7" y="166" width="30" height="24" class="svg-cell"/>
+      <rect x="25" y="122" width="30" height="24" class="svg-hl"/>
+      <text x="140" y="51" class="svg-text">7</text>
+      <text x="75" y="95" class="svg-text">6</text>
+      <text x="205" y="95" class="svg-text">3</text>
+      <text x="40" y="139" class="svg-text">8</text>
+      <text x="110" y="139" class="svg-text">2</text>
+      <text x="170" y="139" class="svg-text">1</text>
+      <text x="240" y="139" class="svg-text">5</text>
+      <text x="22" y="183" class="svg-text">4</text>
+      <text x="304" y="20" class="svg-small" style="text-anchor:start">i = 2：3 と子の 5 を交換</text>
+      <rect x="415" y="34" width="30" height="24" class="svg-cell"/>
+      <rect x="350" y="78" width="30" height="24" class="svg-cell"/>
+      <rect x="315" y="122" width="30" height="24" class="svg-cell"/>
+      <rect x="385" y="122" width="30" height="24" class="svg-cell"/>
+      <rect x="445" y="122" width="30" height="24" class="svg-cell"/>
+      <rect x="297" y="166" width="30" height="24" class="svg-cell"/>
+      <rect x="480" y="78" width="30" height="24" class="svg-hl"/>
+      <rect x="515" y="122" width="30" height="24" class="svg-hl"/>
+      <text x="430" y="51" class="svg-text">7</text>
+      <text x="365" y="95" class="svg-text">6</text>
+      <text x="495" y="95" class="svg-text">5</text>
+      <text x="330" y="139" class="svg-text">8</text>
+      <text x="400" y="139" class="svg-text">2</text>
+      <text x="460" y="139" class="svg-text">1</text>
+      <text x="530" y="139" class="svg-text">3</text>
+      <text x="312" y="183" class="svg-text">4</text>
+      <text x="14" y="226" class="svg-small" style="text-anchor:start">i = 1：6 と子の 8 を交換</text>
+      <rect x="125" y="240" width="30" height="24" class="svg-cell"/>
+      <rect x="190" y="284" width="30" height="24" class="svg-cell"/>
+      <rect x="95" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="155" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="225" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="7" y="372" width="30" height="24" class="svg-cell"/>
+      <rect x="60" y="284" width="30" height="24" class="svg-hl"/>
+      <rect x="25" y="328" width="30" height="24" class="svg-hl"/>
+      <text x="140" y="257" class="svg-text">7</text>
+      <text x="75" y="301" class="svg-text">8</text>
+      <text x="205" y="301" class="svg-text">5</text>
+      <text x="40" y="345" class="svg-text">6</text>
+      <text x="110" y="345" class="svg-text">2</text>
+      <text x="170" y="345" class="svg-text">1</text>
+      <text x="240" y="345" class="svg-text">3</text>
+      <text x="22" y="389" class="svg-text">4</text>
+      <text x="304" y="226" class="svg-small" style="text-anchor:start">i = 0：7 と子の 8 を交換</text>
+      <rect x="480" y="284" width="30" height="24" class="svg-cell"/>
+      <rect x="315" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="385" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="445" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="515" y="328" width="30" height="24" class="svg-cell"/>
+      <rect x="297" y="372" width="30" height="24" class="svg-cell"/>
+      <rect x="415" y="240" width="30" height="24" class="svg-hl"/>
+      <rect x="350" y="284" width="30" height="24" class="svg-hl"/>
+      <text x="430" y="257" class="svg-text">8</text>
+      <text x="365" y="301" class="svg-text">7</text>
+      <text x="495" y="301" class="svg-text">5</text>
+      <text x="330" y="345" class="svg-text">6</text>
+      <text x="400" y="345" class="svg-text">2</text>
+      <text x="460" y="345" class="svg-text">1</text>
+      <text x="530" y="345" class="svg-text">3</text>
+      <text x="312" y="389" class="svg-text">4</text>
+    </svg>
+    <figcaption>
+      図 8-2　配列 7, 6, 3, 8, 2, 1, 5, 4 をヒープに作り変える手順。添字 3, 2, 1, 0 の順にダウンヒープを行った後の木を示し、
+      強調した節点は、その手順で処理した節点と交換の相手である。i = 0 では、7 は 8 と交換した先で子の 6・2 以上となり、そこで止まる。
+      結果は 8, 7, 5, 6, 2, 1, 3, 4 である。
+    </figcaption>
+  </figure>
 
   <p>
     次に、根の最大値を末尾と交換し、末尾を確定させる。根には末尾にあった値が来てヒープの条件が崩れるため、
@@ -1485,7 +1877,7 @@
       <text x="452" y="173" class="svg-small" style="text-anchor:start">子 6・2 の大きい方</text>
     </svg>
     <figcaption>
-      図 8-2　ヒープ 8, 7, 5, 6, 2, 1, 3, 4 から最大値を1回取り出す手順。
+      図 8-3　ヒープ 8, 7, 5, 6, 2, 1, 3, 4 から最大値を1回取り出す手順。
       根の 8 を末尾と交換して確定させ（枠線だけのセル）、根に来た 4 を子のうち大きい方と交換しながら下へ沈める。
       4 が添字 3 に達すると子がヒープの範囲外となり、残りの 7 個が再びヒープになる。
     </figcaption>
@@ -1496,6 +1888,167 @@
 2. m を n − 1 から 1 まで 1 ずつ減らしながら、3〜4 を繰り返す
 3. a[0] と a[m] を交換する
 4. ダウンヒープ(a, 0, m)</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 580 322" role="img" aria-label="ヒープ 8, 7, 5, 6, 2, 1, 3, 4 から最大値の取り出しを7回繰り返したときの配列の推移を、1行ずつ並べた図。取り出すたびに末尾から1つずつ値が確定し、残りの部分は再びヒープになる。7回目で全体が整列する">
+      <text x="133" y="26" class="svg-mono">[0]</text>
+      <text x="179" y="26" class="svg-mono">[1]</text>
+      <text x="225" y="26" class="svg-mono">[2]</text>
+      <text x="271" y="26" class="svg-mono">[3]</text>
+      <text x="317" y="26" class="svg-mono">[4]</text>
+      <text x="363" y="26" class="svg-mono">[5]</text>
+      <text x="409" y="26" class="svg-mono">[6]</text>
+      <text x="455" y="26" class="svg-mono">[7]</text>
+      <rect x="110" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="34" width="46" height="28" class="svg-cell"/>
+      <rect x="432" y="34" width="46" height="28" class="svg-cell"/>
+      <text x="133" y="53" class="svg-text">8</text>
+      <text x="179" y="53" class="svg-text">7</text>
+      <text x="225" y="53" class="svg-text">5</text>
+      <text x="271" y="53" class="svg-text">6</text>
+      <text x="317" y="53" class="svg-text">2</text>
+      <text x="363" y="53" class="svg-text">1</text>
+      <text x="409" y="53" class="svg-text">3</text>
+      <text x="455" y="53" class="svg-text">4</text>
+      <text x="24" y="52" class="svg-small" style="text-anchor:start">ヒープ</text>
+      <rect x="110" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="70" width="46" height="28" class="svg-cell"/>
+      <rect x="432" y="70" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="89" class="svg-text">7</text>
+      <text x="179" y="89" class="svg-text">6</text>
+      <text x="225" y="89" class="svg-text">5</text>
+      <text x="271" y="89" class="svg-text">4</text>
+      <text x="317" y="89" class="svg-text">2</text>
+      <text x="363" y="89" class="svg-text">1</text>
+      <text x="409" y="89" class="svg-text">3</text>
+      <text x="455" y="89" class="svg-text">8</text>
+      <text x="24" y="88" class="svg-small" style="text-anchor:start">1 回目</text>
+      <text x="492" y="88" class="svg-small" style="text-anchor:start">8 を確定</text>
+      <rect x="110" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="106" width="46" height="28" class="svg-cell"/>
+      <rect x="386" y="106" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="106" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="125" class="svg-text">6</text>
+      <text x="179" y="125" class="svg-text">4</text>
+      <text x="225" y="125" class="svg-text">5</text>
+      <text x="271" y="125" class="svg-text">3</text>
+      <text x="317" y="125" class="svg-text">2</text>
+      <text x="363" y="125" class="svg-text">1</text>
+      <text x="409" y="125" class="svg-text">7</text>
+      <text x="455" y="125" class="svg-text">8</text>
+      <text x="24" y="124" class="svg-small" style="text-anchor:start">2 回目</text>
+      <text x="492" y="124" class="svg-small" style="text-anchor:start">7 を確定</text>
+      <rect x="110" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="142" width="46" height="28" class="svg-cell"/>
+      <rect x="340" y="142" width="46" height="28" class="svg-hl"/>
+      <rect x="386" y="142" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="142" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="161" class="svg-text">5</text>
+      <text x="179" y="161" class="svg-text">4</text>
+      <text x="225" y="161" class="svg-text">1</text>
+      <text x="271" y="161" class="svg-text">3</text>
+      <text x="317" y="161" class="svg-text">2</text>
+      <text x="363" y="161" class="svg-text">6</text>
+      <text x="409" y="161" class="svg-text">7</text>
+      <text x="455" y="161" class="svg-text">8</text>
+      <text x="24" y="160" class="svg-small" style="text-anchor:start">3 回目</text>
+      <text x="492" y="160" class="svg-small" style="text-anchor:start">6 を確定</text>
+      <rect x="110" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="178" width="46" height="28" class="svg-cell"/>
+      <rect x="294" y="178" width="46" height="28" class="svg-hl"/>
+      <rect x="340" y="178" width="46" height="28" class="svg-hl"/>
+      <rect x="386" y="178" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="178" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="197" class="svg-text">4</text>
+      <text x="179" y="197" class="svg-text">3</text>
+      <text x="225" y="197" class="svg-text">1</text>
+      <text x="271" y="197" class="svg-text">2</text>
+      <text x="317" y="197" class="svg-text">5</text>
+      <text x="363" y="197" class="svg-text">6</text>
+      <text x="409" y="197" class="svg-text">7</text>
+      <text x="455" y="197" class="svg-text">8</text>
+      <text x="24" y="196" class="svg-small" style="text-anchor:start">4 回目</text>
+      <text x="492" y="196" class="svg-small" style="text-anchor:start">5 を確定</text>
+      <rect x="110" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="214" width="46" height="28" class="svg-cell"/>
+      <rect x="248" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="294" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="340" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="386" y="214" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="214" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="233" class="svg-text">3</text>
+      <text x="179" y="233" class="svg-text">2</text>
+      <text x="225" y="233" class="svg-text">1</text>
+      <text x="271" y="233" class="svg-text">4</text>
+      <text x="317" y="233" class="svg-text">5</text>
+      <text x="363" y="233" class="svg-text">6</text>
+      <text x="409" y="233" class="svg-text">7</text>
+      <text x="455" y="233" class="svg-text">8</text>
+      <text x="24" y="232" class="svg-small" style="text-anchor:start">5 回目</text>
+      <text x="492" y="232" class="svg-small" style="text-anchor:start">4 を確定</text>
+      <rect x="110" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="156" y="250" width="46" height="28" class="svg-cell"/>
+      <rect x="202" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="248" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="294" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="340" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="386" y="250" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="250" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="269" class="svg-text">2</text>
+      <text x="179" y="269" class="svg-text">1</text>
+      <text x="225" y="269" class="svg-text">3</text>
+      <text x="271" y="269" class="svg-text">4</text>
+      <text x="317" y="269" class="svg-text">5</text>
+      <text x="363" y="269" class="svg-text">6</text>
+      <text x="409" y="269" class="svg-text">7</text>
+      <text x="455" y="269" class="svg-text">8</text>
+      <text x="24" y="268" class="svg-small" style="text-anchor:start">6 回目</text>
+      <text x="492" y="268" class="svg-small" style="text-anchor:start">3 を確定</text>
+      <rect x="110" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="156" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="202" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="248" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="294" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="340" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="386" y="286" width="46" height="28" class="svg-hl"/>
+      <rect x="432" y="286" width="46" height="28" class="svg-hl"/>
+      <text x="133" y="305" class="svg-text">1</text>
+      <text x="179" y="305" class="svg-text">2</text>
+      <text x="225" y="305" class="svg-text">3</text>
+      <text x="271" y="305" class="svg-text">4</text>
+      <text x="317" y="305" class="svg-text">5</text>
+      <text x="363" y="305" class="svg-text">6</text>
+      <text x="409" y="305" class="svg-text">7</text>
+      <text x="455" y="305" class="svg-text">8</text>
+      <text x="24" y="304" class="svg-small" style="text-anchor:start">7 回目</text>
+      <text x="492" y="304" class="svg-small" style="text-anchor:start">2 と 1 を確定</text>
+    </svg>
+    <figcaption>
+      図 8-4　ヒープ 8, 7, 5, 6, 2, 1, 3, 4 から取り出しを7回繰り返した配列の推移。
+      強調した部分が確定した値であり、末尾から大きい順に並んでいく。
+      確定していない部分は毎回ヒープに戻っており、その先頭が次に確定する値になる。
+    </figcaption>
+  </figure>
 
   <p>
     取り出しは n − 1 回であり、1回ごとのダウンヒープは高々 log₂ n 段で終わる。
@@ -1576,7 +2129,33 @@
 
   <div class="table-block">
     <p class="table-caption">
-      表 9-1　本ページで扱ったソートの計算量・安定性・追加の記憶域。
+      表 9-1　基本的なソートの最悪の比較回数 n(n − 1)/2 と、高速なソートの比較回数の目安 n log₂ n。
+      要素数 10 では差は小さいが、1000 では約 50 倍、100 万では約 2 万 5 千倍に開く。
+      n log₂ n は定数倍を無視した目安である。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>要素数 n</th><th>n(n − 1)/2</th><th>n log₂ n</th><th>比</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">10</td><td class="num-cell">45</td><td class="num-cell">33</td><td class="num-cell">約 1.4 倍</td></tr>
+        <tr><td class="num-cell">100</td><td class="num-cell">4,950</td><td class="num-cell">664</td><td class="num-cell">約 7.5 倍</td></tr>
+        <tr><td class="num-cell">1,000</td><td class="num-cell">499,500</td><td class="num-cell">9,966</td><td class="num-cell">約 50 倍</td></tr>
+        <tr><td class="num-cell">1,000,000</td><td class="num-cell">約 5,000 億</td><td class="num-cell">約 2,000 万</td><td class="num-cell">約 25,000 倍</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    1秒に10億回の比較ができる計算機であっても、100 万件の並べ替えには前者で約 500 秒、後者で約 0.02 秒を要する。
+    要素数が数十件程度であれば差は問題にならないが、要素数が大きくなるほど、計算量の違いがそのまま待ち時間の違いになる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 9-2　本ページで扱ったソートの計算量・安定性・追加の記憶域。
       シェルソートの平均と最悪は間隔の列によって決まり、クイックソートの追加の記憶域は再帰の深さにあたる。
       高速なソートは平均で基本的なソートを大きく上回るが、最悪の場合の保証と安定性はそれぞれ異なる。
     </p>
