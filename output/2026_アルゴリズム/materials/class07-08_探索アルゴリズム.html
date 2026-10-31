@@ -682,6 +682,132 @@
     <strong>追加・削除が探索と同じくらい頻繁に起こる場合</strong>、整列済み配列の利点は損なわれる。
   </p>
 
+  <figure>
+    <svg viewBox="0 0 580 212" role="img" aria-label="末尾に空きが1つある16要素分の整列済み配列に33を挿入する様子を上下2段で示した図。上段では添字7から14の8個を後ろから順に1つずつずらし、下段では空いた添字7に33が入る">
+      <path d="M 521 54 Q 534 34 548 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 486 54 Q 499 34 513 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 451 54 Q 464 34 478 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 416 54 Q 429 34 443 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 381 54 Q 394 34 408 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 346 54 Q 359 34 373 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 311 54 Q 324 34 338 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 276 54 Q 289 34 303 54" class="svg-arrow" marker-end="url(#ah4)"/>
+      <text x="10" y="22" class="svg-small" style="text-anchor:start">挿入前　33 は [6] の 31 と [7] の 36 の間に入る。[7]〜[14] を後ろから順に 1 つずつずらす</text>
+      <rect x="535" y="58" width="35" height="34" class="svg-cell-plain"/>
+      <rect x="10" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="45" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="80" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="115" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="150" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="185" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="220" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="255" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="290" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="325" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="360" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="395" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="430" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="465" y="58" width="35" height="34" class="svg-cell"/>
+      <rect x="500" y="58" width="35" height="34" class="svg-cell"/>
+      <text x="27" y="81" class="svg-text">4</text>
+      <text x="62" y="81" class="svg-text">9</text>
+      <text x="97" y="81" class="svg-text">13</text>
+      <text x="132" y="81" class="svg-text">18</text>
+      <text x="167" y="81" class="svg-text">22</text>
+      <text x="202" y="81" class="svg-text">27</text>
+      <text x="237" y="81" class="svg-text">31</text>
+      <text x="272" y="81" class="svg-text">36</text>
+      <text x="307" y="81" class="svg-text">40</text>
+      <text x="342" y="81" class="svg-text">45</text>
+      <text x="377" y="81" class="svg-text">52</text>
+      <text x="412" y="81" class="svg-text">58</text>
+      <text x="447" y="81" class="svg-text">63</text>
+      <text x="482" y="81" class="svg-text">71</text>
+      <text x="517" y="81" class="svg-text">80</text>
+      <text x="27" y="110" class="svg-small">[0]</text>
+      <text x="62" y="110" class="svg-small">[1]</text>
+      <text x="97" y="110" class="svg-small">[2]</text>
+      <text x="132" y="110" class="svg-small">[3]</text>
+      <text x="167" y="110" class="svg-small">[4]</text>
+      <text x="202" y="110" class="svg-small">[5]</text>
+      <text x="237" y="110" class="svg-small">[6]</text>
+      <text x="272" y="110" class="svg-small">[7]</text>
+      <text x="307" y="110" class="svg-small">[8]</text>
+      <text x="342" y="110" class="svg-small">[9]</text>
+      <text x="377" y="110" class="svg-small">[10]</text>
+      <text x="412" y="110" class="svg-small">[11]</text>
+      <text x="447" y="110" class="svg-small">[12]</text>
+      <text x="482" y="110" class="svg-small">[13]</text>
+      <text x="517" y="110" class="svg-small">[14]</text>
+      <text x="552" y="110" class="svg-small">[15]</text>
+      <text x="10" y="140" class="svg-small" style="text-anchor:start">挿入後　空いた [7] に 33 を置く。ずらした要素は 8 個</text>
+      <rect x="10" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="45" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="80" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="115" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="150" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="185" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="220" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="290" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="325" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="360" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="395" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="430" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="465" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="500" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="535" y="152" width="35" height="34" class="svg-cell"/>
+      <rect x="255" y="152" width="35" height="34" class="svg-hl"/>
+      <text x="27" y="175" class="svg-text">4</text>
+      <text x="62" y="175" class="svg-text">9</text>
+      <text x="97" y="175" class="svg-text">13</text>
+      <text x="132" y="175" class="svg-text">18</text>
+      <text x="167" y="175" class="svg-text">22</text>
+      <text x="202" y="175" class="svg-text">27</text>
+      <text x="237" y="175" class="svg-text">31</text>
+      <text x="272" y="175" class="svg-text">33</text>
+      <text x="307" y="175" class="svg-text">36</text>
+      <text x="342" y="175" class="svg-text">40</text>
+      <text x="377" y="175" class="svg-text">45</text>
+      <text x="412" y="175" class="svg-text">52</text>
+      <text x="447" y="175" class="svg-text">58</text>
+      <text x="482" y="175" class="svg-text">63</text>
+      <text x="517" y="175" class="svg-text">71</text>
+      <text x="552" y="175" class="svg-text">80</text>
+      <text x="27" y="204" class="svg-small">[0]</text>
+      <text x="62" y="204" class="svg-small">[1]</text>
+      <text x="97" y="204" class="svg-small">[2]</text>
+      <text x="132" y="204" class="svg-small">[3]</text>
+      <text x="167" y="204" class="svg-small">[4]</text>
+      <text x="202" y="204" class="svg-small">[5]</text>
+      <text x="237" y="204" class="svg-small">[6]</text>
+      <text x="272" y="204" class="svg-small">[7]</text>
+      <text x="307" y="204" class="svg-small">[8]</text>
+      <text x="342" y="204" class="svg-small">[9]</text>
+      <text x="377" y="204" class="svg-small">[10]</text>
+      <text x="412" y="204" class="svg-small">[11]</text>
+      <text x="447" y="204" class="svg-small">[12]</text>
+      <text x="482" y="204" class="svg-small">[13]</text>
+      <text x="517" y="204" class="svg-small">[14]</text>
+      <text x="552" y="204" class="svg-small">[15]</text>
+      <defs>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　整列済み配列への挿入。挿入位置を求める手数は log n に比例するが、
+      後続の要素をずらす手数は最悪で n に比例し、挿入全体の手数はこちらで決まる。
+    </figcaption>
+  </figure>
+
+  <p>
+    図 4-1 は、末尾に1要素分の空きを持たせた図 3-1 の配列に 33 を挿入する例である。
+    33 を置くべき位置 [7] は二分探索で求まるが、[7]〜[14] の 8 個を1つずつ後ろへずらさなければ [7] は空かない。
+    ずらすときは末尾の [14] から順に移す。先頭側から移すと、移した値で次の要素を上書きしてしまうためである。
+    挿入位置が先頭に近いほどずらす個数は増え、先頭に挿入すれば n 個すべてを動かすことになる。
+  </p>
+
   <p>
     二分探索木は、この問題に対する一つの答えである。中央と比べて半分を捨てるという二分探索の考え方を、
     木の配置として保持することで、挿入のたびに要素をずらす必要をなくしている。
@@ -889,10 +1015,77 @@
     <p>
       余りを用いるハッシュ関数では、表の大きさ m の選び方が散らばり方を左右する。
       m = 10 とすると、ハッシュ値はキーの下一桁だけで決まる。
-      末尾が 0 の番号ばかりのように、キーの並びに規則性があれば特定の位置に集中する。
+      末尾が 0 の番号ばかりのように、キーの並びに規則性があれば特定の位置に集中する（図 5-2）。
       m を素数にするとキーの規則性と m の約数とが重なりにくいため、素数が選ばれることが多い。
     </p>
   </div>
+
+  <figure>
+    <svg viewBox="0 0 580 196" role="img" aria-label="キー10、20、30、40、50、60を格納する図。表の大きさ10では6個すべてが添字0に集まり、表の大きさ11では添字10、9、8、7、6、5に1個ずつ散らばる">
+      <text x="26" y="22" class="svg-small" style="text-anchor:start">m = 10（h(k) = k mod 10）　10・20・30・40・50・60 がすべて [0] に集まる</text>
+      <rect x="74" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="122" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="170" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="218" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="266" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="26" y="34" width="48" height="36" class="svg-hl"/>
+      <text x="50" y="58" class="svg-text">6 個</text>
+      <text x="50" y="88" class="svg-mono">[0]</text>
+      <text x="98" y="88" class="svg-mono">[1]</text>
+      <text x="146" y="88" class="svg-mono">[2]</text>
+      <text x="194" y="88" class="svg-mono">[3]</text>
+      <text x="242" y="88" class="svg-mono">[4]</text>
+      <text x="290" y="88" class="svg-mono">[5]</text>
+      <text x="338" y="88" class="svg-mono">[6]</text>
+      <text x="386" y="88" class="svg-mono">[7]</text>
+      <text x="434" y="88" class="svg-mono">[8]</text>
+      <text x="482" y="88" class="svg-mono">[9]</text>
+      <text x="26" y="122" class="svg-small" style="text-anchor:start">m = 11（h(k) = k mod 11）　同じ 6 個が [5]〜[10] に散らばる</text>
+      <rect x="26" y="134" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="134" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="122" y="134" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="170" y="134" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="218" y="134" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="266" y="134" width="48" height="36" class="svg-cell"/>
+      <rect x="314" y="134" width="48" height="36" class="svg-cell"/>
+      <rect x="362" y="134" width="48" height="36" class="svg-cell"/>
+      <rect x="410" y="134" width="48" height="36" class="svg-cell"/>
+      <rect x="458" y="134" width="48" height="36" class="svg-cell"/>
+      <rect x="506" y="134" width="48" height="36" class="svg-cell"/>
+      <text x="290" y="158" class="svg-text">60</text>
+      <text x="338" y="158" class="svg-text">50</text>
+      <text x="386" y="158" class="svg-text">40</text>
+      <text x="434" y="158" class="svg-text">30</text>
+      <text x="482" y="158" class="svg-text">20</text>
+      <text x="530" y="158" class="svg-text">10</text>
+      <text x="50" y="188" class="svg-mono">[0]</text>
+      <text x="98" y="188" class="svg-mono">[1]</text>
+      <text x="146" y="188" class="svg-mono">[2]</text>
+      <text x="194" y="188" class="svg-mono">[3]</text>
+      <text x="242" y="188" class="svg-mono">[4]</text>
+      <text x="290" y="188" class="svg-mono">[5]</text>
+      <text x="338" y="188" class="svg-mono">[6]</text>
+      <text x="386" y="188" class="svg-mono">[7]</text>
+      <text x="434" y="188" class="svg-mono">[8]</text>
+      <text x="482" y="188" class="svg-mono">[9]</text>
+      <text x="530" y="188" class="svg-mono">[10]</text>
+    </svg>
+    <figcaption>
+      図 5-2　表の大きさによる散らばり方の違い。キーがすべて 10 の倍数であるため、m = 10 では余りがすべて 0 になる。
+      m = 11 は 10 と公約数を持たないため、キーの規則性が余りに現れず、6 個が別々の位置に分かれる。
+    </figcaption>
+  </figure>
+
+  <p>
+    m = 10 では、60 を探すにも [0] に集まった 6 個を1つずつ照合するほかない。
+    格納したキーの数だけ照合が必要になるこの状態が、ハッシュ法の最悪 O(n) にあたる。
+    m = 11 では同じ 6 個がどれも1回の照合で見つかる。キーの集合は同じでも、
+    表の大きさ一つで平均 O(1) にも O(n) にもなる。
+  </p>
 
   <div class="quiz">
     <span class="quiz-label">確認問題 5-1</span>
@@ -1146,10 +1339,109 @@
 
   <p>
     線形走査法では、一度できたクラスタに後続のキーが次々と付け加わり、クラスタがさらに大きくなる。
-    これを避けるため、進む幅を 1, 4, 9, … と変える
-    <span class="term">二次走査法</span><span class="en">(quadratic probing)</span> や、
-    進む幅を別のハッシュ関数で決める
-    <span class="term">二重ハッシュ法</span><span class="en">(double hashing)</span> も用いられる。
+    クラスタのどこに当たったキーも、クラスタの末尾まで1つずつ進むためである。
+    これを避けるため、進む幅を変える走査の方式が用いられる。
+  </p>
+
+  <p>
+    <span class="term">二次走査法</span><span class="en">(quadratic probing)</span> は、
+    h(k) から 1<sup>2</sup>, 2<sup>2</sup>, 3<sup>2</sup>, … すなわち 1, 4, 9, … だけ先の位置を順に調べる方式である。
+    進む幅が回を追うごとに広がるため、クラスタを飛び越えてその外の空き位置に早く届く。
+  </p>
+
+  <pre><code>二次走査法で i 回目（i = 0, 1, 2, …）に調べる位置
+(h(k) + i × i) mod m</code></pre>
+
+  <figure>
+    <svg viewBox="0 0 580 250" role="img" aria-label="添字1から4が使用中の大きさ11のハッシュ表に、ハッシュ値1の56を挿入する走査を上下2段で比較した図。上段の線形走査法は添字1、2、3、4、5と5回調べ、下段の二次走査法は添字1、2、5と3回で空き位置に届く">
+      <path d="M 102 56 Q 122 34 142 56" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 150 56 Q 170 34 190 56" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 198 56 Q 218 34 238 56" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 246 56 Q 266 34 286 56" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 102 182 Q 122 160 142 182" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 150 182 Q 218 144 286 182" class="svg-arrow" marker-end="url(#ah5)"/>
+      <text x="26" y="22" class="svg-small" style="text-anchor:start">線形走査法　h(k), h(k) + 1, h(k) + 2, … の順に調べる。[1]→[2]→[3]→[4]→[5] の 5 回</text>
+      <rect x="26" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="122" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="266" y="60" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="84" class="svg-text">23</text>
+      <text x="146" y="84" class="svg-text">34</text>
+      <text x="194" y="84" class="svg-text">47</text>
+      <text x="242" y="84" class="svg-text">15</text>
+      <text x="290" y="84" class="svg-text">56</text>
+      <text x="50" y="114" class="svg-mono">[0]</text>
+      <text x="98" y="114" class="svg-mono">[1]</text>
+      <text x="146" y="114" class="svg-mono">[2]</text>
+      <text x="194" y="114" class="svg-mono">[3]</text>
+      <text x="242" y="114" class="svg-mono">[4]</text>
+      <text x="290" y="114" class="svg-mono">[5]</text>
+      <text x="338" y="114" class="svg-mono">[6]</text>
+      <text x="386" y="114" class="svg-mono">[7]</text>
+      <text x="434" y="114" class="svg-mono">[8]</text>
+      <text x="482" y="114" class="svg-mono">[9]</text>
+      <text x="530" y="114" class="svg-mono">[10]</text>
+      <text x="26" y="140" class="svg-small" style="text-anchor:start">二次走査法　h(k), h(k) + 1², h(k) + 2², … の順に調べる。[1]→[2]→[5] の 3 回</text>
+      <rect x="26" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="122" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="266" y="186" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="210" class="svg-text">23</text>
+      <text x="146" y="210" class="svg-text">34</text>
+      <text x="194" y="210" class="svg-text">47</text>
+      <text x="242" y="210" class="svg-text">15</text>
+      <text x="290" y="210" class="svg-text">56</text>
+      <text x="50" y="240" class="svg-mono">[0]</text>
+      <text x="98" y="240" class="svg-mono">[1]</text>
+      <text x="146" y="240" class="svg-mono">[2]</text>
+      <text x="194" y="240" class="svg-mono">[3]</text>
+      <text x="242" y="240" class="svg-mono">[4]</text>
+      <text x="290" y="240" class="svg-mono">[5]</text>
+      <text x="338" y="240" class="svg-mono">[6]</text>
+      <text x="386" y="240" class="svg-mono">[7]</text>
+      <text x="434" y="240" class="svg-mono">[8]</text>
+      <text x="482" y="240" class="svg-mono">[9]</text>
+      <text x="530" y="240" class="svg-mono">[10]</text>
+      <defs>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-3　図 6-2 の下段と同じ表に 56 を挿入する場合の走査の比較。格納位置はいずれも [5] であるが、
+      線形走査法はクラスタ [1]〜[4] を1つずつたどって 5 回目に届き、
+      二次走査法は 1 + 2<sup>2</sup> = 5 へ跳ぶため 3 回で済む。
+    </figcaption>
+  </figure>
+
+  <p>
+    ただし二次走査法でも、h(k) が等しいキー同士は同じ位置の並びをたどる。
+    h(k) = 1 となる 23・34・56 は、いずれも [1]→[2]→[5]→… の順に調べることになる。
+    <span class="term">二重ハッシュ法</span><span class="en">(double hashing)</span> は、
+    進む幅を別のハッシュ関数 h<sub>2</sub>(k) で決め、i 回目に (h(k) + i × h<sub>2</sub>(k)) mod m を調べる方式である。
+    例えば h<sub>2</sub>(k) = 1 + (k mod 5) とすると、34 の幅は 5、56 の幅は 2 となり、
+    同じ h(k) = 1 から出発しても [1]→[6]→… と [1]→[3]→[5]→… という異なる並びをたどる。
+  </p>
+
+  <p>
+    これらの方式は、表のすべての位置を調べるとは限らない点に注意を要する。
+    二次走査法は、m を素数とし負荷率を 0.5 未満に保てば、空き位置が必ず見つかることが知られている。
+    二重ハッシュ法でも、進む幅 h<sub>2</sub>(k) が m と公約数を持たないよう、m を素数にするのが一般的である。
   </p>
 
   <h3>オープンアドレス法での削除</h3>
@@ -1162,9 +1454,94 @@
 
   <p>
     そこで削除した位置には、空きとは区別される<strong>削除済みの印</strong>を残す。
-    探索は削除済みの位置を使用中と同様に通過して走査を続け、
-    格納は削除済みの位置を空き位置として再利用する。
-    削除済みの印が増えると走査が長くなるため、増えすぎた時点で表を作り直す。
+    探索は削除済みの位置を使用中と同様に通過して走査を続ける。
+    格納は、まず空き位置に出会うまで走査して同じキーが表にないことを確かめ、
+    そのうえで走査の途中で最初に出会った削除済みの位置を再利用する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 250" role="img" aria-label="図6-2の下段から34を削除し、添字2に削除済みの印を残した表を上下2段で示した図。上段では56の探索が添字2を通過して添字5で一致する。下段ではハッシュ値1の67の挿入が添字6の空きまで調べた後、添字2の削除済みの位置に格納される">
+      <path d="M 102 56 Q 122 34 142 56" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 150 56 Q 170 34 190 56" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 198 56 Q 218 34 238 56" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 246 56 Q 266 34 286 56" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 102 182 Q 122 160 142 182" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 150 182 Q 170 160 190 182" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 198 182 Q 218 160 238 182" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 246 182 Q 266 160 286 182" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 294 182 Q 314 160 334 182" class="svg-arrow" marker-end="url(#ah6)"/>
+      <text x="26" y="22" class="svg-small" style="text-anchor:start">56 を探す（h(56) = 1）　削除済みの [2] を通過し、[5] で一致する</text>
+      <rect x="26" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="122" y="60" width="48" height="36" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="314" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="60" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="60" width="48" height="36" class="svg-cell"/>
+      <rect x="266" y="60" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="84" class="svg-text">23</text>
+      <text x="194" y="84" class="svg-text">47</text>
+      <text x="242" y="84" class="svg-text">15</text>
+      <text x="290" y="84" class="svg-text">56</text>
+      <text x="146" y="83" class="svg-small">削除済</text>
+      <text x="50" y="114" class="svg-mono">[0]</text>
+      <text x="98" y="114" class="svg-mono">[1]</text>
+      <text x="146" y="114" class="svg-mono">[2]</text>
+      <text x="194" y="114" class="svg-mono">[3]</text>
+      <text x="242" y="114" class="svg-mono">[4]</text>
+      <text x="290" y="114" class="svg-mono">[5]</text>
+      <text x="338" y="114" class="svg-mono">[6]</text>
+      <text x="386" y="114" class="svg-mono">[7]</text>
+      <text x="434" y="114" class="svg-mono">[8]</text>
+      <text x="482" y="114" class="svg-mono">[9]</text>
+      <text x="530" y="114" class="svg-mono">[10]</text>
+      <text x="26" y="140" class="svg-small" style="text-anchor:start">67 を挿入（h(67) = 1）　[6] の空きまで調べて 67 がないと確かめ、[2] を再利用する</text>
+      <rect x="26" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="362" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="186" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="266" y="186" width="48" height="36" class="svg-cell"/>
+      <rect x="122" y="186" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="210" class="svg-text">23</text>
+      <text x="146" y="210" class="svg-text">67</text>
+      <text x="194" y="210" class="svg-text">47</text>
+      <text x="242" y="210" class="svg-text">15</text>
+      <text x="290" y="210" class="svg-text">56</text>
+      <text x="50" y="240" class="svg-mono">[0]</text>
+      <text x="98" y="240" class="svg-mono">[1]</text>
+      <text x="146" y="240" class="svg-mono">[2]</text>
+      <text x="194" y="240" class="svg-mono">[3]</text>
+      <text x="242" y="240" class="svg-mono">[4]</text>
+      <text x="290" y="240" class="svg-mono">[5]</text>
+      <text x="338" y="240" class="svg-mono">[6]</text>
+      <text x="386" y="240" class="svg-mono">[7]</text>
+      <text x="434" y="240" class="svg-mono">[8]</text>
+      <text x="482" y="240" class="svg-mono">[9]</text>
+      <text x="530" y="240" class="svg-mono">[10]</text>
+      <defs>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-4　削除済みの印を用いた探索と挿入。破線の [2] は 34 を削除した位置である。
+      探索は印を通過するため 56 に到達できる。挿入は空きの [6] で 67 がないことを確かめた後、
+      走査の途中にあった [2] を再利用する。
+    </figcaption>
+  </figure>
+
+  <p>
+    削除済みの印が増えると、空き位置に出会うまでの走査が長くなる。
+    そのため、印が増えすぎた時点で表を作り直す。
   </p>
 
   <h3>負荷率 — 表の混み具合が性能を決める</h3>
@@ -1176,6 +1553,12 @@
     チェイン法では負荷率は 1 を超えてもよく、リストの平均の長さが α になるため、性能は α に比例して緩やかに低下する。
     オープンアドレス法では表の中にしかキーを置けないため、負荷率は 1 を超えられず、
     1 に近づくと性能が急激に低下する。
+  </p>
+
+  <p>
+    チェイン法の例として、m = 11 の表に 22 個を格納すると α = 2 であり、各位置のリストには平均 2 個がつながる。
+    キーが偏りなく散らばっていれば、失敗する探索はリスト1本をたどりきる平均 2 回、
+    成功する探索は平均でリストの半分ほどをたどる約 1 + α ÷ 2 = 2 回の照合で済む。
   </p>
 
   <div class="table-block">
@@ -1198,11 +1581,130 @@
   </div>
 
   <p>
+    表 6-1 の値は、線形走査法の平均の走査回数を表す次の近似式に α を代入したものである。
+  </p>
+
+  <pre><code>成功する探索        (1 + 1 ÷ (1 − α)) ÷ 2
+失敗する探索・挿入  (1 + 1 ÷ (1 − α)²) ÷ 2</code></pre>
+
+  <p>
+    α = 0.5 では 1 − α = 0.5 であり、成功は (1 + 2) ÷ 2 = 1.5、失敗は (1 + 4) ÷ 2 = 2.5 となる。
+    α = 0.9 では 1 − α = 0.1 であり、成功は (1 + 10) ÷ 2 = 5.5、失敗は (1 + 100) ÷ 2 = 50.5 となる。
+    失敗側の式は (1 − α) の二乗で割るため、<strong>α が 1 に近づくと分母が急速に 0 に近づき、走査回数が跳ね上がる</strong>。
+  </p>
+
+  <h3>再ハッシュ — 表を大きくして負荷率を下げる</h3>
+
+  <p>
     実際の実装では、負荷率があらかじめ定めた上限を超えた時点で、より大きな表（多くは約2倍）を用意し、
     すべてのキーのハッシュ値を新しい表の大きさで計算し直して格納し直す。
     これを<span class="term">再ハッシュ</span><span class="en">(rehashing)</span> と呼ぶ。
-    再ハッシュの1回は O(n) を要するが、表の大きさを倍々に増やせば頻度は低く抑えられ、
-    挿入1回あたりに均すと O(1) に収まる。
+    表の大きさが変わればハッシュ値も変わるため、キーを元の位置のまま写すことはできず、1個ずつ計算し直す必要がある。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 198" role="img" aria-label="線形走査法で8個のキーを格納した大きさ11の表と、それを大きさ23に再ハッシュした表を上下2段で示した図。上段では添字1から8が一続きに埋まり、下段では23、47、71、56、34、15、62、90が添字0、1、2、10、11、15、16、21に分かれる">
+      <text x="26" y="22" class="svg-small" style="text-anchor:start">再ハッシュ前　m = 11 に 8 個（α ≒ 0.73）。[1]〜[8] が一続きのクラスタになっている</text>
+      <rect x="26" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="34" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="74" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="122" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="170" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="266" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="314" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="362" y="34" width="48" height="36" class="svg-cell"/>
+      <rect x="410" y="34" width="48" height="36" class="svg-cell"/>
+      <text x="98" y="58" class="svg-text">23</text>
+      <text x="146" y="58" class="svg-text">34</text>
+      <text x="194" y="58" class="svg-text">47</text>
+      <text x="242" y="58" class="svg-text">15</text>
+      <text x="290" y="58" class="svg-text">56</text>
+      <text x="338" y="58" class="svg-text">90</text>
+      <text x="386" y="58" class="svg-text">62</text>
+      <text x="434" y="58" class="svg-text">71</text>
+      <text x="50" y="88" class="svg-mono">[0]</text>
+      <text x="98" y="88" class="svg-mono">[1]</text>
+      <text x="146" y="88" class="svg-mono">[2]</text>
+      <text x="194" y="88" class="svg-mono">[3]</text>
+      <text x="242" y="88" class="svg-mono">[4]</text>
+      <text x="290" y="88" class="svg-mono">[5]</text>
+      <text x="338" y="88" class="svg-mono">[6]</text>
+      <text x="386" y="88" class="svg-mono">[7]</text>
+      <text x="434" y="88" class="svg-mono">[8]</text>
+      <text x="482" y="88" class="svg-mono">[9]</text>
+      <text x="530" y="88" class="svg-mono">[10]</text>
+      <text x="14" y="124" class="svg-small" style="text-anchor:start">再ハッシュ後　m = 23 で h(k) = k mod 23 を計算し直す（α ≒ 0.35）</text>
+      <rect x="86" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="110" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="134" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="158" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="182" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="206" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="230" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="302" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="326" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="350" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="422" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="446" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="470" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="494" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="542" y="136" width="24" height="36" class="svg-cell-plain"/>
+      <rect x="14" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="38" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="62" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="254" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="278" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="374" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="398" y="136" width="24" height="36" class="svg-cell"/>
+      <rect x="518" y="136" width="24" height="36" class="svg-cell"/>
+      <text x="26" y="160" class="svg-text">23</text>
+      <text x="50" y="160" class="svg-text">47</text>
+      <text x="74" y="160" class="svg-text">71</text>
+      <text x="266" y="160" class="svg-text">56</text>
+      <text x="290" y="160" class="svg-text">34</text>
+      <text x="386" y="160" class="svg-text">15</text>
+      <text x="410" y="160" class="svg-text">62</text>
+      <text x="530" y="160" class="svg-text">90</text>
+      <text x="26" y="190" class="svg-small">0</text>
+      <text x="50" y="190" class="svg-small">1</text>
+      <text x="74" y="190" class="svg-small">2</text>
+      <text x="98" y="190" class="svg-small">3</text>
+      <text x="122" y="190" class="svg-small">4</text>
+      <text x="146" y="190" class="svg-small">5</text>
+      <text x="170" y="190" class="svg-small">6</text>
+      <text x="194" y="190" class="svg-small">7</text>
+      <text x="218" y="190" class="svg-small">8</text>
+      <text x="242" y="190" class="svg-small">9</text>
+      <text x="266" y="190" class="svg-small">10</text>
+      <text x="290" y="190" class="svg-small">11</text>
+      <text x="314" y="190" class="svg-small">12</text>
+      <text x="338" y="190" class="svg-small">13</text>
+      <text x="362" y="190" class="svg-small">14</text>
+      <text x="386" y="190" class="svg-small">15</text>
+      <text x="410" y="190" class="svg-small">16</text>
+      <text x="434" y="190" class="svg-small">17</text>
+      <text x="458" y="190" class="svg-small">18</text>
+      <text x="482" y="190" class="svg-small">19</text>
+      <text x="506" y="190" class="svg-small">20</text>
+      <text x="530" y="190" class="svg-small">21</text>
+      <text x="554" y="190" class="svg-small">22</text>
+    </svg>
+    <figcaption>
+      図 6-5　再ハッシュの例。上段は 23・47・15・34・56・90・62・71 の順に線形走査法で格納した表であり、
+      [1]〜[8] がクラスタになっている。m = 23 に移すと負荷率は約 0.35 に下がり、
+      8 個が衝突なく別々の位置に分かれて、どれも1回の照合で見つかる。
+    </figcaption>
+  </figure>
+
+  <p>
+    再ハッシュの1回は O(n) を要する。それでも挿入1回あたりに均すと O(1) に収まるのは、
+    表の大きさを2倍ずつ増やすためである。大きさ 1 の表から始め、満杯になるたびに2倍にすると、
+    n 個を挿入するまでに格納し直す回数の合計は 1 + 2 + 4 + … + n ÷ 2 = n − 1 であり、n に満たない。
+    最初の格納の n 回と合わせても 2n 回未満であるから、挿入1回あたりは 2 回未満、すなわち O(1) である。
+    このように、まれに重い処理を含む一連の操作について、全体の手数を操作の回数で割って評価する考え方を
+    <span class="term">償却計算量</span><span class="en">(amortized complexity)</span> と呼ぶ。
   </p>
 
   <h3>チェイン法とオープンアドレス法の比較</h3>
@@ -1380,6 +1882,108 @@
     </table>
     </div>
   </div>
+
+  <p>
+    表 7-1 の下の二行の差は、キーの大小の順序が格納位置に反映されているかどうかから生じる。
+    図 3-1 の配列から 20 以上 50 以下の値をすべて取り出すには、
+    二分探索を「20 以上となる最初の位置」を求める形に変えて [4] を見つけ（4 回の比較で定まる）、
+    そこから 50 を超える値が現れるまで順に読めばよい。手数は約 log<sub>2</sub> n に取り出す個数を加えた程度である。
+    最小・最大は両端の [0]・[14] を見るだけで済む。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 234" role="img" aria-label="20以上50以下のキーを取り出す処理を上下2段で比較した図。上段の整列済み配列では範囲内の22から45が添字4から9に連続して並ぶ。下段の大きさ11のハッシュ表では範囲内の23、47、38が添字1、3、5に散らばっている">
+      <text x="20" y="22" class="svg-small" style="text-anchor:start">整列済み配列　20 以上の最初の位置 [4] を二分探索で求め、52 が現れるまで順に読む</text>
+      <rect x="20" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="56" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="92" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="128" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="380" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="416" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="452" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="488" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="524" y="34" width="36" height="32" class="svg-cell"/>
+      <rect x="164" y="34" width="36" height="32" class="svg-hl"/>
+      <rect x="200" y="34" width="36" height="32" class="svg-hl"/>
+      <rect x="236" y="34" width="36" height="32" class="svg-hl"/>
+      <rect x="272" y="34" width="36" height="32" class="svg-hl"/>
+      <rect x="308" y="34" width="36" height="32" class="svg-hl"/>
+      <rect x="344" y="34" width="36" height="32" class="svg-hl"/>
+      <text x="38" y="56" class="svg-text">4</text>
+      <text x="74" y="56" class="svg-text">9</text>
+      <text x="110" y="56" class="svg-text">13</text>
+      <text x="146" y="56" class="svg-text">18</text>
+      <text x="182" y="56" class="svg-text">22</text>
+      <text x="218" y="56" class="svg-text">27</text>
+      <text x="254" y="56" class="svg-text">31</text>
+      <text x="290" y="56" class="svg-text">36</text>
+      <text x="326" y="56" class="svg-text">40</text>
+      <text x="362" y="56" class="svg-text">45</text>
+      <text x="398" y="56" class="svg-text">52</text>
+      <text x="434" y="56" class="svg-text">58</text>
+      <text x="470" y="56" class="svg-text">63</text>
+      <text x="506" y="56" class="svg-text">71</text>
+      <text x="542" y="56" class="svg-text">80</text>
+      <text x="38" y="84" class="svg-mono">[0]</text>
+      <text x="74" y="84" class="svg-mono">[1]</text>
+      <text x="110" y="84" class="svg-mono">[2]</text>
+      <text x="146" y="84" class="svg-mono">[3]</text>
+      <text x="182" y="84" class="svg-mono">[4]</text>
+      <text x="218" y="84" class="svg-mono">[5]</text>
+      <text x="254" y="84" class="svg-mono">[6]</text>
+      <text x="290" y="84" class="svg-mono">[7]</text>
+      <text x="326" y="84" class="svg-mono">[8]</text>
+      <text x="362" y="84" class="svg-mono">[9]</text>
+      <text x="398" y="84" class="svg-mono">[10]</text>
+      <text x="434" y="84" class="svg-mono">[11]</text>
+      <text x="470" y="84" class="svg-mono">[12]</text>
+      <text x="506" y="84" class="svg-mono">[13]</text>
+      <text x="542" y="84" class="svg-mono">[14]</text>
+      <text x="20" y="106" class="svg-small" style="text-anchor:start">範囲内は [4]〜[9] の 6 個。[10] の 52 を読んだ時点で終了する</text>
+      <text x="26" y="138" class="svg-small" style="text-anchor:start">ハッシュ表（図 5-1）　範囲内の 23・47・38 は [1]・[3]・[5] に散らばる</text>
+      <rect x="26" y="150" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="314" y="150" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="410" y="150" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="458" y="150" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="506" y="150" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="122" y="150" width="48" height="36" class="svg-cell"/>
+      <rect x="218" y="150" width="48" height="36" class="svg-cell"/>
+      <rect x="362" y="150" width="48" height="36" class="svg-cell"/>
+      <rect x="74" y="150" width="48" height="36" class="svg-hl"/>
+      <rect x="170" y="150" width="48" height="36" class="svg-hl"/>
+      <rect x="266" y="150" width="48" height="36" class="svg-hl"/>
+      <text x="98" y="174" class="svg-text">23</text>
+      <text x="146" y="174" class="svg-text">90</text>
+      <text x="194" y="174" class="svg-text">47</text>
+      <text x="242" y="174" class="svg-text">15</text>
+      <text x="290" y="174" class="svg-text">38</text>
+      <text x="386" y="174" class="svg-text">62</text>
+      <text x="50" y="204" class="svg-mono">[0]</text>
+      <text x="98" y="204" class="svg-mono">[1]</text>
+      <text x="146" y="204" class="svg-mono">[2]</text>
+      <text x="194" y="204" class="svg-mono">[3]</text>
+      <text x="242" y="204" class="svg-mono">[4]</text>
+      <text x="290" y="204" class="svg-mono">[5]</text>
+      <text x="338" y="204" class="svg-mono">[6]</text>
+      <text x="386" y="204" class="svg-mono">[7]</text>
+      <text x="434" y="204" class="svg-mono">[8]</text>
+      <text x="482" y="204" class="svg-mono">[9]</text>
+      <text x="530" y="204" class="svg-mono">[10]</text>
+      <text x="26" y="226" class="svg-small" style="text-anchor:start">範囲内のキーがどこにあるかは位置の並びから分からず、11 か所すべてを調べる</text>
+    </svg>
+    <figcaption>
+      図 7-1　20 以上 50 以下のキーを取り出す処理の比較。強調した位置が範囲内のキーである。
+      整列済み配列では範囲内のキーが一続きに並ぶため、始点さえ分かれば順に読める。
+      ハッシュ表ではハッシュ値の大小がキーの大小と無関係であるため、範囲内のキーが表の中に散らばる。
+    </figcaption>
+  </figure>
+
+  <p>
+    図 5-1 のハッシュ表では、範囲内の 23・47・38 が [1]・[3]・[5] に散らばっている。
+    位置の並びから範囲内のキーの場所を絞り込めないため、表全体を調べることになる。
+    キーが整数で範囲が狭ければ、20 から 50 までの 31 個の値それぞれのハッシュ値を計算して調べる方法もあるが、
+    範囲が広い場合や文字列のキーでは成り立たない。最小・最大も同様に全件を調べる必要がある。
+  </p>
 
   <p>
     表 7-1 から、使い分けの指針は次のようにまとめられる。
