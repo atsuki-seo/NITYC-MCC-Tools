@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ゲーム木探索（ミニマックス法）・リバーシプログラム導入 | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>ゲーム木探索（ミニマックス法）・リバーシプログラム導入</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">相手がいる問題</a></li>
+    <li><a href="#s2">ゲーム木 — 局面を節点、手を枝とする</a></li>
+    <li><a href="#s3">ミニマックス法 — 相手は最善を尽くすと仮定する</a></li>
+    <li><a href="#s4">読みの深さと評価関数</a></li>
+    <li><a href="#s5">αβ法 — 結果を変えずに枝を刈る</a></li>
+    <li><a href="#s6">リバーシへの適用方針</a></li>
+    <li><a href="#s7">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 相手がいる問題 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>相手がいる問題</h2>
+
+  <p>
+    探索やソートでは、入力は処理を始める前に定まっており、処理の途中で変わることはない。
+    配列のどこに目的の値があるかは、探す側がどう探しても変わらない。
+    これに対し、リバーシのような対戦ゲームでは、自分が手を選んだ直後に
+    <strong>相手が自分の都合の悪い手を選んでくる</strong>。
+    ある手の良し悪しは、その手だけでは決まらず、相手がどう応じるかによって決まる。
+  </p>
+
+  <p>
+    素朴な方法として、打てる手をすべて試し、打った直後の石の差（自分の石数 − 相手の石数）が
+    最も大きい手を選ぶことが考えられる。1手先だけを見るこの方法は、
+    盤面を読むという点では正しく動作するが、対戦では容易に負ける。
+    多くの石を返す手が、相手に角を明け渡す手であることが珍しくないためである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 266" role="img" aria-label="現局面から手Aを打つと石差は+6、手Bを打つと+2になる。しかし相手が応じた後の石差は、手Aでは−10と+4、手Bでは+1と+3になる。1手先だけを見ると手Aを選ぶが、相手の応手まで見ると最悪の場合の石差が大きい手Bを選ぶべきことを示す木の図">
+      <text x="12" y="40" class="svg-small" style="text-anchor:start">現局面</text>
+      <text x="12" y="108" class="svg-small" style="text-anchor:start">自分が打った後の石差</text>
+      <text x="12" y="176" class="svg-small" style="text-anchor:start">相手が応じた後の石差</text>
+      <path d="M 370 52 L 270 86" class="svg-line"/>
+      <path d="M 370 52 L 470 86" class="svg-line"/>
+      <path d="M 270 118 L 220 154" class="svg-line"/>
+      <path d="M 270 118 L 320 154" class="svg-line"/>
+      <path d="M 470 118 L 420 154" class="svg-line"/>
+      <path d="M 470 118 L 520 154" class="svg-line"/>
+      <rect x="332" y="20" width="76" height="32" class="svg-cell"/>
+      <text x="370" y="41" class="svg-text">現局面</text>
+      <rect x="232" y="86" width="76" height="32" class="svg-cell"/>
+      <text x="270" y="107" class="svg-text">A：+6</text>
+      <rect x="432" y="86" width="76" height="32" class="svg-cell"/>
+      <text x="470" y="107" class="svg-text">B：+2</text>
+      <rect x="282" y="154" width="76" height="32" class="svg-cell"/>
+      <text x="320" y="175" class="svg-text">+4</text>
+      <rect x="382" y="154" width="76" height="32" class="svg-cell"/>
+      <text x="420" y="175" class="svg-text">+1</text>
+      <rect x="482" y="154" width="76" height="32" class="svg-cell"/>
+      <text x="520" y="175" class="svg-text">+3</text>
+      <rect x="182" y="154" width="76" height="32" class="svg-hl"/>
+      <text x="220" y="175" class="svg-text">−10</text>
+      <text x="220" y="206" class="svg-small">角を取られる</text>
+      <text x="24" y="234" class="svg-small" style="text-anchor:start">1 手先だけを見る　→ 直後の石差が大きい A を選ぶ</text>
+      <text x="24" y="256" class="svg-small" style="text-anchor:start">相手の応手まで見る → 最悪でも +1 にとどまる B を選ぶ（A は最悪 −10）</text>
+    </svg>
+    <figcaption>
+      図 1-1　手 A は打った直後の石差では手 B を上回るが、相手が角を取る応手を選べば −10 まで落ちる。
+      手の価値は打った直後の局面ではなく、相手の応手を経た後の局面で比べる必要がある。
+    </figcaption>
+  </figure>
+
+  <p>
+    図 1-1 の判断は、「相手は自分にとって最も都合の悪い手を選ぶ」と考えて、
+    各手の最悪の結果を比べることで得られた。この考え方を、相手の応手のさらに先、
+    自分の次の手、相手の次の応手へと繰り返していくのが<span class="term">ゲーム木探索</span><span class="en">(game tree search)</span> である。
+  </p>
+
+  <h3>ゲーム木探索が前提とするゲームの性質</h3>
+
+  <p>
+    本講で扱う方法は、次の条件をすべて満たすゲームを対象とする。
+    このようなゲームを<span class="term">二人零和有限確定完全情報ゲーム</span>と呼ぶ。
+    リバーシ・将棋・チェス・囲碁・三目並べはいずれもこれに該当する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 1-1　ゲーム木探索が前提とする条件。いずれかが欠けると、
+      局面と手だけから結果を決める木を描けなくなり、本講の方法はそのままでは使えない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>条件</th><th>意味</th><th>満たさない例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>二人</td><td>対戦者が2人で、交互に手を選ぶ</td><td>3人以上で遊ぶすごろく</td></tr>
+        <tr><td><span class="term">零和</span><span class="en">(zero-sum)</span></td><td>一方の得がそのまま他方の損になる。利害が完全に対立する</td><td>協力すると双方が得をするゲーム</td></tr>
+        <tr><td>有限</td><td>どのように進めても有限の手数で終わる</td><td>同じ局面を無限に繰り返せるゲーム</td></tr>
+        <tr><td>確定</td><td>さいころなどの偶然が結果に入り込まない</td><td>すごろく、バックギャモン</td></tr>
+        <tr><td>完全情報</td><td>盤面などゲームの状態がすべて双方に見えている</td><td>相手の手札が見えないトランプゲーム</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    零和であることから、局面の良さを<strong>自分にとっての良さという一つの数値</strong>で表せる。
+    自分にとって +5 の局面は、相手にとって −5 の局面である。
+    この性質が、以降の方法をきわめて単純な形にする。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>ゲーム木探索が前提とするゲームの条件を述べ、局面と手をゲーム木として表せる</li>
+      <li>ミニマックス法で、ゲーム木の根の値と選ぶべき手を求められる</li>
+      <li>読みを途中で打ち切る理由と評価関数の役割を、計算量に基づいて説明できる</li>
+      <li>αβ法が結果を変えずに探索量を減らす仕組みと、調べる順序の影響を説明できる</li>
+      <li>リバーシの CPU を構成する部品と、開発・検証の進め方を説明できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      打てる手をすべて試し、打った直後の石の差が最も大きい手を選ぶ CPU を作った。
+      この CPU が対戦で弱い理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>相手の応手を考慮せず、手の価値を打った直後の局面だけで判断しているから</li>
+      <li>盤面のマス数が多く、打てる手をすべて試しきれないから</li>
+      <li>返す石の数を数える計算に誤差が生じ、手の比較を誤るから</li>
+      <li>多くの石を返す手は、どの局面でも必ず悪手であるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          対戦ゲームでは、手の良し悪しは相手の応手によって決まる。
+          打った直後の局面だけを比べる方法は、その手が相手に有利な応手を許すかどうかを見ていない。
+        </p>
+        <p>
+          (B) 1手先の候補は多くの局面で十前後であり、すべて試すことは容易である。
+          全探索が困難になるのは、何手も先まで読もうとした場合である。
+          (C) 石を数える処理は整数の計算であり、誤差は生じない。弱さの原因は計算の精度ではなく判断の基準にある。
+          (D) 多くの石を返す手が良い手である局面も多い。問題は返す石の数そのものではなく、
+          その後に相手がどう応じるかを見ていない点にある。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. ゲーム木 — 局面を節点、手を枝とする ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>ゲーム木 — 局面を節点、手を枝とする</h2>
+
+  <p>
+    ゲームの進行は、木構造でそのまま表せる。局面を節点、手を枝とし、
+    ある局面で打てる手のそれぞれについて、その手を打った後の局面を子とする。
+    このように作った木を<span class="term">ゲーム木</span><span class="en">(game tree)</span> と呼ぶ。
+  </p>
+
+  <ul>
+    <li><strong>根</strong> — これから手を選ぶ現在の局面</li>
+    <li><strong>子</strong> — 親の局面から1手打った後の局面。打てる手の数だけある</li>
+    <li><strong>葉</strong> — 終局した局面、または読みを打ち切った局面</li>
+    <li><strong>深さ</strong> — 根から何手進めた局面かを表す</li>
+  </ul>
+
+  <p>
+    根から1手進めるごとに手番が入れ替わるため、
+    <strong>深さが偶数の節点は自分の手番、奇数の節点は相手の手番</strong>の局面になる
+    （手番を持つ側が打てずに手番だけが移る場合は除く）。
+    1人が1手打つことを1手と数え、この単位を<span class="term">プライ</span><span class="en">(ply)</span> と呼ぶことがある。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 252" role="img" aria-label="現局面を根とし、深さ1に手A・B・Cを打った後の3局面、深さ2にそれぞれ3つずつ計9局面を持つゲーム木。深さ0と2は自分の手番、深さ1は相手の手番であり、葉の数は3×3=9になることを示す図">
+      <text x="10" y="44" class="svg-small" style="text-anchor:start">深さ 0：自分の手番</text>
+      <text x="10" y="124" class="svg-small" style="text-anchor:start">深さ 1：相手の手番</text>
+      <text x="10" y="204" class="svg-small" style="text-anchor:start">深さ 2：自分の手番</text>
+      <path d="M 366 56 L 228 104" class="svg-line"/>
+      <path d="M 366 56 L 366 104" class="svg-line"/>
+      <path d="M 366 56 L 504 104" class="svg-line"/>
+      <path d="M 228 136 L 182 184" class="svg-line"/>
+      <path d="M 228 136 L 228 184" class="svg-line"/>
+      <path d="M 228 136 L 274 184" class="svg-line"/>
+      <path d="M 366 136 L 320 184" class="svg-line"/>
+      <path d="M 366 136 L 366 184" class="svg-line"/>
+      <path d="M 366 136 L 412 184" class="svg-line"/>
+      <path d="M 504 136 L 458 184" class="svg-line"/>
+      <path d="M 504 136 L 504 184" class="svg-line"/>
+      <path d="M 504 136 L 550 184" class="svg-line"/>
+      <rect x="200" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="228" y="125" class="svg-text">A</text>
+      <rect x="338" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="366" y="125" class="svg-text">B</text>
+      <rect x="476" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="504" y="125" class="svg-text">C</text>
+      <rect x="163" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="182" y="204" class="svg-mono">A1</text>
+      <rect x="209" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="228" y="204" class="svg-mono">A2</text>
+      <rect x="255" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="274" y="204" class="svg-mono">A3</text>
+      <rect x="301" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="320" y="204" class="svg-mono">B1</text>
+      <rect x="347" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="366" y="204" class="svg-mono">B2</text>
+      <rect x="393" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="412" y="204" class="svg-mono">B3</text>
+      <rect x="439" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="458" y="204" class="svg-mono">C1</text>
+      <rect x="485" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="504" y="204" class="svg-mono">C2</text>
+      <rect x="531" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="550" y="204" class="svg-mono">C3</text>
+      <rect x="338" y="24" width="56" height="32" class="svg-hl"/>
+      <text x="366" y="45" class="svg-text">現局面</text>
+      <text x="366" y="242" class="svg-small">分岐数 3、深さ 2 → 葉の数は 3 × 3 = 9</text>
+    </svg>
+    <figcaption>
+      図 2-1　各局面で打てる手が3通りずつある場合のゲーム木。深さ 0 と 2 は自分、深さ 1 は相手が手を選ぶ。
+      1段下がるごとに節点の数が分岐の数の倍になるため、葉の数は分岐数を深さの回数だけ掛けた値になる。
+    </figcaption>
+  </figure>
+
+  <p>
+    各節点から出る枝の数を<span class="term">分岐数</span><span class="en">(branching factor)</span> と呼び、
+    <var>b</var> で表す。どの節点も <var>b</var> 本の枝を持つとき、深さ <var>d</var> の葉は
+    <var>b</var><sup><var>d</var></sup> 個になる。木構造の言葉でいえば、ゲーム木は子の数が
+    <var>b</var> 個の木であり、深さ <var>d</var> まで隙間なく詰まった形をしている。
+    実際のゲームでは局面ごとに打てる手の数が異なるため、<var>b</var> は平均的な値として扱う。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      ゲーム木は、プログラムの中に木として丸ごと作っておくものではない。
+      根の局面から手を1つ打っては子の局面を作り、調べ終われば捨てるという手順を繰り返すことで、
+      <strong>木をたどった場合と同じ順序で局面を訪れる</strong>。
+      ゲーム木は、この訪れ方を説明するための見取り図である。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      どの局面でも打てる手がちょうど 8 通りあるゲームで、現在の局面から 3 手先まで読む。
+      ゲーム木の葉（深さ 3 の局面）の数はいくつか。
+    </p>
+    <ol class="choices">
+      <li>24</li>
+      <li>512</li>
+      <li>585</li>
+      <li>6561</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          1手進めるごとに局面の数が 8 倍になるため、深さ 3 の局面は 8 × 8 × 8 = 512 個である。
+        </p>
+        <p>
+          (A) は 8 × 3 であり、手を重ねるごとに局面の数が「足される」と考えた誤りである。
+          (C) は根を含む深さ 0〜3 のすべての節点の数（1 + 8 + 64 + 512）であり、葉だけの数ではない。
+          (D) は 3<sup>8</sup> であり、分岐数と深さの役割を取り違えている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. ミニマックス法 — 相手は最善を尽くすと仮定する ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>ミニマックス法 — 相手は最善を尽くすと仮定する</h2>
+
+  <p>
+    ゲーム木の葉に、その局面が自分にとってどれだけ良いかを表す数値を与えたとする。
+    この数値を<span class="term">評価値</span><span class="en">(evaluation value)</span> と呼ぶ。
+    零和であるから、評価値は<strong>常に自分の立場から見た値</strong>に統一できる。
+    大きいほど自分に有利、小さいほど相手に有利である。
+  </p>
+
+  <p>
+    葉の評価値から根の評価値を求めるには、葉から根へ向かって値を持ち上げていく。
+    持ち上げ方は、その節点で手を選ぶのがどちらかによって決まる。
+  </p>
+
+  <ul>
+    <li>自分の手番の節点 — 自分は最も有利な手を選ぶので、子の値の<strong>最大値</strong>をとる</li>
+    <li>相手の手番の節点 — 相手は自分にとって最も不利な手を選ぶので、子の値の<strong>最小値</strong>をとる</li>
+  </ul>
+
+  <p>
+    最大と最小を深さごとに交互に適用して根の値を求める方法を
+    <span class="term">ミニマックス法</span><span class="en">(minimax)</span> と呼ぶ。
+    根の値を与えた子への手が、選ぶべき手である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 252" role="img" aria-label="深さ2のゲーム木で、葉の評価値は手Aの下が3・12・8、手Bの下が2・4・6、手Cの下が14・5・2である。相手の手番では最小値をとるのでA・B・Cの値は3・2・2となり、自分の手番では最大値をとるので根の値は3となって手Aが選ばれることを示す図">
+      <text x="10" y="44" class="svg-small" style="text-anchor:start">自分の手番：最大</text>
+      <text x="10" y="124" class="svg-small" style="text-anchor:start">相手の手番：最小</text>
+      <text x="10" y="204" class="svg-small" style="text-anchor:start">葉：評価値</text>
+      <path d="M 366 56 L 366 104" class="svg-line"/>
+      <path d="M 366 56 L 504 104" class="svg-line"/>
+      <path d="M 228 136 L 228 184" class="svg-line"/>
+      <path d="M 228 136 L 274 184" class="svg-line"/>
+      <path d="M 366 136 L 320 184" class="svg-line"/>
+      <path d="M 366 136 L 366 184" class="svg-line"/>
+      <path d="M 366 136 L 412 184" class="svg-line"/>
+      <path d="M 504 136 L 458 184" class="svg-line"/>
+      <path d="M 504 136 L 504 184" class="svg-line"/>
+      <path d="M 504 136 L 550 184" class="svg-line"/>
+      <path d="M 366 56 L 228 104" class="svg-arrow"/>
+      <path d="M 228 136 L 182 184" class="svg-arrow"/>
+      <rect x="338" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="366" y="125" class="svg-text">B：2</text>
+      <rect x="476" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="504" y="125" class="svg-text">C：2</text>
+      <rect x="209" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="228" y="205" class="svg-text">12</text>
+      <rect x="255" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="274" y="205" class="svg-text">8</text>
+      <rect x="301" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="320" y="205" class="svg-text">2</text>
+      <rect x="347" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="366" y="205" class="svg-text">4</text>
+      <rect x="393" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="412" y="205" class="svg-text">6</text>
+      <rect x="439" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="458" y="205" class="svg-text">14</text>
+      <rect x="485" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="504" y="205" class="svg-text">5</text>
+      <rect x="531" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="550" y="205" class="svg-text">2</text>
+      <rect x="338" y="24" width="56" height="32" class="svg-hl"/>
+      <text x="366" y="45" class="svg-text">3</text>
+      <rect x="200" y="104" width="56" height="32" class="svg-hl"/>
+      <text x="228" y="125" class="svg-text">A：3</text>
+      <rect x="163" y="184" width="38" height="32" class="svg-hl"/>
+      <text x="182" y="205" class="svg-text">3</text>
+      <text x="366" y="242" class="svg-small">最小値は A が 3、B・C が 2 → 最大の 3 を与える手 A を選ぶ</text>
+    </svg>
+    <figcaption>
+      図 3-1　ミニマックス法による値の持ち上げ。強調した経路は、双方が最善を尽くした場合の進行を表す。
+      手 C の下には 14 という大きな値があるが、相手が 2 の手を選べば実現しないため、手 C の価値は 2 にとどまる。
+    </figcaption>
+  </figure>
+
+  <h3>再帰による手順</h3>
+
+  <p>
+    節点の値は子の値がすべて求まって初めて決まる。そのため、子の値を先にすべて求め、
+    最後に自身の値を決めるという、木構造の<strong>帰りがけ順の走査</strong>と同じ順序で計算を進める。
+    子の値を求める処理は親の値を求める処理と同じ形をしているため、再帰で書ける。
+  </p>
+
+  <pre><code>ミニマックス(局面 P, 残りの深さ k):
+1. P が終局しているか k = 0 ならば、P の評価値を返す
+2. P で打てる手それぞれについて、その手を打った局面 C を作る
+3. 各 C について、ミニマックス(C, k − 1) を求める
+4. P が自分の手番ならば、3 で求めた値の最大値を返す
+5. そうでなければ、3 で求めた値の最小値を返す</code></pre>
+
+  <p>
+    根の局面について、ミニマックス(根, 読む深さ) を呼び出し、
+    根の子のうち最大値を与えたものへの手を選ぶ。探索が調べる局面の数は木の節点の数に等しく、
+    分岐数 <var>b</var>・深さ <var>d</var> であれば O(<var>b</var><sup><var>d</var></sup>) である。
+  </p>
+
+  <h3>「相手は最善を尽くす」という仮定の意味</h3>
+
+  <p>
+    ミニマックス法は、相手が常に自分にとって最も不利な手を選ぶと仮定する。
+    相手が実際にはそれより悪い手を選んだ場合、相手の手番の節点の値は最小値より大きくなるだけであり、
+    <strong>根の値より悪い結果にはならない</strong>。根の値は、評価値が局面の良さを正しく表すかぎり、
+    相手がどう打っても確保できる下限を表す。
+    相手の打ち方を予想する必要がない点が、この方法の強みである。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      根を自分の手番とし、深さ 2 まで読んだゲーム木の葉の評価値が次のとおりであった。
+      ミニマックス法で選ばれる手と根の値の組合せとして正しいものはどれか。
+    </p>
+    <div class="table-block">
+      <p class="table-caption">
+        表 3-1　手 A・B・C を打った後に、相手の 3 通りの応手それぞれで到達する局面の評価値。
+      </p>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>自分の手</th><th>応手 1</th><th>応手 2</th><th>応手 3</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A</td><td class="num-cell">5</td><td class="num-cell">9</td><td class="num-cell">1</td></tr>
+          <tr><td>B</td><td class="num-cell">4</td><td class="num-cell">6</td><td class="num-cell">3</td></tr>
+          <tr><td>C</td><td class="num-cell">7</td><td class="num-cell">2</td><td class="num-cell">8</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <ol class="choices">
+      <li>手 A を選び、根の値は 9</li>
+      <li>手 B を選び、根の値は 3</li>
+      <li>手 C を選び、根の値は約 5.7</li>
+      <li>手 A を選び、根の値は 1</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          相手の手番では最小値をとるので、A・B・C の値はそれぞれ 1・3・2 となる。
+          自分の手番では最大値をとるので、根の値は 3 であり、手 B を選ぶ。
+        </p>
+        <p>
+          (A) は相手の手番でも最大値をとった結果であり、相手が自分に都合の良い手を選ぶと仮定している。
+          (C) は各手の評価値の平均（C は 17 ÷ 3）で比べた結果であり、相手が最善の手を選ぶことを考慮していない。
+          (D) は自分の手番でも最小値をとった結果であり、最大と最小を適用する手番を取り違えている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      ミニマックス法で根の値が +4 と求まり、その値を与える手を打った。
+      その後、相手がミニマックス法の想定した手とは異なる手を打った。
+      読んだ範囲の結果について、正しい記述はどれか。ただし、評価値は局面の良さを正しく表すものとする。
+    </p>
+    <ol class="choices">
+      <li>結果は +4 以上になる</li>
+      <li>結果は +4 より悪くなる</li>
+      <li>結果は必ず +4 ちょうどになる</li>
+      <li>前提が崩れたため、+4 という値は結果について何も保証しない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          ミニマックス法は相手が自分にとって最も不利な手を選ぶと仮定して値を求めている。
+          相手がそれ以外の手を選べば、相手の手番の節点で最小値以外の値が実現するだけであり、
+          結果は +4 を下回らない。
+        </p>
+        <p>
+          (B) は仮定から外れることを「悪くなる」と取り違えている。相手が最善から外れて得をするのは自分である。
+          (C) は相手が想定どおりに打った場合に限られる。
+          (D) 仮定は最悪の場合を想定するためのものであり、外れた場合にも下限としての意味は保たれる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 読みの深さと評価関数 ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>読みの深さと評価関数</h2>
+
+  <p>
+    ミニマックス法を終局まで適用すれば、葉の評価値は最終的な石の差そのものになり、
+    完全に正しい手が選べる。しかし調べる局面の数は O(<var>b</var><sup><var>d</var></sup>) であり、
+    深さに対して指数関数的に増える。リバーシの分岐数は多くの局面で十前後であり、
+    1局は最大 60 手に及ぶ。終局まで読むには 10<sup>60</sup> 程度の局面を調べることになり、
+    どのような計算機でも現実的な時間では終わらない。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　分岐数 10 のゲーム木を深さ <var>d</var> まで読むときの葉の数と、
+      1秒に 100 万局面を評価できると仮定した場合の所要時間の目安。深さを 2 増やすごとに時間は 100 倍になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>読む深さ <var>d</var></th><th>葉の数 10<sup><var>d</var></sup></th><th>所要時間の目安</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">2</td><td class="num-cell">100</td><td>0.0001 秒</td></tr>
+        <tr><td class="num-cell">4</td><td class="num-cell">1 万</td><td>0.01 秒</td></tr>
+        <tr><td class="num-cell">6</td><td class="num-cell">100 万</td><td>1 秒</td></tr>
+        <tr><td class="num-cell">8</td><td class="num-cell">1 億</td><td>約 2 分</td></tr>
+        <tr><td class="num-cell">10</td><td class="num-cell">100 億</td><td>約 3 時間</td></tr>
+        <tr><td class="num-cell">60</td><td class="num-cell">10<sup>60</sup></td><td>宇宙の年齢をはるかに超える</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    そこで、あらかじめ定めた深さで読みを打ち切り、打ち切った局面を葉とみなす。
+    終局していない局面には勝敗が定まっていないため、その局面がどちらにどれだけ有利かを
+    推定する数値を別に与える必要がある。局面を受け取ってこの推定値を返す関数を
+    <span class="term">評価関数</span><span class="en">(evaluation function)</span> と呼ぶ。
+    ミニマックス法は評価関数の値を正しいものとして扱うため、
+    <strong>CPU の強さは、読みの深さと評価関数の精度の両方で決まる</strong>。
+  </p>
+
+  <h3>リバーシの評価関数が考慮する観点</h3>
+
+  <p>
+    評価関数は、強い打ち手が局面を判断する際の観点を数値に置き換えたものである。
+    リバーシでは次の観点がよく用いられ、それぞれに重みを付けて足し合わせる形が基本となる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-2　リバーシの評価関数で用いられる主な観点。石の数は終盤には結果そのものになるが、
+      序盤・中盤では多いことが有利とは限らない。どの観点をどの時期に重く見るかが、評価関数の設計の中心になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>内容</th><th>判断を左右する時期</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>石の数</td><td>自分の石数 − 相手の石数</td><td>終盤。序盤・中盤に多く取ると、相手の打てる場所が増えて不利になりやすい</td></tr>
+        <tr><td>マスの位置</td><td>角は一度置けば返されない。角の隣は相手に角を与えやすい。マスごとに点数を定めた表で表すことが多い</td><td>序盤から中盤</td></tr>
+        <tr><td><span class="term">着手可能数</span><span class="en">(mobility)</span></td><td>自分が打てる手の数 − 相手が打てる手の数。打てる場所が少ないと不利な手を強いられる</td><td>中盤</td></tr>
+        <tr><td><span class="term">確定石</span><span class="en">(stable disc)</span></td><td>今後どう打たれても返されることのない石の数</td><td>中盤から終盤</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>深さと精度のトレードオフ</h3>
+
+  <p>
+    評価関数に多くの観点を盛り込むほど推定は正確になるが、1局面の評価に時間がかかり、
+    同じ時間で読める深さが浅くなる。逆に単純な評価関数は速く、深く読める。
+    一方を得るために他方を手放すこの関係は<span class="term">トレードオフ</span><span class="en">(trade-off)</span> であり、
+    1手に使える時間が決まっている対戦で、どちらを優先するかを選ぶ必要がある。
+  </p>
+
+  <p>
+    なお、リバーシは打つたびに空きマスが1つ減るため、残りの空きマスが少なくなった終盤では
+    終局まで読み切れる。残り 10 マス程度であれば分岐数も小さく、
+    評価関数に頼らず最終的な石の差で正確に手を選べる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      読みを打ち切った直後に大きな損が待っている局面では、評価関数はその損を見落とす。
+      例えば打ち切った深さの1手先で角を取られる局面を、石の数だけを見て有利と判断してしまう。
+      読みの境界の向こう側が見えないことから生じるこの現象を
+      <span class="term">水平線効果</span><span class="en">(horizon effect)</span> と呼ぶ。
+      深さを1増やしても境界が1手先へ移るだけであり、評価関数の観点で補う必要がある。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      分岐数がおよそ 10 のゲームで、ミニマックス法の読みの深さを 6 から 8 に増やした。
+      調べる葉の数はおよそ何倍になるか。
+    </p>
+    <ol class="choices">
+      <li>約 1.3 倍</li>
+      <li>約 2 倍</li>
+      <li>約 20 倍</li>
+      <li>約 100 倍</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          葉の数は 10<sup><var>d</var></sup> であり、深さが 2 増えると 10<sup>8</sup> ÷ 10<sup>6</sup> = 100 倍になる。
+        </p>
+        <p>
+          (A) は 8 ÷ 6 であり、探索量が深さに比例すると考えた誤りである。
+          (B) は深さが 2 増えることを 2 倍と読み替えている。
+          (C) は 10 × 2 であり、分岐数と増えた深さを掛けている。深さが 1 増えるごとに
+          分岐数の倍になるため、増えた深さの回数だけ分岐数を掛け合わせる必要がある。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      深さを固定したミニマックス法において、評価関数が担う役割として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>読みを打ち切った終局前の局面について、どちらにどれだけ有利かを推定した数値を与える</li>
+      <li>局面ごとに打てる手を列挙し、ゲーム木の子を作る</li>
+      <li>結果に影響しない枝を見つけ、その先の局面を調べずに済ませる</li>
+      <li>終局した局面について、勝敗を推定した数値を与える</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          評価関数は、勝敗が定まっていない局面の有利・不利を推定する。
+          ミニマックス法はこの推定値を葉の値として根まで持ち上げる。
+        </p>
+        <p>
+          (B) は合法手の生成であり、木を広げる処理である。評価関数は広げた木の葉に値を付ける。
+          (C) は αβ法などの枝刈りの役割であり、評価関数とは別の仕組みである。
+          (D) 終局した局面では石の数で勝敗が確定しており、推定する必要がない。
+          評価関数が必要になるのは、終局前に読みを打ち切った局面である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. αβ法 — 結果を変えずに枝を刈る ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>αβ法 — 結果を変えずに枝を刈る</h2>
+
+  <p>
+    図 3-1 の木を、左の手から順に調べる場面を考える。手 A の下を調べ終えた時点で、
+    A の値は 3 と決まり、根の値は 3 以上であることが確定する。
+    続いて手 B の下の最初の葉を調べると、値は 2 であった。
+    B は相手の手番の節点なので、B の値は残りの葉がいくつであっても 2 以下になる。
+    <strong>B が A より良くなることはないため、B の残りの葉を調べる必要はない</strong>。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 252" role="img" aria-label="図3-1と同じゲーム木を左から調べる。手Aの値3が決まった後、手Bの最初の葉が2であった時点で、Bの値は2以下となりAを上回らないため、Bの残りの葉4と6は調べずに済む。手Cは14、5、2の順に調べ、2が出た時点でCの値は2となる。根の値は3のまま変わらないことを示す図">
+      <text x="10" y="44" class="svg-small" style="text-anchor:start">自分の手番：最大</text>
+      <text x="10" y="124" class="svg-small" style="text-anchor:start">相手の手番：最小</text>
+      <text x="10" y="204" class="svg-small" style="text-anchor:start">葉：評価値</text>
+      <path d="M 366 56 L 228 104" class="svg-line"/>
+      <path d="M 366 56 L 366 104" class="svg-line"/>
+      <path d="M 366 56 L 504 104" class="svg-line"/>
+      <path d="M 228 136 L 182 184" class="svg-line"/>
+      <path d="M 228 136 L 228 184" class="svg-line"/>
+      <path d="M 228 136 L 274 184" class="svg-line"/>
+      <path d="M 366 136 L 320 184" class="svg-line"/>
+      <path d="M 366 136 L 366 184" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 366 136 L 412 184" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 504 136 L 458 184" class="svg-line"/>
+      <path d="M 504 136 L 504 184" class="svg-line"/>
+      <path d="M 504 136 L 550 184" class="svg-line"/>
+      <rect x="338" y="24" width="56" height="32" class="svg-cell"/>
+      <text x="366" y="45" class="svg-text">3</text>
+      <rect x="200" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="228" y="125" class="svg-text">A：3</text>
+      <rect x="476" y="104" width="56" height="32" class="svg-cell"/>
+      <text x="504" y="125" class="svg-text">C：2</text>
+      <rect x="163" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="182" y="205" class="svg-text">3</text>
+      <rect x="209" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="228" y="205" class="svg-text">12</text>
+      <rect x="255" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="274" y="205" class="svg-text">8</text>
+      <rect x="347" y="184" width="38" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="366" y="205" class="svg-small">?</text>
+      <rect x="393" y="184" width="38" height="32" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="412" y="205" class="svg-small">?</text>
+      <rect x="439" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="458" y="205" class="svg-text">14</text>
+      <rect x="485" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="504" y="205" class="svg-text">5</text>
+      <rect x="531" y="184" width="38" height="32" class="svg-cell"/>
+      <text x="550" y="205" class="svg-text">2</text>
+      <rect x="338" y="104" width="56" height="32" class="svg-hl"/>
+      <text x="366" y="125" class="svg-text">B：≤2</text>
+      <rect x="301" y="184" width="38" height="32" class="svg-hl"/>
+      <text x="320" y="205" class="svg-text">2</text>
+      <text x="366" y="242" class="svg-small">B は 2 以下で A の 3 を超えない → B の残り 2 つは調べない</text>
+    </svg>
+    <figcaption>
+      図 5-1　図 3-1 と同じ木を左から順に調べた場合の枝刈り。破線の葉は調べずに済む。
+      根の値と選ばれる手は図 3-1 と同じであり、調べる葉の数だけが 9 から 7 に減る。
+    </figcaption>
+  </figure>
+
+  <p>
+    この考え方を木全体に適用する方法を<span class="term">αβ法</span><span class="en">(alpha-beta pruning)</span> と呼ぶ。
+    探索の途中で、次の二つの値を持ち回る。
+  </p>
+
+  <ul>
+    <li><strong>α</strong> — 自分がここまでの探索で確保できた値の下限。自分はこれより悪い進行を選ばない</li>
+    <li><strong>β</strong> — 相手がここまでの探索で自分に抑え込める値の上限。相手はこれより自分に良い進行を許さない</li>
+  </ul>
+
+  <p>
+    相手の手番の節点で、子の値が α 以下になった時点で、その節点の残りの子は調べない。
+    この節点の値は α 以下に決まり、その上にある自分の手番の節点では選ばれないためである（図 5-1 の B）。
+    自分の手番の節点で子の値が β 以上になった場合も、対称な理由で残りの子を打ち切る。
+    刈り取った枝の値はいずれも根の値に影響しないため、
+    <strong>αβ法はミニマックス法と同じ根の値を、より少ない局面の評価で求める</strong>。
+  </p>
+
+  <h3>調べる順序が刈り取る量を決める</h3>
+
+  <p>
+    図 5-1 の手 C では、葉を 14・5・2 の順に調べたため、3 つとも調べる必要があった。
+    もし 2 を最初に調べていれば、その時点で C の値は 2 以下と決まり、残りの 2 つは刈り取れた。
+    同じ木でも、<strong>良い手（相手の手番では自分にとって悪い手）を先に調べるほど、
+    早く α・β が絞り込まれ、多くの枝を刈り取れる</strong>。
+  </p>
+
+  <p>
+    最も都合の良い順序で調べられた場合、評価する葉の数はおよそ
+    <var>b</var><sup><var>d</var>/2</sup> まで減る。同じ時間でおよそ 2 倍の深さまで読めることになる。
+    逆に最も悪い順序では1本も刈り取れず、ミニマックス法と同じ数の葉を評価する。
+  </p>
+
+  <p>
+    実際には最善の順序は探索を終えるまで分からないため、浅い読みの結果や
+    簡単な評価関数で候補手に点数を付け、その高い順に並べてから調べる。
+    この並べ替えの対象は1局面の候補手であり、リバーシでは多くの局面で十前後、多くても三十程度である。
+    要素数がこの程度であれば、計算量が O(<var>n</var><sup>2</sup>) の挿入ソートでも
+    並べ替えの手間は探索全体に比べて無視できる。
+    特に浅い読みで付けた順序は深い読みでも大きく崩れないことが多く、
+    ほぼ整列済みの入力に強い挿入ソートの性質が生きる。
+  </p>
+
+  <h3>同じ局面を二度調べない</h3>
+
+  <p>
+    ゲーム木では、手の順序が異なっても同じ局面に合流することがある。
+    自分が a、相手が b、自分が c と打った局面と、自分が c、相手が b、自分が a と打った局面は、
+    返る石が一致すれば同一の盤面になる。木の上では別の節点であるため、何もしなければ同じ局面を二度調べる。
+  </p>
+
+  <p>
+    これを避けるには、一度調べた局面とその値を記録しておき、同じ局面に出会ったら記録した値を使う。
+    記録する件数は膨大になり、出会うたびに記録全体を探していては意味がないため、
+    <strong>盤面をキーとしてハッシュ関数で格納位置を計算するハッシュ表</strong>を用いる。
+    この表を<span class="term">置換表</span><span class="en">(transposition table)</span> と呼ぶ。
+    異なる盤面が同じ格納位置に割り当てられる衝突は避けられないため、
+    値を使う前に、記録された盤面が今の盤面と同一であることを確かめる必要がある。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      根を自分の手番とする深さ 2 のゲーム木で、葉の評価値が次のとおりである。
+      手 A → B → C の順に、各手の下の葉を左から順に αβ法で調べるとき、調べずに済む葉の組合せとして正しいものはどれか。
+    </p>
+    <div class="table-block">
+      <p class="table-caption">
+        表 5-1　各手の下の葉の評価値。葉の名前は手の名前と左からの順番を表す。
+      </p>
+      <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>自分の手</th><th>葉 1</th><th>葉 2</th><th>葉 3</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>A</td><td>A1：6</td><td>A2：8</td><td>A3：7</td></tr>
+          <tr><td>B</td><td>B1：9</td><td>B2：4</td><td>B3：5</td></tr>
+          <tr><td>C</td><td>C1：3</td><td>C2：10</td><td>C3：1</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <ol class="choices">
+      <li>B3、C2、C3</li>
+      <li>C2、C3</li>
+      <li>B2、B3、C2、C3</li>
+      <li>調べずに済む葉はない</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          A の値は 6 となり、根は 6 以上と決まる（α = 6）。B では B1 = 9 は α を上回るので続け、
+          B2 = 4 で B の値が 4 以下と決まり α 以下になるため B3 を刈り取る。
+          C では C1 = 3 の時点で C の値が 3 以下と決まるため、C2・C3 を刈り取る。根の値は 6 で、手 A を選ぶ。
+        </p>
+        <p>
+          (B) は B2 = 4 の時点で B の値が α 以下に決まることを見落としている。
+          (C) は B1 = 9 の時点で刈り取れると考えた誤りである。相手の手番の節点で刈り取れるのは、
+          子の値が α 以下になった場合であり、α を上回る値はまだ B が A より良くなる可能性を残す。
+          (D) はどの葉も根の値に影響しうると考えた誤りである。C2 = 10 であっても、
+          相手は C1 = 3 以下の手を選べるため、C の値は 3 を超えない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      同じゲーム木に αβ法を適用するとき、各節点で子を調べる順序を変えた。順序によって変わりうるものはどれか。
+    </p>
+    <ol class="choices">
+      <li>根の値</li>
+      <li>評価関数を呼び出す回数</li>
+      <li>葉の評価値</li>
+      <li>ゲーム木の深さ</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          αβ法が刈り取るのは根の値に影響しない枝だけであり、どの順序でも根の値はミニマックス法と一致する。
+          順序が変えるのは、α・β が絞り込まれる速さ、すなわち刈り取れる枝の量であり、
+          その結果として評価関数を呼び出す回数が変わる。
+        </p>
+        <p>
+          (A) は αβ法を近似の方法と取り違えている。刈り取りによって答えが変わることはない。
+          (C) 葉の評価値は局面だけで決まり、調べる順序には依存しない。
+          (D) 深さは読みを打ち切る位置として事前に定めたものであり、調べる順序とは独立である。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-3</span>
+    <p class="q-body">
+      置換表から、今調べている盤面に対応する格納位置の記録を取り出した。
+      記録された値を使う前に確かめる必要がある事柄として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>格納位置の添字が、表の大きさの範囲に収まっていること</li>
+      <li>表の中の記録が、盤面の値の昇順に並んでいること</li>
+      <li>記録された盤面が、今調べている盤面と同一であること</li>
+      <li>表の記録件数が、表の大きさを超えていないこと</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          ハッシュ関数は膨大な種類の盤面を限られた格納位置へ割り当てるため、
+          異なる盤面が同じ格納位置になる衝突が必ず起こる。格納位置が一致しただけでは同じ盤面とは限らず、
+          別の盤面の値を使えば探索の結果を誤る。
+        </p>
+        <p>
+          (A) 格納位置は通常、剰余などで表の範囲に収まるように計算するため、取り出すたびに確かめる事柄ではない。
+          (B) ハッシュ表は整列を前提としない。位置を計算で求めるため、並び順は探索に関係しない。
+          (D) は記録を追加する際の領域不足の問題であり、取り出した値を使えるかどうかとは別である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. リバーシへの適用方針 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>リバーシへの適用方針</h2>
+
+  <p>
+    ここまでの方法を用いて、人と対戦する CPU を備えたリバーシのプログラムを作る。
+    CPU が手を決める処理は、現在の盤面を受け取り、ゲーム木をたどって最も値の高い手を返す処理である。
+    この処理は、いくつかの独立した部品の組合せとして捉えられる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 230" role="img" aria-label="現在の盤面を探索に渡し、探索は合法手を列挙し、1手打った局面を作り、その局面について同じ処理を繰り返し、葉の局面では評価関数で採点する。探索の結果として選んだ手を返す、CPUの思考の流れを示す図">
+      <rect x="156" y="20" width="288" height="200" class="svg-cell-plain"/>
+      <text x="300" y="40" class="svg-small">探索（ゲーム木を再帰的にたどる）</text>
+      <path d="M 122 115 L 148 115" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 446 115 L 470 115" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 290 89 L 290 110" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 290 149 L 290 170" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 406 131 C 436 131, 436 71, 410 71" class="svg-arrow" marker-end="url(#ah1)"/>
+      <rect x="10" y="90" width="110" height="50" class="svg-cell"/>
+      <text x="65" y="120" class="svg-text">現在の盤面</text>
+      <rect x="176" y="54" width="228" height="34" class="svg-cell"/>
+      <text x="290" y="76" class="svg-text">合法手を列挙する</text>
+      <rect x="176" y="114" width="228" height="34" class="svg-cell"/>
+      <text x="290" y="136" class="svg-text">1 手打った局面を作る</text>
+      <rect x="176" y="174" width="228" height="34" class="svg-cell"/>
+      <text x="290" y="196" class="svg-text">葉の局面を評価関数で採点</text>
+      <rect x="476" y="90" width="94" height="50" class="svg-hl"/>
+      <text x="523" y="120" class="svg-text">選んだ手</text>
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-1　CPU が手を決める処理の構成。探索は、合法手の列挙と1手打った局面の生成を、
+      作った局面について再び繰り返し（右側の戻る矢印）、読みの深さに達した局面を評価関数で採点する。
+      盤面の表現・合法手の判定・評価関数は、探索とは独立に作って確かめられる部品である。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　CPU を構成する部品と、それぞれに用いるデータ構造・アルゴリズム。
+      リバーシの CPU は、本科目で扱うデータ構造と探索の組合せとして組み立てられる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>部品</th><th>役割</th><th>用いるデータ構造・アルゴリズム</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>盤面</td><td>8 × 8 の各マスが空・黒・白のどれかを保持する</td><td>2 次元配列、添字による位置の計算</td></tr>
+        <tr><td>合法手の判定</td><td>置いたマスから 8 方向に、相手の石が続いた先に自分の石があるかを調べる</td><td>配列の走査、盤の外に出ないかの境界判定</td></tr>
+        <tr><td>合法手の一覧</td><td>ある局面で打てる手をすべて集める</td><td>配列またはリスト</td></tr>
+        <tr><td>着手と取り消し</td><td>探索中に手を打ち、調べ終えたら元の盤面に戻す</td><td>盤面の複製、または返した石を記録して逆順に戻すスタック</td></tr>
+        <tr><td>探索</td><td>ゲーム木をたどり、根の値と選ぶ手を求める</td><td>再帰（帰りがけ順の走査）、ミニマックス法、αβ法</td></tr>
+        <tr><td>評価関数</td><td>打ち切った局面の有利・不利を数値にする</td><td>石の数・マスの位置・着手可能数などの重み付きの和</td></tr>
+        <tr><td>手の並べ替え・置換表</td><td>αβ法の刈り取りを増やし、同じ局面の再探索を省く</td><td>ソート、ハッシュ表</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>パスと終局の扱い</h3>
+
+  <p>
+    リバーシには、手番の側が打てる場所を持たない場合に手番だけを相手に渡す<strong>パス</strong>がある。
+    ゲーム木では、打てる手が無い局面に対して、<strong>盤面を変えずに手番だけを交代した局面を唯一の子</strong>とする。
+    この場合、深さと手番の対応（偶数の深さが自分の手番）が崩れるため、
+    最大と最小のどちらを選ぶかは深さではなく、その局面の手番で判断する。
+    双方とも打てない局面は終局であり、葉として最終的な石の差で評価する。
+  </p>
+
+  <h3>段階的に作り、段階ごとに確かめる</h3>
+
+  <p>
+    探索の誤りは、CPU が「なんとなく弱い」という形でしか表に出ないことが多い。
+    部品を一度にすべて作ると、弱さの原因がどの部品にあるのか特定できない。
+    そこで、CPU を単純なものから順に作り、各段階で正しさを確かめてから次へ進む。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-2　CPU を段階的に作る場合の各段階と、その段階で確かめる事柄。
+      前の段階の CPU は、次の段階の CPU の正しさや強さを比べる基準として使い続けられる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>段階</th><th>CPU の手の選び方</th><th>確かめる事柄</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td>合法手から無作為に選ぶ</td><td>合法手の判定、石を返す処理、パスと終局の判定が正しいこと</td></tr>
+        <tr><td class="num-cell">2</td><td>1 手先の局面を評価関数で比べる</td><td>評価値が常に CPU の立場から計算されていること</td></tr>
+        <tr><td class="num-cell">3</td><td>深さを固定したミニマックス法</td><td>手番の交代とパスの扱い、小さな局面で手計算と一致すること</td></tr>
+        <tr><td class="num-cell">4</td><td>αβ法</td><td>多くの局面でミニマックス法と同じ根の値を返し、評価する局面が減っていること</td></tr>
+        <tr><td class="num-cell">5</td><td>評価関数・読みの深さ・手の並べ替えの改良</td><td>改良前の CPU と多数回対戦させた勝率、1 手あたりの時間</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    表 6-2 の「確かめる事柄」は、目で見て確かめるのではなく、
+    <span class="term">検証用のコード</span>として書いておく。例えば、結果が分かっている盤面を与えて合法手の一覧が
+    期待どおりかを判定するコードや、多数の盤面でミニマックス法と αβ法の根の値が一致するかを比べるコードである。
+    検証用のコードがあれば、改良を加えるたびに同じ確認を繰り返せる。
+  </p>
+
+  <div class="note">
+    <span class="label">提出物</span>
+    <ul>
+      <li>実装したプログラムのコード</li>
+      <li>動作を検証するために書いたコード</li>
+      <li>AI を利用した場合は、投入したプロンプトとやり取りの全ログ（テキストまたはスクリーンショット）</li>
+    </ul>
+    <p>
+      AI が生成したコードも、正しく動作する保証はない。正しさの根拠は検証用のコードが示す。
+      また、完成したプログラムについては、採用した探索の方法・評価関数・読みの深さを、
+      それを選んだ理由とともに説明できるようにしておく。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      リバーシのゲーム木で、手番の側が打てる場所を1つも持たないが、相手は打てる場所を持つ局面に到達した。
+      この局面の扱いとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>葉とみなし、評価関数で採点する</li>
+      <li>盤面を変えずに手番だけを交代した局面を、唯一の子とする</li>
+      <li>手番を交代せず、同じ側がもう一度手を選ぶ局面を子とする</li>
+      <li>選ばれることのない局面として、木から取り除く</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          打てる場所が無い側はパスとなり、手番だけが相手に移る。ゲームは続いているため、
+          盤面が同じで手番だけが異なる局面を子として探索を続ける。
+        </p>
+        <p>
+          (A) は終局と混同している。葉として扱うのは双方とも打てない終局の場合か、読みの深さに達した場合である。
+          (C) 打てる場所が無い側にもう一度手を選ばせても、打てる手は無い。手番を渡すのがパスである。
+          (D) パスは双方にとって起こりうる進行であり、取り除けばその先の局面を正しく評価できなくなる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-2</span>
+    <p class="q-body">
+      ミニマックス法で動く CPU を、αβ法を用いるように書き換えた。
+      書き換えが正しいことを確かめる方法として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>多数の盤面について、同じ深さで両者が返す根の値が一致することを確かめる</li>
+      <li>1 手あたりの思考時間が、書き換え前より短くなったことを確かめる</li>
+      <li>自分で対戦し、書き換え前より勝ちにくくなったことを確かめる</li>
+      <li>エラーで止まることなく、終局まで対局が進むことを確かめる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          αβ法は、ミニマックス法と同じ根の値を、より少ない局面の評価で求める方法である。
+          両者の根の値が一致しない盤面があれば、刈り取ってはならない枝を刈り取っている。
+        </p>
+        <p>
+          (B) 刈り取ってはならない枝まで刈り取る誤りがあっても、思考時間は短くなる。速さは正しさの根拠にならない。
+          (C) αβ法は同じ深さであれば同じ値を返すため、強さは変わらないはずである。
+          強さの比較は、同じ時間でより深く読ませた場合の評価にあたる。
+          (D) エラーなく動くことは、選ぶ手が正しいことを意味しない。探索の誤りは対局が進んでも表に出にくい。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 総括 ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>総括</h2>
+
+  <ul>
+    <li>
+      対戦ゲームでは、手の良し悪しが相手の応手によって決まる。打った直後の局面だけを比べる方法は、
+      相手に有利な応手を許す手を見抜けない。
+    </li>
+    <li>
+      二人零和有限確定完全情報ゲームでは、局面を節点、手を枝とするゲーム木で進行を表せる。
+      分岐数 <var>b</var>・深さ <var>d</var> の葉は <var>b</var><sup><var>d</var></sup> 個になる。
+    </li>
+    <li>
+      ミニマックス法は、評価値を自分の立場に統一し、自分の手番では最大、相手の手番では最小を
+      葉から根へ持ち上げる。根の値は、相手がどう打っても確保できる下限を表す。
+    </li>
+    <li>
+      探索量は深さに対して指数関数的に増えるため、読みを途中で打ち切り、
+      打ち切った局面を評価関数で採点する。CPU の強さは、読みの深さと評価関数の精度の両方で決まる。
+    </li>
+    <li>
+      αβ法は、根の値に影響しない枝を刈り取り、ミニマックス法と同じ値をより少ない評価で求める。
+      刈り取れる量は調べる順序に依存し、良い手から調べるほど多くなる。
+      同じ局面の再探索は、盤面をキーとするハッシュ表で省ける。
+    </li>
+    <li>
+      リバーシの CPU は、盤面・合法手の判定・探索・評価関数などの部品の組合せである。
+      単純な CPU から段階的に作り、各段階の正しさを検証用のコードで確かめながら進める。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／ゲーム木探索（ミニマックス法）・リバーシプログラム導入<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
