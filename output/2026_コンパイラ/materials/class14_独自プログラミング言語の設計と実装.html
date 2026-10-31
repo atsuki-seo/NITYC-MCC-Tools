@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>独自プログラミング言語の設計と実装 | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>独自プログラミング言語の設計と実装</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">部品が動いても処理系は動かない</a></li>
+    <li><a href="#s2">言語仕様を字句・文法・型規則で定める</a></li>
+    <li><a href="#s3">段階をつなぐデータ — トークン列・AST・記号表</a></li>
+    <li><a href="#s4">最小構成から機能を縦に足す</a></li>
+    <li><a href="#s5">実行の方式 — 木を辿る評価と命令列の生成</a></li>
+    <li><a href="#s6">テスト — 段階ごとの確認と全体の確認</a></li>
+    <li><a href="#s7">レポートにまとめる観点</a></li>
+    <li><a href="#s8">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 部品が動いても処理系は動かない ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>部品が動いても処理系は動かない</h2>
+
+  <p>
+    字句解析器・構文解析器・意味解析器は、それぞれ単体で作り、単体で動作を確かめることができる。
+    しかし、単体で正しく動く部品を三つ並べても、それだけでは一つの言語処理系にならない。
+    つないだ途端に動かなくなる例は珍しくない。
+  </p>
+
+  <ul>
+    <li>字句解析器は加算記号の種別を <code>PLUS</code> と名付けたが、構文解析器は <code>ADD</code> を待っている</li>
+    <li>構文解析器は二項演算の節点に「演算子・左・右」の順で子を持たせたが、評価器は「左・演算子・右」の順で取り出している</li>
+    <li>意味解析器が誤りを報告しようとしたが、トークンが行番号を持っていないため、どの行の誤りかを示せない</li>
+  </ul>
+
+  <p>
+    いずれも各部品の内部には誤りがない。誤りがあるのは、部品と部品の間で受け渡すデータについての<strong>取り決め</strong>である。
+    段階ごとの正しさと、段階をつないだ全体の正しさは別の事柄であり、後者は前者から自動的には得られない。
+  </p>
+
+  <p>
+    本講では、一つの小さな言語を例に、字句解析から実行までを一続きの処理系として組み上げる手順を扱う。
+    例とする言語は、整数・真偽値・変数・条件分岐・繰り返し・出力だけを持つ。次はこの言語で書いたプログラムである。
+  </p>
+
+<pre><code># 1 から 5 までの和を求める
+let i = 1
+let sum = 0
+while i &lt; 6 do
+  sum = sum + i
+  i = i + 1
+end
+print sum</code></pre>
+
+  <p>
+    このプログラムを入力すると <code>15</code> を出力する処理系を、次の観点から組み立てる。
+  </p>
+
+  <ul>
+    <li>言語仕様の決め方 — 字句規則・文法・型規則・実行の意味</li>
+    <li>段階をつなぐデータ — トークン列・抽象構文木・記号表</li>
+    <li>最小構成から段階的に機能を足す進め方</li>
+    <li>実行の方式 — 木を辿る評価と命令列の生成</li>
+    <li>テストの仕方と、レポートにまとめる観点</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>作ろうとする言語の仕様を、字句規則・文法・型規則・実行の意味に分けて記述できる</li>
+      <li>各段階の間で受け渡すデータを定め、段階を一続きの処理系としてつなげられる</li>
+      <li>最小構成から機能を足していく順序を計画し、各段階で手を入れる箇所を特定できる</li>
+      <li>段階ごとのテストと全体のテストを設計し、設計判断とその理由をレポートにまとめられる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      ある処理系の字句解析器と構文解析器を、別々の担当者が作成した。
+      どちらも各自が用意したテストをすべて通過したが、二つをつないで実行すると、構文解析器が最初のトークンで誤りを報告した。
+      原因として最も考えられるものはどれか。
+    </p>
+    <ol class="choices">
+      <li>字句解析と構文解析は本来一つの段階であり、別々に作成したこと自体が誤りである</li>
+      <li>字句解析器が出力するトークンの種別名や持たせた情報が、構文解析器の想定と食い違っている</li>
+      <li>構文解析器のテストに用いた入力が長すぎ、短い入力での動作が確かめられていない</li>
+      <li>各部品のテストが通過している以上、原因は処理系の外の実行環境にある</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          各担当者は、自分が想定したトークンの形でテストを書いている。字句解析器のテストは字句解析器の想定に、
+          構文解析器のテストは構文解析器の想定に従うため、両者の想定が食い違っていてもそれぞれのテストは通過する。
+          食い違いはつないだときに初めて表に出る。
+        </p>
+        <p>
+          (A) は段階の分離そのものを誤りとしているが、分離は関心を分けるための正当な設計である。
+          問題は分けたことではなく、分けた部品の間の取り決めを共有しなかったことにある。
+          (C) は入力の長さを原因としているが、最初のトークンで失敗しているので入力の長さは関係しない。
+          (D) は単体テストの通過を全体の正しさの証拠とみなす誤りである。単体テストは部品の内部しか確かめない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 言語仕様を字句・文法・型規則で定める ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>言語仕様を字句・文法・型規則で定める</h2>
+
+  <p>
+    処理系を書き始める前に、その処理系が受け付ける言語を文書として定める。
+    この文書を <span class="term">言語仕様</span><span class="en">(language specification)</span> と呼ぶ。
+    仕様がないまま実装を進めると、実装がたまたま示した振る舞いが言語の定義になる。
+    その振る舞いが正しいのか誤りなのかを判定する拠り所がないため、テストの期待値も書けない。
+  </p>
+
+  <p>
+    言語仕様は、コンパイラの処理段階に対応する層に分けて書く。各層は対応する段階の実装の拠り所になる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　言語仕様の層と、それぞれが定める事柄。どの層を決め残しても、
+      その層に属する振る舞いは実装の都合で決まってしまう。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>層</th><th>記述の手段</th><th>定める事柄</th><th>決め残した場合に起こること</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>字句規則</td>
+          <td>正規表現</td>
+          <td>整数・識別子・予約語・演算子の形、読み飛ばす文字</td>
+          <td><code>ifx</code> を一つの識別子とみなすか、<code>if</code> と <code>x</code> に切るかが定まらない</td>
+        </tr>
+        <tr>
+          <td>文法</td>
+          <td>EBNF</td>
+          <td>文と式の形、演算子の優先順位と結合の向き</td>
+          <td><code>1 + 2 * 3</code> や <code>8 - 3 - 2</code> に対する構文木が一つに定まらない</td>
+        </tr>
+        <tr>
+          <td>型規則</td>
+          <td>規則の一覧</td>
+          <td>演算に許される型の組合せ、条件式の型、宣言と代入の整合</td>
+          <td><code>if 1 then …</code> を受理するか拒否するかが定まらない</td>
+        </tr>
+        <tr>
+          <td>実行の意味</td>
+          <td>文章・評価手順</td>
+          <td>各構文を実行したときに起こること、実行時の誤りの扱い</td>
+          <td>0 による除算で停止するのか、何かの値を返すのかが定まらない</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>字句規則</h3>
+
+  <p>
+    トークンの種別ごとに、その字面の形を正規表現で定める。例とする言語の字句規則を表 2-2 に示す。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-2　例とする言語の字句規則。予約語は識別子と同じ形をしているため、
+      識別子の規則から除く旨を明記しておく必要がある。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>種別</th><th>形</th><th>例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>整数</td><td><code>[0-9]+</code></td><td><code>0</code>, <code>42</code></td></tr>
+        <tr><td>識別子</td><td><code>[a-z][a-z0-9]*</code>（予約語を除く）</td><td><code>i</code>, <code>sum</code>, <code>x1</code></td></tr>
+        <tr><td>予約語</td><td><code>let</code> <code>if</code> <code>then</code> <code>else</code> <code>while</code> <code>do</code> <code>end</code> <code>print</code> <code>true</code> <code>false</code></td><td>—</td></tr>
+        <tr><td>演算子・区切り</td><td><code>+</code> <code>-</code> <code>*</code> <code>/</code> <code>&lt;</code> <code>==</code> <code>=</code> <code>(</code> <code>)</code></td><td>—</td></tr>
+        <tr><td>読み飛ばすもの</td><td>空白・改行、<code>#</code> から行末まで</td><td>—</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    規則が複数の切り方を許す場合の決め方も仕様に含める。例とする言語では、
+    できるだけ長い字面を一つのトークンとして切り出す <span class="term">最長一致</span><span class="en">(longest match)</span> を採る。
+    これにより <code>ifx</code> は一つの識別子に、<code>==</code> は二つの <code>=</code> ではなく一つの比較演算子になる。
+    そのうえで、切り出した字面が予約語と一致すれば予約語の種別を与える。
+  </p>
+
+  <h3>文法</h3>
+
+  <p>
+    文と式の形を EBNF で定める。<code>{ }</code> は 0 回以上の繰り返し、<code>[ ]</code> は省略可能な部分を表す。
+    <code>INT</code> と <code>IDENT</code> は、字句規則で定めた整数と識別子のトークンを指す。
+  </p>
+
+<pre><code>&lt;program&gt; ::= { &lt;stmt&gt; }
+&lt;stmt&gt;    ::= "let" IDENT "=" &lt;expr&gt;
+            | IDENT "=" &lt;expr&gt;
+            | "print" &lt;expr&gt;
+            | "if" &lt;expr&gt; "then" { &lt;stmt&gt; } [ "else" { &lt;stmt&gt; } ] "end"
+            | "while" &lt;expr&gt; "do" { &lt;stmt&gt; } "end"
+&lt;expr&gt;    ::= &lt;arith&gt; [ ( "&lt;" | "==" ) &lt;arith&gt; ]
+&lt;arith&gt;   ::= &lt;term&gt; { ( "+" | "-" ) &lt;term&gt; }
+&lt;term&gt;    ::= &lt;factor&gt; { ( "*" | "/" ) &lt;factor&gt; }
+&lt;factor&gt;  ::= INT | "true" | "false" | IDENT | "(" &lt;expr&gt; ")"</code></pre>
+
+  <p>
+    演算子の優先順位は、規則の階層として文法に組み込まれている。<code>&lt;arith&gt;</code> は <code>&lt;term&gt;</code> を部品とし、
+    <code>&lt;term&gt;</code> は <code>&lt;factor&gt;</code> を部品とする。このため <code>1 + 2 * 3</code> では、
+    <code>2 * 3</code> が先に一つの <code>&lt;term&gt;</code> にまとまり、その後で <code>+</code> の右辺になる。
+    <strong>優先順位を文法の階層で表しておけば、一つの式に対する構文木は一通りに定まる。</strong>
+    階層を設けずに全演算子を一つの規則に並べると、文法は <span class="term">曖昧</span><span class="en">(ambiguous)</span> になり、
+    どの木を選ぶかが構文解析器の書き方次第になる。
+  </p>
+
+  <p>
+    文の区切りに記号を用いていないことも、文法から読み取れる。各文は予約語か識別子で始まり、
+    式は演算子が続かなくなった時点で終わるため、区切り記号がなくとも文の切れ目は一通りに定まる。
+    区切り記号を設けるかどうかは言語設計者の選択であり、設けない場合はこの性質が成り立つことを確かめておく必要がある。
+  </p>
+
+  <h3>型規則</h3>
+
+  <p>
+    例とする言語の型は、整数を表す <code>int</code> と真偽値を表す <code>bool</code> の二つである。
+    演算と文ごとに、許される型の組合せと結果の型を定める。このような規則の集まりを
+    <span class="term">型規則</span><span class="en">(typing rules)</span> と呼ぶ。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-3　例とする言語の型規則。条件の欄を満たさない入力は意味解析で拒否する。
+      変数の型は宣言時の初期値の型から定まり、以後は変わらない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>構文</th><th>条件</th><th>結果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>e1 + e2</code>（<code>-</code> <code>*</code> <code>/</code> も同様）</td><td><code>e1</code> と <code>e2</code> がともに <code>int</code></td><td><code>int</code></td></tr>
+        <tr><td><code>e1 &lt; e2</code></td><td><code>e1</code> と <code>e2</code> がともに <code>int</code></td><td><code>bool</code></td></tr>
+        <tr><td><code>e1 == e2</code></td><td><code>e1</code> と <code>e2</code> が同じ型</td><td><code>bool</code></td></tr>
+        <tr><td>変数の参照 <code>x</code></td><td><code>x</code> が宣言済み</td><td>宣言時に記録した型</td></tr>
+        <tr><td><code>let x = e</code></td><td><code>x</code> が未宣言</td><td><code>x</code> を <code>e</code> の型で登録する</td></tr>
+        <tr><td><code>x = e</code></td><td><code>x</code> が宣言済みで、<code>e</code> の型が <code>x</code> の型と一致</td><td>—</td></tr>
+        <tr><td><code>if e then …</code>、<code>while e do …</code></td><td><code>e</code> が <code>bool</code></td><td>—</td></tr>
+        <tr><td><code>print e</code></td><td><code>e</code> が <code>int</code> または <code>bool</code></td><td>—</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>実行の意味</h3>
+
+  <p>
+    最後に、各構文を実行したときに何が起こるかを文章で定める。例とする言語では次のように定める。
+  </p>
+
+  <ul>
+    <li>二項演算は左の式、右の式の順に評価し、その後で演算を行う</li>
+    <li><code>/</code> は整数の除算とし、商の小数部を切り捨てる。右辺が 0 であれば実行時の誤りとして実行を停止する</li>
+    <li><code>while</code> は条件を評価し、真である間、本体の文を上から順に実行する</li>
+    <li>変数の有効範囲はプログラム全体で一つとする。<code>if</code> や <code>while</code> の本体で宣言した変数も、その外から参照できる</li>
+  </ul>
+
+  <p>
+    最後の項目は、ブロックごとに有効範囲を設ける言語も多いなかで、あえて単純な側を選んだものである。
+    このように、<strong>仕様は「何を選ばなかったか」も含めて明記する。</strong>
+    書かれていない事柄は、実装した人の判断が暗黙に仕様になる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      ある処理系に <code>print 1 + 2 * 3</code> を入力したところ、<code>9</code> が出力された。
+      字句解析器はトークンを正しく切り出しており、乗算そのものの計算にも誤りはなかった。
+      この誤りの原因となった仕様上の不備として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>字句規則で、<code>*</code> の規則が <code>+</code> の規則より後に書かれていた</li>
+      <li>文法で、<code>+</code> と <code>*</code> が同じ階層の規則に並べられ、左から順に結合されていた</li>
+      <li>型規則で、<code>*</code> の結果の型が定められていなかった</li>
+      <li>実行の意味で、二項演算の左右の評価順序が定められていなかった</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          出力の <code>9</code> は <code>(1 + 2) * 3</code> の値である。<code>+</code> と <code>*</code> が同じ階層にあると、
+          左から順に結合して <code>1 + 2</code> が先にまとまる。乗算を一段深い規則に置けば、
+          <code>2 * 3</code> が先にまとまり、構文木の形として優先順位が固定される。
+        </p>
+        <p>
+          (A) の字句規則の記述順は、トークンの切り出し方に関わることはあっても、演算の優先順位は決めない。
+          問題文でもトークンは正しく切り出されている。
+          (C) の型規則は演算が許されるかを定めるもので、どちらの演算を先に行うかとは関係がない。
+          (D) の評価順序は左右の部分式のどちらを先に計算するかであり、木の形が同じなら結果は変わらない。
+          この式の左右の部分式はどちらも副作用を持たないため、評価順序を変えても <code>9</code> と <code>7</code> の違いは生じない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 段階をつなぐデータ — トークン列・AST・記号表 ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>段階をつなぐデータ — トークン列・AST・記号表</h2>
+
+  <p>
+    段階と段階の間で受け渡すデータの取り決めを、その段階間の <span class="term">インタフェース</span><span class="en">(interface)</span> と呼ぶ。
+    § 1 で挙げた失敗は、いずれもこのインタフェースを文書にしないまま部品を作ったことに由来する。
+    言語仕様と同じく、インタフェースも実装の前に決めて書き出しておく。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 348" role="img" aria-label="字句解析、構文解析、意味解析、実行の四段階が縦に並び、段階の間でトークン列、抽象構文木、型の注釈つき抽象構文木が受け渡されることを示す図。意味解析は右側の記号表に名前と型を登録・参照し、実行は右側の環境に名前と値を読み書きする。">
+      <path d="M 130 26 L 130 44" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 130 84 L 130 114" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 130 154 L 130 184" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 130 224 L 130 254" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 130 294 L 130 318" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 232 205 L 348 205" class="svg-line"/>
+      <path d="M 232 280 L 348 280" class="svg-line"/>
+
+      <text x="130" y="18" class="svg-small">ソースコード（文字の並び）</text>
+
+      <rect x="30" y="50" width="200" height="30" class="svg-cell"/>
+      <text x="130" y="70" class="svg-text">字句解析</text>
+      <text x="144" y="104" class="svg-mono" style="text-anchor:start">トークン列（種別・字面・位置）</text>
+
+      <rect x="30" y="120" width="200" height="30" class="svg-cell"/>
+      <text x="130" y="140" class="svg-text">構文解析</text>
+      <text x="144" y="174" class="svg-mono" style="text-anchor:start">AST</text>
+
+      <rect x="30" y="190" width="200" height="30" class="svg-cell"/>
+      <text x="130" y="210" class="svg-text">意味解析</text>
+      <text x="144" y="244" class="svg-mono" style="text-anchor:start">型の注釈つき AST</text>
+
+      <rect x="30" y="260" width="200" height="30" class="svg-cell"/>
+      <text x="130" y="280" class="svg-text">実行</text>
+
+      <text x="130" y="338" class="svg-small">実行結果（出力）</text>
+
+      <text x="290" y="197" class="svg-small">登録・参照</text>
+      <text x="290" y="272" class="svg-small">読み書き</text>
+
+      <text x="450" y="170" class="svg-small">記号表（名前 → 型）</text>
+      <rect x="350" y="180" width="200" height="50" class="svg-cell"/>
+      <text x="450" y="200" class="svg-mono">i : int</text>
+      <text x="450" y="220" class="svg-mono">sum : int</text>
+
+      <text x="450" y="246" class="svg-small">環境（名前 → 値）</text>
+      <rect x="350" y="255" width="200" height="50" class="svg-cell"/>
+      <text x="450" y="276" class="svg-mono">i : 6</text>
+      <text x="450" y="296" class="svg-mono">sum : 15</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　段階の間で受け渡すデータと、段階が参照する表。縦の矢印で渡るデータは前段が作り後段が読む。
+      記号表は意味解析が作る解析時の表で、名前と型を結び付ける。環境は実行が作る実行時の表で、名前と現在の値を結び付ける。
+      右側の内容は、1 から 5 までの和を求めるプログラムを最後まで実行した時点のものである。
+    </figcaption>
+  </figure>
+
+  <h3>トークン — 種別・字面・位置</h3>
+
+  <p>
+    字句解析器と構文解析器の間のインタフェースはトークン列である。一つのトークンには次の三つを持たせる。
+  </p>
+
+  <ul>
+    <li><strong>種別</strong> — 整数・識別子・<code>let</code>・<code>+</code> などの区別。構文解析器はこれだけを見て文法の規則を選ぶ</li>
+    <li><strong>字面</strong> — 切り出した文字列そのもの。識別子の名前や整数の値として、後段で用いる</li>
+    <li><strong>位置</strong> — ソースコード上の行と列。後段が誤りを報告するとき、どこの誤りかを示すために用いる</li>
+  </ul>
+
+  <p>
+    種別の名前は、表 2-2 の字句規則と一対一に対応させて一覧にしておく。
+    位置は字句解析器でしか記録できない。空白や改行は字句解析の段階で捨てられるため、後段では位置を復元できないからである。
+  </p>
+
+  <h3>AST — 構造だけを残す</h3>
+
+  <p>
+    構文解析器と、意味解析器・評価器の間のインタフェースは <span class="term">抽象構文木</span><span class="en">(abstract syntax tree, AST)</span> である。
+    AST の節点の種類は、文法の構文ごとに一つずつ定める。例とする言語では次の節点を置く。
+  </p>
+
+  <ul>
+    <li>式の節点 — 整数、真偽値、変数の参照、二項演算（演算子・左の子・右の子）</li>
+    <li>文の節点 — <code>let</code>（名前・式）、代入（名前・式）、<code>print</code>（式）、<code>if</code>（条件・真の場合の文の列・偽の場合の文の列）、<code>while</code>（条件・本体の文の列）</li>
+  </ul>
+
+  <p>
+    各節点が持つ子の名前と順序まで書き出しておけば、評価器を書く側は構文解析器の内部を読まずに済む。
+    また、各節点にも元のトークンの位置を写しておく。意味解析は AST だけを見て誤りを報告するためである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 344" role="img" aria-label="文 let y = (x + 1) * 2 を字句解析した十個のトークンと、それを構文解析した抽象構文木を示す図。木の根は let y で、その子が乗算、乗算の左の子が加算、右の子が 2、加算の子が x と 1 である。左右の丸括弧のトークンは木に節点として現れない。">
+      <path d="M 290 82 L 290 106" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 290 166 L 290 196" class="svg-line"/>
+      <path d="M 278 222 L 210 252" class="svg-line"/>
+      <path d="M 302 222 L 370 252" class="svg-line"/>
+      <path d="M 188 278 L 160 308" class="svg-line"/>
+      <path d="M 212 278 L 240 308" class="svg-line"/>
+
+      <text x="33" y="20" class="svg-small" style="text-anchor:start">トークン列（枠内が字面、下が種別）</text>
+
+      <rect x="33"  y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="56"  y="48" class="svg-mono">let</text>
+      <rect x="85"  y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="108" y="48" class="svg-mono">y</text>
+      <rect x="137" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="160" y="48" class="svg-mono">=</text>
+      <rect x="189" y="30" width="46" height="26" class="svg-hl"/>
+      <text x="212" y="48" class="svg-mono">(</text>
+      <rect x="241" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="264" y="48" class="svg-mono">x</text>
+      <rect x="293" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="316" y="48" class="svg-mono">+</text>
+      <rect x="345" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="368" y="48" class="svg-mono">1</text>
+      <rect x="397" y="30" width="46" height="26" class="svg-hl"/>
+      <text x="420" y="48" class="svg-mono">)</text>
+      <rect x="449" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="472" y="48" class="svg-mono">*</text>
+      <rect x="501" y="30" width="46" height="26" class="svg-cell-plain"/>
+      <text x="524" y="48" class="svg-mono">2</text>
+
+      <text x="56"  y="72" class="svg-small">LET</text>
+      <text x="108" y="72" class="svg-small">IDENT</text>
+      <text x="160" y="72" class="svg-small">ASSIGN</text>
+      <text x="212" y="72" class="svg-small">LPAR</text>
+      <text x="264" y="72" class="svg-small">IDENT</text>
+      <text x="316" y="72" class="svg-small">PLUS</text>
+      <text x="368" y="72" class="svg-small">INT</text>
+      <text x="420" y="72" class="svg-small">RPAR</text>
+      <text x="472" y="72" class="svg-small">STAR</text>
+      <text x="524" y="72" class="svg-small">INT</text>
+
+      <text x="33" y="130" class="svg-small" style="text-anchor:start">AST</text>
+
+      <rect x="255" y="140" width="70" height="26" class="svg-cell"/>
+      <text x="290" y="158" class="svg-mono">let y</text>
+
+      <rect x="263" y="196" width="54" height="26" class="svg-cell"/>
+      <text x="290" y="214" class="svg-mono">*</text>
+
+      <rect x="173" y="252" width="54" height="26" class="svg-cell"/>
+      <text x="200" y="270" class="svg-mono">+</text>
+
+      <rect x="353" y="252" width="54" height="26" class="svg-cell"/>
+      <text x="380" y="270" class="svg-mono">2</text>
+
+      <rect x="123" y="308" width="54" height="26" class="svg-cell"/>
+      <text x="150" y="326" class="svg-mono">x</text>
+
+      <rect x="223" y="308" width="54" height="26" class="svg-cell"/>
+      <text x="250" y="326" class="svg-mono">1</text>
+
+      <text x="300" y="326" class="svg-small" style="text-anchor:start">( ) は節点にならず、木の形に移る</text>
+
+      <defs>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-2　文 <code>let y = (x + 1) * 2</code> のトークン列と AST。強調した丸括弧のトークンは AST に残らない。
+      括弧が担っていた「<code>x + 1</code> を先にまとめる」という情報は、<code>+</code> の節点が <code>*</code> の節点の子に置かれるという木の形として保存される。
+      評価器はこの形に従って子から先に計算すれば、括弧を意識せずに正しい順序で計算できる。
+    </figcaption>
+  </figure>
+
+  <h3>記号表と環境 — 解析時の表と実行時の表</h3>
+
+  <p>
+    意味解析器は、宣言された名前とその型を <span class="term">記号表</span><span class="en">(symbol table)</span> に登録する。
+    <code>let</code> の節点に出会えば登録し、変数の参照に出会えば記号表を引いて型を得る。
+    未宣言の名前の参照や、同じ名前の二重宣言は、この表を引いた時点で検出できる。
+  </p>
+
+  <p>
+    これに対し、評価器が実行中に名前と現在の値を結び付けておく表を <span class="term">環境</span><span class="en">(environment)</span> と呼ぶ。
+    どちらも名前を鍵とする表であるが、<strong>記号表はプログラムを実行する前に一度だけ作られ、型を記録する。
+    環境は実行の進行に伴って書き換えられ、値を記録する。</strong>
+    例のプログラムでは、記号表の <code>i</code> は最初から最後まで <code>int</code> であるが、環境の <code>i</code> は 1 から 6 まで変化する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　処理系の内部で受け渡されるデータの一覧。作る段階と使う段階が異なるものほど、
+      持たせる情報を文書で取り決めておく必要が大きい。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>データ</th><th>作る段階</th><th>使う段階</th><th>持たせる情報</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>トークン列</td><td>字句解析</td><td>構文解析</td><td>種別、字面、位置</td></tr>
+        <tr><td>AST</td><td>構文解析</td><td>意味解析、実行</td><td>節点の種類、子の並び、位置</td></tr>
+        <tr><td>記号表</td><td>意味解析</td><td>意味解析</td><td>名前、型、宣言した位置</td></tr>
+        <tr><td>環境</td><td>実行</td><td>実行</td><td>名前、現在の値</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      トークンに、ソースコード上の行と列を持たせておく主な理由として、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>構文解析器が、トークンの並び順を行と列から復元するため</li>
+      <li>構文解析器や意味解析器が誤りを報告するとき、ソースコード上の箇所を示すため</li>
+      <li>同じ字面の識別子が異なる変数を表すとき、それらを区別するため</li>
+      <li>評価器が、行の順にプログラムを実行するため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          空白や改行は字句解析の段階で捨てられるため、後段の段階は自分でソースコード上の位置を求められない。
+          誤りを検出するのは後段であっても、その位置を記録できるのは字句解析器だけである。
+        </p>
+        <p>
+          (A) の並び順は、トークン列が列である以上、位置を見なくとも保たれている。
+          (C) は名前の区別と位置を混同している。同じ名前が別の変数を指すかどうかは有効範囲の規則で決まり、
+          記号表がそれを扱う。
+          (D) は実行の順序を位置で決めるとみなす誤りである。実行の順序は AST の構造と実行の意味で定まる。
+          <code>while</code> の本体は行の順を遡って繰り返し実行される。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      通常の算術の優先順位に従って、次の式の AST を作る。括弧は節点として保持しない。
+      演算子の節点と葉の節点を合わせた節点の総数はいくつか。
+    </p>
+<pre><code>(a + b) * c - d * e</code></pre>
+    <ol class="choices">
+      <li>4</li>
+      <li>5</li>
+      <li>9</li>
+      <li>11</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          根は優先順位の最も低い <code>-</code> である。その左の子は <code>*</code> で、
+          この <code>*</code> の左の子が <code>+</code>（子は <code>a</code> と <code>b</code>）、右の子が <code>c</code> である。
+          <code>-</code> の右の子はもう一つの <code>*</code>（子は <code>d</code> と <code>e</code>）である。
+          演算子の節点が 4 個、葉が 5 個で、合計 9 個になる。
+        </p>
+        <p>
+          (A) は演算子の節点だけを、(B) は葉だけを数えている。
+          (D) は丸括弧の二つのトークンを節点として数えた結果である。括弧の役目は <code>+</code> を <code>*</code> の子に置くという木の形に移っており、
+          節点としては残らない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 最小構成から機能を縦に足す ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>最小構成から機能を縦に足す</h2>
+
+  <p>
+    言語仕様は全体を先に決めるが、実装は全体を一度に書かない。
+    まず、ごく小さな言語について字句解析から実行までの全段階を通しで動かし、そこに機能を一つずつ加えていく。
+    最初に作る、全段階を貫いて動く最小の処理系を <span class="term">ウォーキングスケルトン</span><span class="en">(walking skeleton)</span> と呼ぶ。
+    例とする言語では、<code>print 42</code> のように整数を一つ出力するだけの処理系がこれにあたる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　機能を加える順序と、各段階で加える内容。どの機能も字句解析から実行までの全段階に手を入れる。
+      各行を終えた時点で、そこまでの機能を持つ処理系が通しで動く。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>加える機能</th><th>字句解析</th><th>構文解析</th><th>意味解析</th><th>実行</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>整数一つの出力</td>
+          <td>整数、<code>print</code></td>
+          <td><code>"print" INT</code></td>
+          <td>検査なし（素通し）</td>
+          <td>値を出力する</td>
+        </tr>
+        <tr>
+          <td>四則演算と括弧</td>
+          <td><code>+ - * / ( )</code></td>
+          <td><code>&lt;arith&gt;</code> <code>&lt;term&gt;</code> <code>&lt;factor&gt;</code></td>
+          <td>検査なし（型が <code>int</code> だけのため）</td>
+          <td>二項演算の評価、0 による除算の停止</td>
+        </tr>
+        <tr>
+          <td>変数</td>
+          <td>識別子、<code>let</code>、<code>=</code></td>
+          <td><code>let</code> 文、代入文、変数の参照</td>
+          <td>記号表の導入、未宣言・二重宣言の検出</td>
+          <td>環境の導入</td>
+        </tr>
+        <tr>
+          <td>真偽値と比較</td>
+          <td><code>true</code> <code>false</code> <code>&lt;</code> <code>==</code></td>
+          <td><code>&lt;expr&gt;</code> に比較を加える</td>
+          <td>型規則（<code>int</code> と <code>bool</code> の区別）</td>
+          <td>比較の評価</td>
+        </tr>
+        <tr>
+          <td>条件分岐と繰り返し</td>
+          <td><code>if then else while do end</code></td>
+          <td><code>if</code> 文、<code>while</code> 文</td>
+          <td>条件式が <code>bool</code> であることの検査</td>
+          <td>条件に応じた文の実行</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>横に作るか、縦に作るか</h3>
+
+  <p>
+    これに対し、字句解析器を全機能について完成させてから構文解析器に移る、という進め方もある。
+    表 4-1 の列ごとに埋める進め方であり、ここでは「横に作る」と呼ぶ。行ごとに埋める進め方は「縦に作る」と呼ぶ。
+    両者の違いは、作業の総量ではなく、<strong>処理系が初めて通しで動く時点</strong>に現れる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 236" role="img" aria-label="五つの機能と四つの段階からなる表を二つ並べ、各セルを作る順番を数字で示した図。左の横に作る進め方では列ごとに番号が進み、最初に通しで動くのは十六番目である。右の縦に作る進め方では行ごとに番号が進み、最初に通しで動くのは四番目である。">
+      <text x="208" y="20" class="svg-small">横に作る（段階ごとに完成）</text>
+      <text x="444" y="20" class="svg-small">縦に作る（機能ごとに通す）</text>
+
+      <text x="142" y="44" class="svg-small">字句</text>
+      <text x="186" y="44" class="svg-small">構文</text>
+      <text x="230" y="44" class="svg-small">意味</text>
+      <text x="274" y="44" class="svg-small">実行</text>
+      <text x="378" y="44" class="svg-small">字句</text>
+      <text x="422" y="44" class="svg-small">構文</text>
+      <text x="466" y="44" class="svg-small">意味</text>
+      <text x="510" y="44" class="svg-small">実行</text>
+
+      <text x="110" y="74"  class="svg-small" style="text-anchor:end">整数一つ</text>
+      <text x="110" y="104" class="svg-small" style="text-anchor:end">四則演算</text>
+      <text x="110" y="134" class="svg-small" style="text-anchor:end">変数</text>
+      <text x="110" y="164" class="svg-small" style="text-anchor:end">真偽値と比較</text>
+      <text x="110" y="194" class="svg-small" style="text-anchor:end">分岐と繰り返し</text>
+
+      <!-- 横に作る: 通常セル -->
+      <rect x="120" y="54"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="84"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="114" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="144" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="120" y="174" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="164" y="54"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="164" y="84"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="164" y="114" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="164" y="144" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="164" y="174" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="208" y="54"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="208" y="84"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="208" y="114" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="208" y="144" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="208" y="174" width="44" height="30" class="svg-cell-plain"/>
+      <!-- 横に作る: 通しで動く時点 -->
+      <rect x="252" y="54"  width="44" height="30" class="svg-hl"/>
+      <rect x="252" y="84"  width="44" height="30" class="svg-hl"/>
+      <rect x="252" y="114" width="44" height="30" class="svg-hl"/>
+      <rect x="252" y="144" width="44" height="30" class="svg-hl"/>
+      <rect x="252" y="174" width="44" height="30" class="svg-hl"/>
+
+      <text x="142" y="74"  class="svg-mono">1</text>
+      <text x="142" y="104" class="svg-mono">2</text>
+      <text x="142" y="134" class="svg-mono">3</text>
+      <text x="142" y="164" class="svg-mono">4</text>
+      <text x="142" y="194" class="svg-mono">5</text>
+      <text x="186" y="74"  class="svg-mono">6</text>
+      <text x="186" y="104" class="svg-mono">7</text>
+      <text x="186" y="134" class="svg-mono">8</text>
+      <text x="186" y="164" class="svg-mono">9</text>
+      <text x="186" y="194" class="svg-mono">10</text>
+      <text x="230" y="74"  class="svg-mono">11</text>
+      <text x="230" y="104" class="svg-mono">12</text>
+      <text x="230" y="134" class="svg-mono">13</text>
+      <text x="230" y="164" class="svg-mono">14</text>
+      <text x="230" y="194" class="svg-mono">15</text>
+      <text x="274" y="74"  class="svg-mono">16</text>
+      <text x="274" y="104" class="svg-mono">17</text>
+      <text x="274" y="134" class="svg-mono">18</text>
+      <text x="274" y="164" class="svg-mono">19</text>
+      <text x="274" y="194" class="svg-mono">20</text>
+
+      <!-- 縦に作る: 通常セル -->
+      <rect x="356" y="54"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="356" y="84"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="356" y="114" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="356" y="144" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="356" y="174" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="400" y="54"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="400" y="84"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="400" y="114" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="400" y="144" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="400" y="174" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="444" y="54"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="444" y="84"  width="44" height="30" class="svg-cell-plain"/>
+      <rect x="444" y="114" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="444" y="144" width="44" height="30" class="svg-cell-plain"/>
+      <rect x="444" y="174" width="44" height="30" class="svg-cell-plain"/>
+      <!-- 縦に作る: 通しで動く時点 -->
+      <rect x="488" y="54"  width="44" height="30" class="svg-hl"/>
+      <rect x="488" y="84"  width="44" height="30" class="svg-hl"/>
+      <rect x="488" y="114" width="44" height="30" class="svg-hl"/>
+      <rect x="488" y="144" width="44" height="30" class="svg-hl"/>
+      <rect x="488" y="174" width="44" height="30" class="svg-hl"/>
+
+      <text x="378" y="74"  class="svg-mono">1</text>
+      <text x="422" y="74"  class="svg-mono">2</text>
+      <text x="466" y="74"  class="svg-mono">3</text>
+      <text x="510" y="74"  class="svg-mono">4</text>
+      <text x="378" y="104" class="svg-mono">5</text>
+      <text x="422" y="104" class="svg-mono">6</text>
+      <text x="466" y="104" class="svg-mono">7</text>
+      <text x="510" y="104" class="svg-mono">8</text>
+      <text x="378" y="134" class="svg-mono">9</text>
+      <text x="422" y="134" class="svg-mono">10</text>
+      <text x="466" y="134" class="svg-mono">11</text>
+      <text x="510" y="134" class="svg-mono">12</text>
+      <text x="378" y="164" class="svg-mono">13</text>
+      <text x="422" y="164" class="svg-mono">14</text>
+      <text x="466" y="164" class="svg-mono">15</text>
+      <text x="510" y="164" class="svg-mono">16</text>
+      <text x="378" y="194" class="svg-mono">17</text>
+      <text x="422" y="194" class="svg-mono">18</text>
+      <text x="466" y="194" class="svg-mono">19</text>
+      <text x="510" y="194" class="svg-mono">20</text>
+
+      <text x="208" y="226" class="svg-small">最初に通しで動くのは 16 番目</text>
+      <text x="444" y="226" class="svg-small">最初に通しで動くのは 4 番目</text>
+    </svg>
+    <figcaption>
+      図 4-1　表 4-1 の各セルを作る順番。強調したセルを作り終えた時点で、その行の機能まで持つ処理系が初めて通しで動く。
+      作るセルの数はどちらも 20 で変わらないが、横に作ると 16 番目まで一度も通しで動かない。
+      その間、段階の間のインタフェースの食い違いは表に出ない。
+    </figcaption>
+  </figure>
+
+  <p>
+    縦に作る進め方には次の利点がある。
+  </p>
+
+  <ul>
+    <li>インタフェースの食い違いが、関わる構文が少ないうちに見つかる。整数一つの段階で見つかった食い違いは、トークンの種別が一つしかないため直す範囲も小さい</li>
+    <li>どの時点で作業を止めても、そこまでの機能で動く処理系が残る。提出期限が決まっている作業では、この性質が、期限の時点で何も動かないという事態を防ぐ</li>
+    <li>機能を一つ加えて動かなくなれば、原因はその機能の追加分にほぼ限られる</li>
+  </ul>
+
+  <p>
+    代償として、後から加える機能のために既存の部分を書き直すことがある。たとえば比較を加えるときには、
+    <code>&lt;arith&gt;</code> の上に <code>&lt;expr&gt;</code> の階層を一段増やす必要がある。
+    この書き直しが小さく済むかどうかは、言語仕様を最初に全体まで決めてあるかで決まる。
+    文法の階層が仕様として先にあれば、実装はそれを上から順に埋めていくだけになる。
+    <strong>仕様は全体を先に決め、実装は縦に足す</strong>という組合せが、横に作る進め方と縦に作る進め方の利点を両立させる。
+  </p>
+
+  <p>
+    横に作る進め方が適するのは、言語仕様とインタフェースが最初から確定しており、各段階の出力を単体のテストで十分に確かめられる場合である。
+    複数の人が段階ごとに分担する場合にも採られるが、その場合はインタフェースの文書が唯一の頼りになる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">演算子を加えるときの注意 — 左再帰</span>
+    <p>
+      四則演算を加える段階で、引き算を次のように書きたくなる。
+    </p>
+<pre><code>&lt;arith&gt; ::= &lt;arith&gt; "-" &lt;term&gt; | &lt;term&gt;</code></pre>
+    <p>
+      規則の右辺の先頭に左辺と同じ記号が現れることを <span class="term">左再帰</span><span class="en">(left recursion)</span> と呼ぶ。
+      再帰下降法でこの規則をそのまま関数にすると、算術式を解析する関数がトークンを一つも読み進めないまま自分自身を呼び出し、
+      終わらない再帰に陥る。再帰下降法で書くときは、§ 2 の文法のように繰り返しの形に書き換える。
+    </p>
+<pre><code>算術式を解析する():
+1. 左 ← 項を解析する()
+2. 次のトークンが + または - である間、繰り返す
+   2.1 演算子 ← そのトークンを読み進める
+   2.2 右 ← 項を解析する()
+   2.3 左 ← 二項演算の節点(演算子, 左, 右)
+3. 左 を返す</code></pre>
+    <p>
+      手順 2.3 で、それまでに作った木を新しい節点の左の子に置くことで、<code>8 - 3 - 2</code> は <code>(8 - 3) - 2</code> の形の木になる。
+      同じ優先順位の演算子を左から順にまとめるこの性質を <span class="term">左結合</span><span class="en">(left associativity)</span> と呼ぶ。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      四則演算までが通しで動く処理系に、変数（<code>let</code> による宣言、参照、代入）を加える。
+      手を入れる必要がある段階の組合せとして、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>字句解析と構文解析だけ</li>
+      <li>意味解析と実行だけ</li>
+      <li>実行だけ</li>
+      <li>字句解析・構文解析・意味解析・実行のすべて</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          字句解析には識別子・<code>let</code>・<code>=</code> のトークンを、構文解析には <code>let</code> 文・代入文・変数の参照の規則を加える。
+          意味解析では記号表を導入して未宣言・二重宣言を検出し、実行では環境を導入して値を記録する。
+          新しい構文を伴う機能は、一般に全段階に及ぶ。
+        </p>
+        <p>
+          (A) は変数を形だけの問題とみなしている。名前が宣言済みかどうかは形からは判定できない。
+          (B) は変数を意味だけの問題とみなしている。識別子や <code>let</code> のトークンがなければ、そもそも変数を含む文を読めない。
+          (C) は環境に値を記録すれば足りると考えているが、それでは読み込みも検査もできない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      規則 <code>&lt;arith&gt; ::= &lt;arith&gt; "-" &lt;term&gt; | &lt;term&gt;</code> を再帰下降法で実装するために書き換える。
+      <code>8 - 3 - 2</code> の値が <code>3</code> になるものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>&lt;arith&gt; ::= &lt;term&gt; "-" &lt;arith&gt; | &lt;term&gt;</code> と書き換え、規則どおりに関数を作る</li>
+      <li><code>&lt;arith&gt; ::= &lt;term&gt; { "-" &lt;term&gt; }</code> と書き換え、項を読むたびに、それまでの木を左の子とする節点を作る</li>
+      <li>書き換えずにそのまま関数にする。再帰下降法は左再帰を自動的に処理できる</li>
+      <li><code>&lt;arith&gt; ::= &lt;term&gt; { "-" &lt;term&gt; }</code> と書き換え、すべての項を読み終えてから、右端の二つから順にまとめる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          繰り返しの形にすれば、関数は必ず項を一つ読んでから次へ進むため、終わらない再帰は起こらない。
+          さらに、それまでの木を左の子に置けば、<code>(8 - 3) - 2 = 3</code> の形の木ができる。
+        </p>
+        <p>
+          (A) は左再帰を右再帰に置き換えたもので、終わらない再帰は解消するが、木は <code>8 - (3 - 2)</code> の形になり値は <code>7</code> になる。
+          (D) も右端からまとめるため同じく <code>7</code> になる。いずれも結合の向きを取り違えている。
+          (C) は誤りで、再帰下降法は左再帰をそのままでは扱えない。関数が入力を読み進めないまま自分自身を呼び出し続ける。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 実行の方式 — 木を辿る評価と命令列の生成 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>実行の方式 — 木を辿る評価と命令列の生成</h2>
+
+  <p>
+    意味解析を通過した AST を実行する方式には、AST をそのまま辿って実行する方式と、
+    AST から別の機械向けの命令列を生成してそれを実行する方式がある。
+  </p>
+
+  <h3>木を辿る評価</h3>
+
+  <p>
+    AST の節点の種類ごとに評価の手順を書き、子の節点について同じ手順を再帰的に呼び出す。
+    この方式の処理系を <span class="term">木構造インタプリタ</span><span class="en">(tree-walking interpreter)</span> と呼ぶ。
+    式の評価と文の実行は、それぞれ次のように書ける。
+  </p>
+
+<pre><code>評価する(節点, 環境):
+1. 節点が整数または真偽値ならば、その値を返す
+2. 節点が変数の参照ならば、環境からその名前の値を取り出して返す
+3. 節点が二項演算ならば
+   3.1 左 ← 評価する(左の子, 環境)
+   3.2 右 ← 評価する(右の子, 環境)
+   3.3 演算子が / で 右 = 0 ならば、実行時の誤りとして停止する
+   3.4 演算子に応じて 左 と 右 から計算した値を返す
+
+実行する(文, 環境):
+1. let 文または代入文ならば、環境[名前] ← 評価する(式, 環境)
+2. print 文ならば、評価する(式, 環境) の値を出力する
+3. if 文ならば、評価する(条件, 環境) が真なら真の場合の文の列を、偽なら偽の場合の文の列を順に実行する
+4. while 文ならば、評価する(条件, 環境) が真である間、本体の文の列を順に実行する</code></pre>
+
+  <p>
+    この手順は、§ 2 で文章として定めた実行の意味をほぼそのまま書き写したものになっている。
+    手順 3.1 と 3.2 の順序は「左の式、右の式の順に評価する」という仕様に、手順 3.3 は 0 による除算の扱いに対応する。
+    意味解析を通過した AST だけを受け取るため、評価器の中で型を調べ直す必要はない。
+  </p>
+
+  <h3>スタック機械向けの命令列の生成</h3>
+
+  <p>
+    もう一つの方式は、AST を命令の列に変換し、その命令列を実行する方式である。
+    簡単な変換先として、値を積み上げる表を一つだけ持ち、命令がその表の上端を操作する <span class="term">スタック機械</span><span class="en">(stack machine)</span> がある。
+    例とする言語の式に対しては、次の命令があれば足りる。
+  </p>
+
+  <ul>
+    <li><code>PUSH n</code> — 値 <code>n</code> を積む。<code>LOAD x</code> — 変数 <code>x</code> の値を積む。<code>STORE x</code> — 一つ取り出して変数 <code>x</code> に記録する</li>
+    <li><code>ADD</code> <code>SUB</code> <code>MUL</code> <code>DIV</code> <code>LT</code> <code>EQ</code> — 二つ取り出して演算し、結果を積む。<code>SUB</code> と <code>DIV</code> は、下にあった値から上にあった値を引く・割る</li>
+    <li><code>PRINT</code> — 一つ取り出して出力する</li>
+  </ul>
+
+  <p>
+    二項演算の節点は、左の子の命令列、右の子の命令列、自分の演算命令、の順に命令を出力すればよい。
+    子をすべて訪れてから親を訪れるこの順序を <span class="term">後行順</span><span class="en">(post-order)</span> と呼ぶ。
+    演算命令が実行される時点で、二つの被演算子の値はスタックの上端に揃っている。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 216" role="img" aria-label="式 2 * (3 + 4) の抽象構文木を後行順に辿ると、PUSH 2、PUSH 3、PUSH 4、ADD、MUL の命令列が得られ、実行するとスタックが 2、2 3、2 3 4、2 7、14 と変化することを示す図">
+      <path d="M 100 66 L 60 110" class="svg-line"/>
+      <path d="M 120 66 L 160 110" class="svg-line"/>
+      <path d="M 160 136 L 140 180" class="svg-line"/>
+      <path d="M 180 136 L 200 180" class="svg-line"/>
+      <path d="M 240 120 L 282 120" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <text x="20" y="22" class="svg-small" style="text-anchor:start">AST（番号は訪れる順）</text>
+
+      <rect x="88" y="40" width="44" height="26" class="svg-cell"/>
+      <text x="110" y="58" class="svg-mono">*</text>
+      <text x="82" y="58" class="svg-small" style="text-anchor:end">⑤</text>
+
+      <rect x="28" y="110" width="44" height="26" class="svg-cell"/>
+      <text x="50" y="128" class="svg-mono">2</text>
+      <text x="22" y="128" class="svg-small" style="text-anchor:end">①</text>
+
+      <rect x="148" y="110" width="44" height="26" class="svg-cell"/>
+      <text x="170" y="128" class="svg-mono">+</text>
+      <text x="142" y="128" class="svg-small" style="text-anchor:end">④</text>
+
+      <rect x="108" y="180" width="44" height="26" class="svg-cell"/>
+      <text x="130" y="198" class="svg-mono">3</text>
+      <text x="102" y="198" class="svg-small" style="text-anchor:end">②</text>
+
+      <rect x="188" y="180" width="44" height="26" class="svg-cell"/>
+      <text x="210" y="198" class="svg-mono">4</text>
+      <text x="182" y="198" class="svg-small" style="text-anchor:end">③</text>
+
+      <text x="261" y="108" class="svg-small">後行順</text>
+
+      <text x="300" y="22" class="svg-small" style="text-anchor:start">命令列</text>
+      <text x="420" y="22" class="svg-small" style="text-anchor:start">実行後のスタック</text>
+
+      <text x="300" y="53"  class="svg-mono" style="text-anchor:start">① PUSH 2</text>
+      <text x="300" y="89"  class="svg-mono" style="text-anchor:start">② PUSH 3</text>
+      <text x="300" y="125" class="svg-mono" style="text-anchor:start">③ PUSH 4</text>
+      <text x="300" y="161" class="svg-mono" style="text-anchor:start">④ ADD</text>
+      <text x="300" y="197" class="svg-mono" style="text-anchor:start">⑤ MUL</text>
+
+      <rect x="420" y="34" width="36" height="28" class="svg-hl"/>
+      <text x="438" y="53" class="svg-mono">2</text>
+
+      <rect x="420" y="70" width="36" height="28" class="svg-cell-plain"/>
+      <rect x="456" y="70" width="36" height="28" class="svg-hl"/>
+      <text x="438" y="89" class="svg-mono">2</text>
+      <text x="474" y="89" class="svg-mono">3</text>
+
+      <rect x="420" y="106" width="36" height="28" class="svg-cell-plain"/>
+      <rect x="456" y="106" width="36" height="28" class="svg-cell-plain"/>
+      <rect x="492" y="106" width="36" height="28" class="svg-hl"/>
+      <text x="438" y="125" class="svg-mono">2</text>
+      <text x="474" y="125" class="svg-mono">3</text>
+      <text x="510" y="125" class="svg-mono">4</text>
+
+      <rect x="420" y="142" width="36" height="28" class="svg-cell-plain"/>
+      <rect x="456" y="142" width="36" height="28" class="svg-hl"/>
+      <text x="438" y="161" class="svg-mono">2</text>
+      <text x="474" y="161" class="svg-mono">7</text>
+
+      <rect x="420" y="178" width="36" height="28" class="svg-hl"/>
+      <text x="438" y="197" class="svg-mono">14</text>
+
+      <defs>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 5-1　式 <code>2 * (3 + 4)</code> の AST を後行順に辿って得た命令列と、各命令を実行した後のスタック。
+      スタックは右端が上端で、強調したセルはその命令が積んだ値である。
+      <code>ADD</code> が実行される時点で <code>3</code> と <code>4</code> が上端に揃っており、括弧の指定どおり加算が先に行われる。
+    </figcaption>
+  </figure>
+
+  <p>
+    文の命令列も同じ考え方で作れる。<code>while</code> 文には、命令列の中の位置を表す名札と、そこへ移る命令を用いる。
+    <code>JUMP L</code> は名札 <code>L</code> へ移り、<code>JUMP_IF_FALSE L</code> は一つ取り出した値が偽なら名札 <code>L</code> へ移る。
+  </p>
+
+<pre><code>L1: 条件式の命令列
+    JUMP_IF_FALSE L2
+    本体の文の命令列
+    JUMP L1
+L2: （while 文の次の文の命令列）</code></pre>
+
+  <h3>木を辿る評価と命令列の生成の使い分け</h3>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　木を辿る評価と命令列の生成の比較。小さな言語で問題になりやすいのは上の三行であり、
+      実行速度の差が選択を左右するのは、繰り返しの多いプログラムを実際に走らせる場合に限られる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>木を辿る評価</th><th>命令列の生成</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>実装の量</td>
+          <td>節点の種類ごとに評価の手順を書くだけでよい</td>
+          <td>命令の定義、命令列の生成器、命令を実行する仕組みの三つが要る</td>
+        </tr>
+        <tr>
+          <td>仕様との対応</td>
+          <td>評価の手順がそのまま実行の意味の記述になる</td>
+          <td>実行の意味が、生成の規則と命令の定義の二か所に分かれる</td>
+        </tr>
+        <tr>
+          <td>誤りの追いやすさ</td>
+          <td>誤った値は、それを計算した節点の手順に直接たどれる</td>
+          <td>生成の誤りか、命令の実行の誤りかを切り分ける必要がある</td>
+        </tr>
+        <tr>
+          <td>実行速度</td>
+          <td>節点を訪れるたびに種類を判定するため遅い</td>
+          <td>判定は生成時に一度だけ済み、命令列は速く繰り返し実行できる</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    独自の言語を初めて作るときは、まず木を辿る評価で処理系を完成させ、言語の意味を確定させる。
+    命令列の生成に取り組むのはその後である。こうしておくと、<strong>評価器の出力を命令列の実行結果の正解として使える。</strong>
+    同じプログラムを二つの方式で実行して出力を比べ、食い違いがあれば生成側の誤りを疑えばよい。
+    このように、同じ入力を二つの実装に与えて結果を比べる確認の仕方を <span class="term">差分テスト</span><span class="en">(differential testing)</span> と呼ぶ。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      式 <code>(4 - 1) * 2</code> の AST を後行順に辿り、図 5-1 と同じ命令を用いて命令列を生成した。
+      正しい命令列はどれか。<code>SUB</code> は、下にあった値から上にあった値を引く。
+    </p>
+    <ol class="choices">
+      <li><code>PUSH 4</code>, <code>PUSH 1</code>, <code>SUB</code>, <code>PUSH 2</code>, <code>MUL</code></li>
+      <li><code>PUSH 4</code>, <code>SUB</code>, <code>PUSH 1</code>, <code>MUL</code>, <code>PUSH 2</code></li>
+      <li><code>MUL</code>, <code>SUB</code>, <code>PUSH 4</code>, <code>PUSH 1</code>, <code>PUSH 2</code></li>
+      <li><code>PUSH 1</code>, <code>PUSH 4</code>, <code>SUB</code>, <code>PUSH 2</code>, <code>MUL</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          根は <code>*</code> で、左の子が <code>-</code>（子は <code>4</code> と <code>1</code>）、右の子が <code>2</code> である。
+          後行順では <code>4</code>、<code>1</code>、<code>-</code>、<code>2</code>、<code>*</code> の順に訪れる。
+          実行するとスタックは 4 → 4 1 → 3 → 3 2 → 6 と変化し、正しく <code>6</code> が得られる。
+        </p>
+        <p>
+          (B) はソースコード上の記号の並び（中置の順）のまま命令を並べたもので、<code>SUB</code> の時点で値が一つしか積まれていない。
+          (C) は親を先に訪れる順序（前行順）で並べたもので、演算命令が被演算子より先に実行される。
+          (D) は左右の子の順序を逆にしたもので、<code>SUB</code> が <code>1 - 4</code> を計算し、結果は <code>-6</code> になる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. テスト — 段階ごとの確認と全体の確認 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>テスト — 段階ごとの確認と全体の確認</h2>
+
+  <p>
+    処理系のテストは、段階ごとの確認と、処理系全体の確認の二層で行う。
+    段階ごとのテストは誤りの箇所を絞り込むために、全体のテストはインタフェースの食い違いを検出するために必要であり、
+    一方で他方を置き換えることはできない。
+    ソースコードを入力して最終的な出力を確かめるテストを <span class="term">エンドツーエンドテスト</span><span class="en">(end-to-end test)</span> と呼ぶ。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　テストの単位と、入力・期待する出力の組。期待する出力は、どれも言語仕様から手で求められる形にしておく。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>単位</th><th>入力</th><th>期待する出力</th><th>例</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>字句解析</td>
+          <td>ソースコード</td>
+          <td>トークン列（種別と字面）</td>
+          <td><code>ifx == 1</code> → <code>IDENT(ifx) EQ INT(1)</code></td>
+        </tr>
+        <tr>
+          <td>構文解析</td>
+          <td>ソースコード</td>
+          <td>AST を文字列に書き出したもの</td>
+          <td><code>8 - 3 - 2</code> → <code>(- (- 8 3) 2)</code></td>
+        </tr>
+        <tr>
+          <td>意味解析</td>
+          <td>ソースコード</td>
+          <td>受理、または誤りの種類と位置</td>
+          <td><code>print y</code>（<code>y</code> は未宣言）→ 1 行目で未宣言の名前</td>
+        </tr>
+        <tr>
+          <td>全体</td>
+          <td>ソースコード</td>
+          <td>実行時の出力</td>
+          <td>§ 1 のプログラム → <code>15</code></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    構文解析のテストでは、AST を決まった形式の文字列に書き出す関数を用意しておくと、期待値との比較が文字列の比較で済む。
+    表 6-1 の例は、節点ごとに「演算子 左の子 右の子」を括弧で囲んで書き出す形式である。
+    この形式では木の形が括弧の入れ子として表れるため、結合の向きの誤りも一目で分かる。
+  </p>
+
+  <h3>拒否すべきプログラムをテストする</h3>
+
+  <p>
+    正しいプログラムを正しく実行できることと同じく、誤ったプログラムを正しく拒否できることも処理系の仕様の一部である。
+    言語仕様の各規則について、受理すべき例と拒否すべき例の両方を用意する。
+    拒否すべき例には、<strong>どの段階で拒否されるべきか</strong>も期待値として書いておく。
+    後の段階で拒否されたなら、前の段階が受理すべきでない入力を通したことになる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-2　誤りを含むプログラムと、それを拒否すべき段階。拒否する段階は、その誤りを判定するのに必要な情報が初めて揃う段階である。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>プログラム</th><th>拒否すべき段階</th><th>根拠となる規則</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>let x = 3 @ 4</code></td><td>字句解析</td><td><code>@</code> に一致するトークンの規則がない</td></tr>
+        <tr><td><code>let = 5</code></td><td>構文解析</td><td><code>let</code> の後には識別子が要る</td></tr>
+        <tr><td><code>print y</code>（<code>y</code> は未宣言）</td><td>意味解析</td><td>参照する変数は宣言済みでなければならない</td></tr>
+        <tr><td><code>let b = 1 &lt; 2</code> の後に <code>b = 3</code></td><td>意味解析</td><td>代入する値の型が変数の型と一致しない</td></tr>
+        <tr><td><code>print 10 / (3 - 3)</code></td><td>実行</td><td>右辺が 0 であることは、値を計算して初めて分かる</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>機能を足すたびに全テストを流す</h3>
+
+  <p>
+    縦に作る進め方では、機能を一つ加えるたびに既存の部分に手が入る。
+    比較を加えるために文法の階層を一段増やせば、四則演算の解析が壊れているかもしれない。
+    そこで、機能を加えるたびに、それ以前に用意したテストをすべて実行し直す。
+    以前に通っていたテストが通らなくなっていないかを確かめるこのテストを <span class="term">回帰テスト</span><span class="en">(regression test)</span> と呼ぶ。
+    テストの実行を一つの命令で行えるようにしておくと、確認の手間が機能の数に比例して増えることを避けられる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      処理系が出力した結果を、そのまま期待値として写してはならない。処理系に誤りがあれば、その誤りが正解としてテストに固定される。
+      期待値は言語仕様から手で求める。手で求められないほど大きなプログラムは、テストとしても大きすぎる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      例とする言語の仕様に従う処理系に、次のプログラムを入力した。このプログラムを拒否すべき段階はどれか。
+    </p>
+<pre><code>if 1 then
+  print 2
+end</code></pre>
+    <ol class="choices">
+      <li>字句解析</li>
+      <li>構文解析</li>
+      <li>意味解析</li>
+      <li>実行</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          表 2-3 の型規則は、<code>if</code> の条件式が <code>bool</code> であることを求めている。
+          条件式 <code>1</code> の型は <code>int</code> であり、このことは実行する前に AST と型規則だけから判定できる。
+          なお、整数の 0 以外を真とみなす言語もある。その場合このプログラムは受理されるが、それは型規則という仕様の違いであり、
+          どちらを採るかは言語仕様に明記しておく。
+        </p>
+        <p>
+          (A) は誤りで、<code>if</code>・<code>1</code>・<code>then</code> などはすべて字句規則に従うトークンである。
+          (B) も誤りで、文法は <code>"if" &lt;expr&gt; "then"</code> の形しか定めておらず、<code>1</code> は <code>&lt;expr&gt;</code> として正しい。
+          (D) は、判定に必要な情報が実行前に揃っているのに実行まで持ち越している。
+          実行時に検出する方式では、条件式に到達しない限り誤りが見つからない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. レポートにまとめる観点 ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>レポートにまとめる観点</h2>
+
+  <p>
+    作成した処理系のレポートは、読み手が処理系を動かさずに、言語の仕様と処理系の構造、およびその正しさの根拠を把握できるように書く。
+    動作したという事実だけでは、何をどこまで作ったのか、なぜその設計にしたのかが伝わらない。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　レポートにまとめる観点と、それぞれの裏付けとなる資料。各観点は本講で扱った作業の順序に対応しており、
+      作業の過程で作った文書がそのままレポートの材料になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>書く内容</th><th>裏付けとなる資料</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>言語仕様</td>
+          <td>字句規則、文法、型規則、実行の意味。その言語で書いたプログラムの例</td>
+          <td>正規表現の一覧、EBNF、型規則の表</td>
+        </tr>
+        <tr>
+          <td>処理系の設計</td>
+          <td>段階の構成と、段階の間で受け渡すデータの定義</td>
+          <td>トークンの種別の一覧、AST の節点の一覧、記号表と環境の構成</td>
+        </tr>
+        <tr>
+          <td>実装の経過</td>
+          <td>機能を加えた順序と、各機能で各段階に加えた内容</td>
+          <td>表 4-1 のような計画表と、実際の作業の記録</td>
+        </tr>
+        <tr>
+          <td>テスト</td>
+          <td>受理すべきプログラムと拒否すべきプログラム、期待値と実行結果</td>
+          <td>テストの一覧と、全テストを実行した結果</td>
+        </tr>
+        <tr>
+          <td>考察</td>
+          <td>設計判断の理由と選ばなかった案、その判断が成り立つ条件。未対応の機能と、対応するには何を変える必要があるか</td>
+          <td>仕様と設計の各項目</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    考察で書くのは、感想や作業の苦労ではなく<strong>設計判断</strong>である。
+    ある設計を選んだ理由は、選ばなかった案と並べて初めて説明できる。
+    たとえば有効範囲をプログラム全体で一つにした判断であれば、それによって記号表が単純な表一つで済んだこと、
+    その代わりに <code>while</code> の本体で宣言した変数が外から見えてしまうこと、
+    ブロックごとに有効範囲を設けるには記号表を入れ子にする必要があることを書く。
+    限界を述べることは減点の理由ではなく、仕様と実装を正確に把握していることの証拠である。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      作成した処理系のレポートの考察として、最も適切な記述はどれか。
+    </p>
+    <ol class="choices">
+      <li>字句解析器・構文解析器・意味解析器・評価器を実装し、用意したテストはすべて通過した。</li>
+      <li>構文解析には再帰下降法を用いた。再帰下降法は、非終端記号ごとに関数を作って解析する手法である。</li>
+      <li>優先順位を文法の階層で表していたため、比較演算子は階層を一段加えるだけで追加できた。一方、有効範囲を一つにしたため、<code>while</code> の本体で宣言した変数が外から参照できる。これを防ぐには記号表を入れ子にする必要がある。</li>
+      <li>処理系の作成は難しかったが、最後にプログラムが動いたときは達成感があった。</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          (C) は、二つの設計判断について、それが何をもたらしたかを利点と限界の両面から述べ、限界を解消する方法まで示している。
+          読み手はこの記述から、仕様と実装の関係を把握できる。
+        </p>
+        <p>
+          (A) は結果の報告であり、テストの章に書くべき内容である。なぜその結果になったのか、その設計で何が言えるのかを述べていない。
+          (B) は手法の一般的な説明であり、自分の処理系についての判断を含んでいない。他の手法ではなくそれを選んだ理由が書かれていない。
+          (D) は感想であり、処理系の設計について何も述べていない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li><strong>部品が動いても処理系は動かない</strong> — 段階ごとの正しさと全体の正しさは別であり、食い違いは段階の間の取り決めに生じる</li>
+    <li><strong>言語仕様</strong> — 字句規則・文法・型規則・実行の意味の層に分けて実装の前に定める。優先順位は文法の階層で表し、選ばなかった事柄も明記する</li>
+    <li><strong>段階をつなぐデータ</strong> — トークンは種別・字面・位置を持ち、AST は括弧を持たずに構造を木の形で表す。記号表は解析時に名前と型を、環境は実行時に名前と値を結び付ける</li>
+    <li><strong>縦に足す</strong> — 全段階を貫く最小の処理系から始め、機能を一つずつ全段階に加える。仕様は全体を先に決め、実装は縦に足す。左再帰は繰り返しに書き換え、左結合を保つ</li>
+    <li><strong>実行の方式</strong> — 木を辿る評価は仕様と直接対応し、命令列の生成は後行順の走査で得られる。評価器を先に完成させれば、その出力を生成側の正解として使える</li>
+    <li><strong>テスト</strong> — 段階ごとのテストと全体のテストを併用し、拒否すべきプログラムは拒否すべき段階とともに用意する。機能を足すたびに回帰テストを行い、期待値は仕様から手で求める</li>
+    <li><strong>レポート</strong> — 仕様・設計・経過・テスト・考察をまとめ、考察では設計判断を選ばなかった案と限界とともに述べる</li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／独自プログラミング言語の設計と実装<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
