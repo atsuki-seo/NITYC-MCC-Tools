@@ -277,14 +277,178 @@
     5行目の <code>x</code> は、内側の表で4行目の宣言が先に見つかるため、実数型の変数を指す。
     1行目の <code>x</code> は外側の表に残っているが、探索がそこまで届かない。
     内側の宣言が外側の同名の宣言を見えなくすることを <span class="term">覆い隠し</span><span class="en">(shadowing)</span> と呼ぶ。
-    6行目でブロックを出ると内側の表が取り除かれるため、7行目の <code>x</code> は再び1行目の整数型の変数を指す。
   </p>
+
+  <h3>表を積み、取り除く流れ</h3>
+
+  <p>
+    図 2-1 は一時点の記号表である。同じ7行のプログラムを先頭から検査すると、記号表は図 2-2 のように変わっていく。
+    3行目のブロック開始で表を積み、4行目の宣言をその表に登録する。6行目のブロック終了でその表を取り除くため、
+    7行目の <code>x</code> の探索は大域の表から始まり、1行目の整数型の変数を指す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 300" role="img" aria-label="7行のプログラムを検査する間の記号表の変化を五つのコマで示す図。2行目の後は大域の表に x と y の整数型が登録されている。3行目で内側の表を積み、4行目の後はその表に実数型の x が登録されている。5行目の探索では x が内側の表の4行目の宣言に、y が大域の表の2行目の宣言に結び付く。6行目で内側の表を取り除き、大域の表だけが残る。7行目の探索では x が大域の表の1行目の宣言に結び付く。">
+      <path d="M 110 14 L 122 14" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 226 14 L 238 14" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 342 14 L 354 14" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 458 14 L 470 14" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 200 62 L 200 122" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 432 176 L 432 122" class="svg-arrow" marker-end="url(#ah2)"/>
+
+      <text x="58"  y="18" class="svg-small">2行目の後</text>
+      <text x="174" y="18" class="svg-small">4行目の後</text>
+      <text x="290" y="18" class="svg-small">5行目の探索</text>
+      <text x="406" y="18" class="svg-small">6行目の後</text>
+      <text x="522" y="18" class="svg-small">7行目の探索</text>
+
+      <rect x="8"   y="180" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="124" y="180" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="240" y="180" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="356" y="180" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="472" y="180" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="124" y="128" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="240" y="128" width="100" height="22" class="svg-cell-plain"/>
+      <rect x="356" y="70"  width="100" height="22" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="356" y="92"  width="100" height="24" class="svg-cell-plain" stroke-dasharray="6 4"/>
+
+      <rect x="8"   y="202" width="100" height="24" class="svg-cell"/>
+      <rect x="8"   y="226" width="100" height="24" class="svg-cell"/>
+      <rect x="124" y="202" width="100" height="24" class="svg-cell"/>
+      <rect x="124" y="226" width="100" height="24" class="svg-cell"/>
+      <rect x="124" y="150" width="100" height="24" class="svg-cell"/>
+      <rect x="240" y="202" width="100" height="24" class="svg-cell"/>
+      <rect x="356" y="202" width="100" height="24" class="svg-cell"/>
+      <rect x="356" y="226" width="100" height="24" class="svg-cell"/>
+      <rect x="472" y="226" width="100" height="24" class="svg-cell"/>
+      <rect x="240" y="150" width="100" height="24" class="svg-hl"/>
+      <rect x="240" y="226" width="100" height="24" class="svg-hl"/>
+      <rect x="472" y="202" width="100" height="24" class="svg-hl"/>
+
+      <text x="58"  y="195" class="svg-small">大域</text>
+      <text x="174" y="195" class="svg-small">大域</text>
+      <text x="290" y="195" class="svg-small">大域</text>
+      <text x="406" y="195" class="svg-small">大域</text>
+      <text x="522" y="195" class="svg-small">大域</text>
+      <text x="174" y="143" class="svg-small">内側</text>
+      <text x="290" y="143" class="svg-small">内側</text>
+      <text x="406" y="85"  class="svg-small">内側</text>
+
+      <text x="58"  y="219" class="svg-mono">x : 整数</text>
+      <text x="58"  y="243" class="svg-mono">y : 整数</text>
+      <text x="174" y="219" class="svg-mono">x : 整数</text>
+      <text x="174" y="243" class="svg-mono">y : 整数</text>
+      <text x="174" y="167" class="svg-mono">x : 実数</text>
+      <text x="290" y="219" class="svg-mono">x : 整数</text>
+      <text x="290" y="243" class="svg-mono">y : 整数</text>
+      <text x="290" y="167" class="svg-mono">x : 実数</text>
+      <text x="406" y="219" class="svg-mono">x : 整数</text>
+      <text x="406" y="243" class="svg-mono">y : 整数</text>
+      <text x="406" y="109" class="svg-mono">x : 実数</text>
+      <text x="522" y="219" class="svg-mono">x : 整数</text>
+      <text x="522" y="243" class="svg-mono">y : 整数</text>
+
+      <text x="128" y="90"  class="svg-small" style="text-anchor:start">3行目で</text>
+      <text x="128" y="106" class="svg-small" style="text-anchor:start">積む</text>
+      <text x="360" y="140" class="svg-small" style="text-anchor:start">6行目で</text>
+      <text x="360" y="156" class="svg-small" style="text-anchor:start">取り除く</text>
+
+      <text x="58"  y="272" class="svg-small">1・2行目で登録</text>
+      <text x="174" y="272" class="svg-small">4行目で登録</text>
+      <text x="290" y="272" class="svg-small">x → 4行目</text>
+      <text x="290" y="290" class="svg-small">y → 2行目</text>
+      <text x="522" y="272" class="svg-small">x → 1行目</text>
+
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-2　7行のプログラムを検査する間の記号表の変化。ブロック開始で表を積み、ブロック終了で表ごと取り除く。
+      強調した項目は、その時点の探索で見つかったものである。同じ名前 x でも、5行目では内側の表で、7行目では大域の表で見つかる。
+    </figcaption>
+  </figure>
+
+  <p>
+    入れ子が深くなっても仕組みは変わらない。ブロックに入るたびに表が一枚増え、探索はいちばん上の表から順に全ての表をたどる。
+    ブロックを出るときに取り除かれるのは、いちばん上の一枚だけである。
+  </p>
+
+  <h3>重複宣言の判定</h3>
+
+  <p>
+    同じ名前を同じスコープで二度宣言するのは誤りであるが、内側のスコープで外側と同じ名前を宣言するのは覆い隠しであり、誤りではない。
+    二つを分けるのは、登録の際に<strong>調べる範囲</strong>である。図 2-3 は、宣言を登録しようとする時点の記号表を並べたものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 358" role="img" aria-label="重複宣言と覆い隠しを対比する図。左は2行目からのブロックで x を二度宣言するプログラムで、4行目の登録時にいちばん上の表を調べると3行目の x が見つかり、重複宣言の誤りとなる。右は4行目からの更に内側のブロックで x を宣言するプログラムで、5行目の登録時にいちばん上の表は空であり、x は見つからないため登録される。右の記号表は三段に積まれている。強調した枠は、重複を調べる範囲であるいちばん上の表を示す。">
+      <rect x="58"  y="198" width="172" height="54" class="svg-hl"/>
+      <rect x="350" y="142" width="172" height="54" class="svg-hl"/>
+
+      <text x="144" y="18" class="svg-small">同じスコープで二度宣言する場合</text>
+      <text x="436" y="18" class="svg-small">内側のスコープで宣言する場合</text>
+
+      <text x="16" y="44"  class="svg-mono" style="text-anchor:start">1.</text>
+      <text x="16" y="64"  class="svg-mono" style="text-anchor:start">2.</text>
+      <text x="16" y="84"  class="svg-mono" style="text-anchor:start">3.</text>
+      <text x="16" y="104" class="svg-mono" style="text-anchor:start">4.</text>
+      <text x="40" y="44"  class="svg-mono" style="text-anchor:start">変数 y : 整数 ← 1</text>
+      <text x="40" y="64"  class="svg-mono" style="text-anchor:start">ブロック開始</text>
+      <text x="56" y="84"  class="svg-mono" style="text-anchor:start">変数 x : 整数 ← 2</text>
+      <text x="56" y="104" class="svg-mono" style="text-anchor:start">変数 x : 実数 ← 0.5</text>
+
+      <text x="304" y="44"  class="svg-mono" style="text-anchor:start">1.</text>
+      <text x="304" y="64"  class="svg-mono" style="text-anchor:start">2.</text>
+      <text x="304" y="84"  class="svg-mono" style="text-anchor:start">3.</text>
+      <text x="304" y="104" class="svg-mono" style="text-anchor:start">4.</text>
+      <text x="304" y="124" class="svg-mono" style="text-anchor:start">5.</text>
+      <text x="328" y="44"  class="svg-mono" style="text-anchor:start">変数 y : 整数 ← 1</text>
+      <text x="328" y="64"  class="svg-mono" style="text-anchor:start">ブロック開始</text>
+      <text x="344" y="84"  class="svg-mono" style="text-anchor:start">変数 x : 整数 ← 2</text>
+      <text x="344" y="104" class="svg-mono" style="text-anchor:start">ブロック開始</text>
+      <text x="360" y="124" class="svg-mono" style="text-anchor:start">変数 x : 実数 ← 0.5</text>
+
+      <rect x="64"  y="202" width="160" height="22" class="svg-cell-plain"/>
+      <rect x="64"  y="258" width="160" height="22" class="svg-cell-plain"/>
+      <rect x="356" y="146" width="160" height="22" class="svg-cell-plain"/>
+      <rect x="356" y="168" width="160" height="24" class="svg-cell-plain"/>
+      <rect x="356" y="202" width="160" height="22" class="svg-cell-plain"/>
+      <rect x="356" y="258" width="160" height="22" class="svg-cell-plain"/>
+      <rect x="64"  y="224" width="160" height="24" class="svg-cell"/>
+      <rect x="64"  y="280" width="160" height="24" class="svg-cell"/>
+      <rect x="356" y="224" width="160" height="24" class="svg-cell"/>
+      <rect x="356" y="280" width="160" height="24" class="svg-cell"/>
+
+      <text x="144" y="217" class="svg-small">2行目からのスコープ</text>
+      <text x="144" y="273" class="svg-small">大域スコープ</text>
+      <text x="144" y="241" class="svg-mono">x : 整数</text>
+      <text x="144" y="297" class="svg-mono">y : 整数</text>
+
+      <text x="436" y="161" class="svg-small">4行目からのスコープ</text>
+      <text x="436" y="185" class="svg-small">（空）</text>
+      <text x="436" y="217" class="svg-small">2行目からのスコープ</text>
+      <text x="436" y="241" class="svg-mono">x : 整数</text>
+      <text x="436" y="273" class="svg-small">大域スコープ</text>
+      <text x="436" y="297" class="svg-mono">y : 整数</text>
+
+      <text x="144" y="326" class="svg-small">x が見つかる → 重複宣言の誤り</text>
+      <text x="436" y="326" class="svg-small">x は無い → 登録する（誤りでない）</text>
+      <text x="290" y="350" class="svg-small">強調した範囲が、重複を調べる表（いちばん上の表）である</text>
+    </svg>
+    <figcaption>
+      図 2-3　宣言を登録しようとする時点の記号表。左は4行目、右は5行目の時点である。
+      左では、いちばん上の表に3行目の x があるため重複宣言となる。右では、いちばん上の表は空であり、2行目からのスコープにある x は調べる範囲の外にあるため、登録が行われる。
+    </figcaption>
+  </figure>
 
   <div class="note caution">
     <span class="label">誤りやすい点</span>
     <p>
-      重複宣言の検査は、<strong>いちばん上の表だけ</strong>を調べて行う。4行目の <code>x</code> は外側に同名の宣言があるが、
-      別のスコープへの宣言であるため誤りではない。表全体を探索して「既にある」と判定すると、正しい覆い隠しまで誤りとして報告してしまう。
+      重複宣言の判定に、探索の手続きをそのまま使ってはならない。探索は全ての表をたどるため、図 2-3 の右でも2行目からのスコープの x を見つけ、
+      正しい覆い隠しまで誤りとして報告してしまう。
       なお、内側での同名の宣言そのものを禁止する言語もあり、この扱いは言語によって異なる。
     </p>
   </div>
@@ -439,6 +603,69 @@
     この式を <code>もし … ならば</code> の条件に置けば、条件が真偽値であるという文の規則も満たされる。
   </p>
 
+  <h3>前提が破れる節点</h3>
+
+  <p>
+    文を含み、途中で前提が破れる例として、整数型の <code>n</code> について <code>もし n &lt; 10 ならば n ← n + 真</code> を検査する（図 3-2）。
+    条件分岐の節点は、まず条件の部分木を検査し、その型が真偽値であることを確かめてから、本体の文を検査する。
+    文の節点は型を持たず、表 3-1 の規則を満たすかどうかだけを判定する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 298" role="img" aria-label="文 もし n 小なり 10 ならば n ← n + 真 の抽象構文木。根は条件分岐の節点で、左の子が条件 n 小なり 10、右の子が n への代入である。代入の子はたし算で、その子が n と 真 である。条件の部分木は (1) から (3) の順に検査され、小なりが真偽値となるため条件は通過する。たし算の節点は (6) で、左の子が整数、右の子が真偽値であり前提が破れるため強調され、誤りを報告する。代入の節点は (7) で報告しない。">
+      <path d="M 290 54 L 150 94" class="svg-line"/>
+      <path d="M 290 54 L 430 94" class="svg-line"/>
+      <path d="M 150 124 L 90 164" class="svg-line"/>
+      <path d="M 150 124 L 210 164" class="svg-line"/>
+      <path d="M 430 124 L 430 164" class="svg-line"/>
+      <path d="M 430 194 L 370 234" class="svg-line"/>
+      <path d="M 430 194 L 490 234" class="svg-line"/>
+
+      <rect x="258" y="24"  width="64" height="30" class="svg-cell"/>
+      <rect x="122" y="94"  width="56" height="30" class="svg-cell"/>
+      <rect x="398" y="94"  width="64" height="30" class="svg-cell"/>
+      <rect x="62"  y="164" width="56" height="30" class="svg-cell"/>
+      <rect x="182" y="164" width="56" height="30" class="svg-cell"/>
+      <rect x="342" y="234" width="56" height="30" class="svg-cell"/>
+      <rect x="462" y="234" width="56" height="30" class="svg-cell"/>
+      <rect x="402" y="164" width="56" height="30" class="svg-hl"/>
+
+      <text x="290" y="44"  class="svg-mono">もし</text>
+      <text x="150" y="114" class="svg-mono">&lt;</text>
+      <text x="430" y="114" class="svg-mono">n ←</text>
+      <text x="90"  y="184" class="svg-mono">n</text>
+      <text x="210" y="184" class="svg-mono">10</text>
+      <text x="430" y="184" class="svg-mono">+</text>
+      <text x="370" y="254" class="svg-mono">n</text>
+      <text x="490" y="254" class="svg-mono">真</text>
+
+      <text x="116" y="114" class="svg-mono" style="text-anchor:end">(3)</text>
+      <text x="392" y="114" class="svg-mono" style="text-anchor:end">(7)</text>
+      <text x="56"  y="184" class="svg-mono" style="text-anchor:end">(1)</text>
+      <text x="176" y="184" class="svg-mono" style="text-anchor:end">(2)</text>
+      <text x="396" y="184" class="svg-mono" style="text-anchor:end">(6)</text>
+      <text x="336" y="254" class="svg-mono" style="text-anchor:end">(4)</text>
+      <text x="456" y="254" class="svg-mono" style="text-anchor:end">(5)</text>
+
+      <text x="328" y="44"  class="svg-small" style="text-anchor:start">(3) が真偽値なので条件は通過</text>
+      <text x="184" y="114" class="svg-small" style="text-anchor:start">真偽値</text>
+      <text x="468" y="114" class="svg-small" style="text-anchor:start">型が定まらない</text>
+      <text x="124" y="184" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="244" y="184" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="464" y="180" class="svg-small" style="text-anchor:start">前提が破れる</text>
+      <text x="464" y="196" class="svg-small" style="text-anchor:start">誤りを報告</text>
+      <text x="404" y="254" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="524" y="254" class="svg-small" style="text-anchor:start">真偽値</text>
+
+      <text x="24" y="290" class="svg-small" style="text-anchor:start">(n) は検査の順序。もし の節点は、条件 (3) の型だけを判定し、続けて本体の文を検査する</text>
+    </svg>
+    <figcaption>
+      図 3-2　もし n &lt; 10 ならば n ← n + 真 の検査。条件 n &lt; 10 は真偽値となり、条件分岐の規則を満たす。
+      本体では、<code>+</code> の右の子が真偽値であり、「両方が整数」という前提が破れる（強調）。
+      代入 <code>n ←</code> も右辺の型が定まらず規則を満たせないが、誤りの原因は <code>+</code> にある。この場合の報告の扱いは § 4 で述べる。
+    </figcaption>
+  </figure>
+
   <p>
     節点の種類ごとに規則が一つ対応するという構造は、再帰下降構文解析で非終端記号ごとに一つの関数を用意したのと同じ考え方である。
     型検査器は「節点を受け取り、子を再帰的に検査してから、その節点の種類に応じた規則を当てはめる」手続きとして書ける。
@@ -507,6 +734,40 @@
     節点に位置を持たせることは、構文解析の段階で済ませておく必要がある。
   </p>
 
+  <p>
+    § 1 の4行のプログラムを検査すると、次の誤り一覧が得られる。各行は「行:列: 種類: 内容」の形式で書かれている。
+  </p>
+
+  <pre><code>1:1: 型の不整合: 整数 の変数 n に 真偽値 の値は入れられない
+2:1: 重複宣言: n は既に 1:1 で宣言されている
+3:4: 条件の型の誤り: 条件には真偽値が必要だが 整数 が与えられた
+4:3: 未宣言: total は宣言されていない</code></pre>
+
+  <p>
+    1行目の宣言は型の不整合を含むが、<code>n</code> は整数型として登録される。そのため2行目は重複宣言となり、
+    3行目の条件 <code>n</code> は整数型と分かって条件の型の誤りとなる。報告に含める要素が一覧のどこに現れているかを表 4-1 に示す。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　報告に含める要素と、上の誤り一覧での現れ方。列は、行番号の表示を除いた行頭からの文字の位置である。
+      関連する位置は全ての誤りにあるわけではなく、重複宣言のように先行する宣言が関わる場合に加える。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>要素</th><th>誤り一覧での現れ方</th><th>情報の出どころ</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>位置</td><td>各行の先頭の <code>1:1</code>, <code>3:4</code> など</td><td>節点が持つ位置（行:列）</td></tr>
+        <tr><td>誤りの種類</td><td>2番目の欄の「型の不整合」「重複宣言」など</td><td>どの規則・どの操作で見つかったか</td></tr>
+        <tr><td>期待したものと実際のもの</td><td>1行目の「整数 の変数」と「真偽値 の値」、3行目の「真偽値が必要」と「整数 が与えられた」</td><td>型規則の前提と、子の検査で求めた型</td></tr>
+        <tr><td>関連する位置</td><td>2行目の「既に 1:1 で宣言」</td><td>記号表の項目に記録した宣言位置</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
   <h3>最初の誤りで止めない</h3>
 
   <p>
@@ -570,7 +831,41 @@
   <p>
     誤り型を受け取った節点は報告しないが、検査そのものは続く。兄弟の部分木に別の独立した誤りがあれば、それは別に報告される。
     抑えられるのは<strong>同じ原因に由来する報告だけ</strong>である。
+    図 4-2 は、<code>p</code> と <code>q</code> がともに宣言されていない場合の <code>x ← p + q</code> である。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 228" role="img" aria-label="代入 x ← p + q の抽象構文木。根は代入、その子が x とたし算、たし算の子が p と q。宣言されていない p と q はどちらも強調され、それぞれ誤り型を返して誤りを報告する。たし算は誤り型を受け取るが報告しない。代入も報告しない。">
+      <path d="M 250 54 L 150 94" class="svg-line"/>
+      <path d="M 250 54 L 330 94" class="svg-line"/>
+      <path d="M 330 124 L 270 164" class="svg-line"/>
+      <path d="M 330 124 L 390 164" class="svg-line"/>
+
+      <rect x="222" y="24"  width="56" height="30" class="svg-cell"/>
+      <rect x="122" y="94"  width="56" height="30" class="svg-cell"/>
+      <rect x="302" y="94"  width="56" height="30" class="svg-cell"/>
+      <rect x="242" y="164" width="56" height="30" class="svg-hl"/>
+      <rect x="362" y="164" width="56" height="30" class="svg-hl"/>
+
+      <text x="250" y="44"  class="svg-mono">←</text>
+      <text x="150" y="114" class="svg-mono">x</text>
+      <text x="330" y="114" class="svg-mono">+</text>
+      <text x="270" y="184" class="svg-mono">p</text>
+      <text x="390" y="184" class="svg-mono">q</text>
+
+      <text x="284" y="44"  class="svg-small" style="text-anchor:start">報告しない</text>
+      <text x="184" y="114" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="364" y="114" class="svg-small" style="text-anchor:start">誤り型（報告しない）</text>
+      <text x="236" y="184" class="svg-small" style="text-anchor:end">未宣言 → 報告する</text>
+      <text x="424" y="184" class="svg-small" style="text-anchor:start">未宣言 → 報告する</text>
+
+      <text x="24" y="220" class="svg-small" style="text-anchor:start">兄弟の部分木にある独立した二つの誤りは、それぞれ報告される。+ は報告を重ねない</text>
+    </svg>
+    <figcaption>
+      図 4-2　兄弟の部分木に独立した誤りがある場合。p と q はそれぞれ記号表の探索で見つからず、一件ずつ報告する。
+      <code>+</code> は子に誤り型があるため報告せず、報告は2件となる。誤り型は同じ原因の報告を抑えるだけで、別の原因の報告までは抑えない。
+    </figcaption>
+  </figure>
 
   <div class="quiz">
     <span class="quiz-label">確認問題 4-1</span>
@@ -697,7 +992,8 @@
   <ul>
     <li><strong>両辺が同じ型</strong>（<code>整数 = 整数</code> など） — 何もしない</li>
     <li><strong>一方が型変数</strong>（<code>α = 整数</code> など） — 置換に「α → 整数」を加える</li>
-    <li><strong>両辺が同じ形の複合型</strong>（関数型 <code>(α) → β</code> と <code>(整数) → 真偽値</code> など） — 対応する部分どうしの等式に分けて処理する</li>
+    <li><strong>両辺が同じ形の複合型</strong>（関数型 <code>(α) → β</code> と <code>(整数) → 真偽値</code> など） — 対応する部分どうしの等式に分けて処理する。
+      例えば <code>(α) → β = (整数) → 真偽値</code> は、引数どうしの <code>α = 整数</code> と戻り値どうしの <code>β = 真偽値</code> の2本に分かれる</li>
     <li><strong>両辺が異なる型</strong>（<code>整数 = 真偽値</code> など） — 解が存在しない。型の誤りとして報告する</li>
   </ul>
 
@@ -728,6 +1024,38 @@
     すなわち <code>f</code> の型は <code>(整数, 整数) → 真偽値</code> である。型を一つも書かずに、型を書いた場合と同じ検査が行えたことになる。
   </p>
 
+  <h3>型変数どうしの等式</h3>
+
+  <p>
+    二つの分岐の型を等しくする場合のように、両辺がともに型変数の等式 <code>α = β</code> も生じる。
+    この場合は「α → β」を置換に加える。α の値はまだ決まらないが、β が決まった時点で α もそれに従う。
+    表 5-2 は、等式 <code>α = β</code>, <code>β = 整数</code>, <code>α = 整数</code> をこの順に単一化した経過である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-2　型変数どうしの等式を含む単一化。(3) で α に置換を当てはめると、α はまず β に、β はさらに整数に置き換わる。
+      置換は一度で終わらせず、型変数が残らなくなるまで繰り返し当てはめる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>等式</th><th>置換を当てはめた形</th><th>処理</th><th>処理後の置換</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>(1) α = β</td><td>α = β</td><td>型変数に型変数を対応させる</td><td>α → β</td></tr>
+        <tr><td>(2) β = 整数</td><td>β = 整数</td><td>型変数に型を対応させる</td><td>α → β, β → 整数</td></tr>
+        <tr><td>(3) α = 整数</td><td>α → β → 整数 と置き換えて、整数 = 整数</td><td>同じ型なので何もしない</td><td>α → β, β → 整数</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    処理を終えた時点で、α は β を経て整数を指す。置換を当てはめる操作が一段で止まると、(3) は <code>β = 整数</code> のまま残り、
+    既に決まっている事柄を未決定と誤って扱うことになる。
+  </p>
+
   <h3>解が無い場合 — 推論による誤りの検出</h3>
 
   <p>
@@ -738,9 +1066,88 @@
   <pre><code>関数 g(x) = もし x ならば x + 1 そうでなければ 0</code></pre>
 
   <p>
-    <code>x</code> に α を置いて後順走査すると、<code>x + 1</code> の節点から <code>α = 整数</code> が、条件式の節点から <code>α = 真偽値</code> が生成される。
-    前者で置換に「α → 整数」が加わった後、後者に当てはめると <code>整数 = 真偽値</code> となり、解が存在しない。
+    <code>x</code> に α を置き、<code>+</code> の結果に t1、条件式全体に t2 を置いて後順走査する。
+    条件式の節点は、条件・二つの分岐・全体のそれぞれについて等式を生成する（図 5-2）。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 214" role="img" aria-label="関数 g(x) = もし x ならば x + 1 そうでなければ 0 の抽象構文木と、生成される型制約を示す図。根は条件式の節点で型変数 t2、子は条件の x、たし算、0 である。x には型変数 α、たし算には t1 を置く。たし算の節点からは α = 整数、整数 = 整数、t1 = 整数 の三つ、条件式の節点からは条件の α = 真偽値、分岐の型の一致 t1 = 整数、全体の t2 = t1 の三つの等式が生成される。根の条件式の節点が強調されている。">
+      <path d="M 150 66 L 50 106" class="svg-line"/>
+      <path d="M 150 66 L 150 106" class="svg-line"/>
+      <path d="M 150 66 L 240 106" class="svg-line"/>
+      <path d="M 150 136 L 110 176" class="svg-line"/>
+      <path d="M 150 136 L 190 176" class="svg-line"/>
+
+      <text x="150" y="18" class="svg-small">型変数を置いた抽象構文木</text>
+      <text x="450" y="18" class="svg-small">生成される型制約</text>
+
+      <rect x="22"  y="106" width="56" height="30" class="svg-cell"/>
+      <rect x="122" y="106" width="56" height="30" class="svg-cell"/>
+      <rect x="212" y="106" width="56" height="30" class="svg-cell"/>
+      <rect x="82"  y="176" width="56" height="30" class="svg-cell"/>
+      <rect x="162" y="176" width="56" height="30" class="svg-cell"/>
+      <rect x="118" y="36"  width="64" height="30" class="svg-hl"/>
+
+      <text x="150" y="56"  class="svg-mono">もし</text>
+      <text x="50"  y="126" class="svg-mono">x</text>
+      <text x="150" y="126" class="svg-mono">+</text>
+      <text x="240" y="126" class="svg-mono">0</text>
+      <text x="110" y="196" class="svg-mono">x</text>
+      <text x="190" y="196" class="svg-mono">1</text>
+
+      <text x="188" y="56"  class="svg-mono" style="text-anchor:start">t2</text>
+      <text x="84"  y="126" class="svg-mono" style="text-anchor:start">α</text>
+      <text x="184" y="126" class="svg-mono" style="text-anchor:start">t1</text>
+      <text x="274" y="126" class="svg-small" style="text-anchor:start">整数</text>
+      <text x="144" y="196" class="svg-mono" style="text-anchor:start">α</text>
+      <text x="224" y="196" class="svg-small" style="text-anchor:start">整数</text>
+
+      <text x="330" y="50"  class="svg-mono" style="text-anchor:start">(1) α  = 整数</text>
+      <text x="330" y="78"  class="svg-mono" style="text-anchor:start">(2) 整数 = 整数</text>
+      <text x="330" y="106" class="svg-mono" style="text-anchor:start">(3) t1 = 整数</text>
+      <text x="330" y="134" class="svg-mono" style="text-anchor:start">(4) α  = 真偽値</text>
+      <text x="330" y="162" class="svg-mono" style="text-anchor:start">(5) t1 = 整数</text>
+      <text x="330" y="190" class="svg-mono" style="text-anchor:start">(6) t2 = t1</text>
+
+      <text x="470" y="50"  class="svg-small" style="text-anchor:start">+ の左の子</text>
+      <text x="470" y="78"  class="svg-small" style="text-anchor:start">+ の右の子</text>
+      <text x="470" y="106" class="svg-small" style="text-anchor:start">+ の結果</text>
+      <text x="470" y="134" class="svg-small" style="text-anchor:start">条件</text>
+      <text x="470" y="162" class="svg-small" style="text-anchor:start">分岐の型の一致</text>
+      <text x="470" y="190" class="svg-small" style="text-anchor:start">全体 = 分岐の型</text>
+    </svg>
+    <figcaption>
+      図 5-2　関数 g の型変数と型制約。二箇所の x には同じ型変数 α を置く。(4)〜(6) は根の条件式の節点（強調）が生成し、
+      (5) は真の分岐 t1 と偽の分岐 0 の型が等しいこと、(6) は全体の型が分岐の型であることを表す。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-3　関数 g の型制約の単一化。(4) に置換を当てはめると整数 = 真偽値 となり、解が存在しない（強調）。
+      誤りは、この等式を生成した条件式の節点の条件 x の位置で報告される。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>等式</th><th>置換を当てはめた形</th><th>処理</th><th>処理後の置換</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>(1) α = 整数</td><td>α = 整数</td><td>型変数に型を対応させる</td><td>α → 整数</td></tr>
+        <tr><td>(2) 整数 = 整数</td><td>整数 = 整数</td><td>同じ型なので何もしない</td><td>α → 整数</td></tr>
+        <tr><td>(3) t1 = 整数</td><td>t1 = 整数</td><td>型変数に型を対応させる</td><td>α → 整数, t1 → 整数</td></tr>
+        <tr><td><strong>(4) α = 真偽値</strong></td><td><strong>整数 = 真偽値</strong></td><td><strong>異なる型で解が無い。条件式の節点で誤りを報告する</strong></td><td>α → 整数, t1 → 整数（変更しない）</td></tr>
+        <tr><td>(5) t1 = 整数</td><td>整数 = 整数</td><td>同じ型なので何もしない</td><td>α → 整数, t1 → 整数</td></tr>
+        <tr><td>(6) t2 = t1</td><td>t2 = 整数</td><td>型変数に型を対応させる</td><td>α → 整数, t1 → 整数, t2 → 整数</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    (1) で置換に「α → 整数」が加わった後、(4) に当てはめると <code>整数 = 真偽値</code> となる。
     <strong>同じ <code>x</code> に対して、二つの使用箇所が異なる型を要求している</strong>ことが、単一化の失敗として検出される。
+    失敗した等式は置換に加えずに残りの等式を処理するため、(5)(6) は通常どおり解かれ、報告は一件にとどまる。
   </p>
 
   <div class="note">
@@ -874,6 +1281,48 @@
   </p>
 
   <p>
+    次の例では、正の数かを調べる関数 <code>isPos</code> を <code>n &gt; 0</code> と書くつもりで、誤って <code>n + 0</code> と書いている。
+    この関数は40行目で条件として使われる。戻り値の型を書かない場合、1行目からは「戻り値は整数」という制約が、
+    40行目からは「条件なので真偽値」という制約が生じ、後から処理される40行目で衝突が報告される。
+    戻り値の型 <code>→ 真偽値</code> を書けば、1行目の時点で本体 <code>n + 0</code> が書かれた型と食い違うため、誤りを書いた箇所で報告される（図 6-1）。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 236" role="img" aria-label="関数 isPos の定義と40行目の使用を、戻り値の型を書かない場合と書いた場合で上下に並べた図。書かない場合は、誤りを書いた1行目ではなく40行目の もし isPos(k) ならば の行に矢印が向き、そこで報告される。戻り値に真偽値と書いた場合は、1行目の定義の行に矢印が向き、誤りを書いた箇所で報告される。">
+      <path d="M 420 95 L 322 95" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 420 167 L 322 167" class="svg-arrow" marker-end="url(#ah3)"/>
+
+      <text x="16" y="18" class="svg-small" style="text-anchor:start">戻り値の型を書かない場合（全体の型推論）</text>
+      <rect x="24" y="30"  width="290" height="26" class="svg-cell-plain"/>
+      <rect x="24" y="82"  width="290" height="26" class="svg-hl"/>
+      <text x="32" y="48"  class="svg-mono" style="text-anchor:start">1.  関数 isPos(n) = n + 0</text>
+      <text x="32" y="74"  class="svg-small" style="text-anchor:start">（離れた行）</text>
+      <text x="32" y="100" class="svg-mono" style="text-anchor:start">40. もし isPos(k) ならば …</text>
+      <text x="330" y="48"  class="svg-small" style="text-anchor:start">誤りを書いた箇所</text>
+      <text x="426" y="100" class="svg-small" style="text-anchor:start">報告される箇所</text>
+
+      <text x="16" y="142" class="svg-small" style="text-anchor:start">戻り値の型を書いた場合</text>
+      <rect x="24" y="206" width="290" height="26" class="svg-cell-plain"/>
+      <rect x="24" y="154" width="290" height="26" class="svg-hl"/>
+      <text x="32" y="172" class="svg-mono" style="text-anchor:start">1.  関数 isPos(n) → 真偽値 = n + 0</text>
+      <text x="32" y="198" class="svg-small" style="text-anchor:start">（離れた行）</text>
+      <text x="32" y="224" class="svg-mono" style="text-anchor:start">40. もし isPos(k) ならば …</text>
+      <text x="426" y="164" class="svg-small" style="text-anchor:start">報告される箇所</text>
+      <text x="426" y="180" class="svg-small" style="text-anchor:start">（＝誤りを書いた箇所）</text>
+
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-1　同じ誤り（<code>n &gt; 0</code> のつもりで <code>n + 0</code> と書いた）の報告位置。型を書かない場合、1行目の本体は整数を返す関数として矛盾なく推論され、
+      衝突は使用側の40行目で初めて現れる。戻り値の型を書くと、定義の時点で本体と食い違うため、誤りを書いた1行目で報告される。
+    </figcaption>
+  </figure>
+
+  <p>
     この問題が実際に効くのは、推論が関数の境界を越えて広がり、衝突する使用箇所が別の関数にある場合である。
     局所的な型推論を採る言語が関数の引数と戻り値には型を書かせるのは、この境界で推論を区切り、誤りの報告位置を書いた箇所の近くに留めるためでもある。
     一つの関数の内側で推論が閉じている限り、報告位置のずれは数行にとどまり、記述量を減らす利点が上回る。
@@ -974,6 +1423,33 @@
     </div>
   </div>
 
+  <p>
+    整数型の変数 <code>x</code> を宣言した後の2行目6列目に現れる式 <code>x + 1</code> を例にとる。
+    この二項演算の節点の記録は、検査の前後で表 7-2 のように変わる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-2　式 x + 1 の二項演算の節点の記録。構文解析が作るのは左の列であり、型の欄は空である。
+      型検査器は子の型の欄から先に埋め、最後にこの節点の型の欄を埋める。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>欄</th><th>検査前</th><th>検査後</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>種類</td><td>二項演算</td><td>二項演算</td></tr>
+        <tr><td>演算子</td><td><code>+</code></td><td><code>+</code></td></tr>
+        <tr><td>左</td><td>変数の参照 <code>x</code>（型: 空）</td><td>変数の参照 <code>x</code>（型: 整数）</td></tr>
+        <tr><td>右</td><td>整数の定数 <code>1</code>（型: 空）</td><td>整数の定数 <code>1</code>（型: 整数）</td></tr>
+        <tr><td>位置</td><td>2:6</td><td>2:6</td></tr>
+        <tr><td>型</td><td>空</td><td><strong>整数</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
   <h3>記号表</h3>
 
   <p>
@@ -1029,6 +1505,31 @@
 20. e.型 ← 結果               ※ 注釈付き構文木にする
 21. 結果 を返す</code></pre>
 
+  <p>
+    16行目で引く演算規則の表は、表 3-1 の式の規則を「演算子と左右の型の組」から「結果の型」への対応として書き直したものである（表 7-3）。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-3　演算規則の表の一部。(+, 整数, 真偽値) のように表に無い組を引いたとき、該当する規則が無いとして型の不整合を記録する。
+      実数の演算を加えるときは、手続きを書き換えずに行を足せばよい。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>演算子</th><th>左の型</th><th>右の型</th><th>結果の型</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>+</code></td><td>整数</td><td>整数</td><td>整数</td></tr>
+        <tr><td><code>*</code></td><td>整数</td><td>整数</td><td>整数</td></tr>
+        <tr><td><code>&lt;</code></td><td>整数</td><td>整数</td><td>真偽値</td></tr>
+        <tr><td><code>=</code></td><td>整数</td><td>整数</td><td>真偽値</td></tr>
+        <tr><td><code>かつ</code></td><td>真偽値</td><td>真偽値</td><td>真偽値</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
   <h3>文の検査</h3>
 
   <p>
@@ -1058,20 +1559,121 @@
 20.    スコープ終了()</code></pre>
 
   <p>
-    宣言の場合に、初期化式を検査してから登録している点に注意を要する。
-    この順序では <code>変数 x : 整数 ← x + 1</code> の右辺の <code>x</code> は外側の宣言を指し、外側に無ければ未宣言となる。
-    登録を先に行う言語もあり、どちらを採るかは言語の仕様として決める事柄である。
+    宣言の場合、初期化式に誤りがあっても名前は登録する（6行目は4行目の条件の外にある）。
+    宣言そのものは書かれており、型も宣言に明記されているためである。
+    登録しなければ、以後その名前を使う全ての箇所が未宣言として報告され、一つの誤りから多数の報告が生じる。
   </p>
+
+  <p>
+    また、初期化式を検査してから登録している点にも注意を要する。登録を先に行う言語もあり、どちらを採るかは言語の仕様として決める事柄である。
+    外側に <code>変数 x : 実数 ← 0.5</code> がある状態で、内側のブロックの <code>変数 x : 整数 ← x + 1</code> を検査すると、
+    右辺の <code>x</code> が結び付く項目は二つの方式で異なる（表 7-4）。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-4　変数 x : 整数 ← x + 1 の右辺の x が結び付く項目。外側には実数型の x がある。
+      登録の時期によって、同じ記述が型の不整合にもなり、自分自身の参照にもなる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>方式</th><th>右辺の x を探索する時点の表（上が内側）</th><th>結び付く項目</th><th>検査の結果</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>初期化式を検査してから登録する</td>
+          <td>内側: 空 ／ 外側: <code>x : 実数</code></td>
+          <td>外側の <code>x</code>（実数）</td>
+          <td>表 7-3 に (+, 実数, 整数) が無いため、型の不整合となる</td>
+        </tr>
+        <tr>
+          <td>先に登録する</td>
+          <td>内側: <code>x : 整数</code> ／ 外側: <code>x : 実数</code></td>
+          <td>宣言中の内側の <code>x</code>（整数）自身</td>
+          <td>型の上では通るが、値が定まる前の自分自身を読むことになる。この使用を別の規則で禁じる言語もある</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>具体的なプログラムでの追跡</h3>
+
+  <p>
+    次のプログラムを与えたときの手続きの動きを表 7-5 に示す。検査を始めるときに、大域の表を一枚積んでおく。
+  </p>
+
+  <pre><code>1. 変数 x : 整数 ← 1
+2. ブロック開始
+3.   変数 y : 真偽値 ← x &lt; 2
+4.   x ← y
+5. ブロック終了</code></pre>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-5　型検査器の追跡。記号表は上が内側の表である。4行目の誤りを記録した後も検査は続き、5行目でスコープを終了する。
+      3行目の y は内側の表に、x は大域の表に見つかる点が、図 2-2 の探索と同じ動きである。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>行</th><th>手続きの呼び出し</th><th>記号表の状態</th><th>書き込んだ型</th><th>誤り一覧</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>開始</td>
+          <td>スコープ開始()</td>
+          <td>大域: 空</td>
+          <td>—</td>
+          <td>なし</td>
+        </tr>
+        <tr>
+          <td>1</td>
+          <td>文を検査(宣言 x) → 式を検査(<code>1</code>) は整数。宣言された型と一致し、登録(x, 整数, 1:1)</td>
+          <td>大域: <code>x : 整数</code></td>
+          <td><code>1</code> に整数</td>
+          <td>なし</td>
+        </tr>
+        <tr>
+          <td>2</td>
+          <td>文を検査(ブロック) → スコープ開始()</td>
+          <td>内側: 空 ／ 大域: <code>x : 整数</code></td>
+          <td>—</td>
+          <td>なし</td>
+        </tr>
+        <tr>
+          <td>3</td>
+          <td>文を検査(宣言 y) → 式を検査(<code>x &lt; 2</code>)。探索(x) は大域で見つかり整数、<code>2</code> は整数、表 7-3 で (&lt;, 整数, 整数) を引いて真偽値。宣言された型と一致し、登録(y, 真偽値, 3:3)</td>
+          <td>内側: <code>y : 真偽値</code> ／ 大域: <code>x : 整数</code></td>
+          <td><code>x</code>, <code>2</code> に整数、<code>&lt;</code> に真偽値</td>
+          <td>なし</td>
+        </tr>
+        <tr>
+          <td>4</td>
+          <td>文を検査(代入 x) → 式を検査(<code>y</code>)。探索(y) は内側で見つかり真偽値。探索(x) は大域で見つかり整数。真偽値 ≠ 整数</td>
+          <td>変化なし</td>
+          <td><code>y</code> に真偽値</td>
+          <td><strong>4:3: 型の不整合: 整数 の変数 x に 真偽値 の値は入れられない</strong></td>
+        </tr>
+        <tr>
+          <td>5</td>
+          <td>ブロックの文を検査し終え、スコープ終了()</td>
+          <td>大域: <code>x : 整数</code></td>
+          <td>—</td>
+          <td>1件（変化なし）</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
 
   <h3>誤りの報告</h3>
 
   <p>
     誤りは「行:列: 種類: 内容」のような一定の形式で一覧に記録し、検査を終えた後に位置の順に並べて出力する。
-    形式を固定しておくと、検証のときに期待する出力と機械的に照合できる。
+    形式を固定しておくと、検証のときに期待する出力と機械的に照合できる。§ 4 の誤り一覧と表 4-1 が、この形式の例である。
   </p>
-
-  <pre><code>3:12: 型の不整合: * は 整数 と 真偽値 に適用できない
-7:5: 重複宣言: x は既に 2:5 で宣言されている</code></pre>
 
   <p>
     一覧が空でなければ、注釈付き構文木を後段に渡さずに処理を終える。
@@ -1082,12 +1684,12 @@
   <p>
     一度に全てを書くより、検証できる単位で積み上げるほうが誤りを見つけやすい。
     定数と二項演算の検査 → 変数の参照と宣言（スコープなし） → ブロックとスコープ → 条件分岐・繰り返し → 誤り型による連鎖の抑制、の順に進め、
-    各段階で表 7-2 のうち該当する入力を与えて確かめる。
+    各段階で表 7-6 のうち該当する入力を与えて確かめる。
   </p>
 
   <div class="table-block">
     <p class="table-caption">
-      表 7-2　型検査器の検証に用いる入力と期待する結果。誤りの種類ごとに、それだけを含む入力を一つずつ用意する。
+      表 7-6　型検査器の検証に用いる入力と期待する結果。誤りの種類ごとに、それだけを含む入力を一つずつ用意する。
       誤りが無い入力で誤りを報告しないことも、誤りを検出することと同じく確かめる必要がある。
     </p>
     <div class="table-scroll">
