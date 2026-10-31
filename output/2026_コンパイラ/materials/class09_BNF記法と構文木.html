@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BNF記法と構文木 | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>BNF記法と構文木</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">入れ子の構造を有限の規則で書く</a></li>
+    <li><a href="#s2">文脈自由文法 — 終端記号・非終端記号・生成規則</a></li>
+    <li><a href="#s3">BNF と EBNF</a></li>
+    <li><a href="#s4">導出 — 開始記号から文を生み出す</a></li>
+    <li><a href="#s5">構文木と抽象構文木</a></li>
+    <li><a href="#s6">あいまいな文法</a></li>
+    <li><a href="#s7">優先順位と結合性を文法で定める</a></li>
+    <li><a href="#s8">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 入れ子の構造を有限の規則で書く ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>入れ子の構造を有限の規則で書く</h2>
+
+  <p>
+    構文解析は、字句解析が切り出したトークン列を受け取り、その並びが言語の規則に適合するかを調べて、適合するなら構造を木の形で表す工程である。
+    この工程を組むには、まず「正しい並び」を過不足なく定める必要がある。
+  </p>
+
+  <p>
+    プログラムの並びには入れ子が現れる。<code>(a + (b * c)) - d</code> のように括弧の中に括弧を含む式、
+    ブロックの中にさらにブロックを含む文、関数呼び出しの引数に別の関数呼び出しを書く式などである。
+    括弧の対応を判定するには、開いたままの括弧の個数、すなわち入れ子の深さを覚えておく必要がある。
+    <strong>有限オートマトンは有限個の状態しか持たないため、深さに上限のない入れ子は判定できない。</strong>
+    したがって、正規表現でこれらの並びを定めることもできない。
+    語の綴りを字句解析に、語の並びを構文解析に受け持たせる分担は、この限界に由来する。
+  </p>
+
+  <h3>自分自身を参照する定義</h3>
+
+  <p>
+    括弧で囲める式を言葉で定めると、次のようになる。
+  </p>
+
+  <ul>
+    <li>識別子は式である</li>
+    <li>式と式を <code>+</code> でつないだものは式である</li>
+    <li>式を <code>(</code> と <code>)</code> で囲んだものは式である</li>
+  </ul>
+
+  <p>
+    この定義は「式」を定めるのに「式」を用いている。定義の中で定義される対象そのものを参照する書き方を
+    <span class="term">再帰的定義</span><span class="en">(recursive definition)</span> と呼ぶ。
+    規則は三つしかないが、三つ目を何度でも適用できるため、どれほど深い入れ子の式もこの定義に含まれる。
+    <strong>深さを状態として覚えるのではなく、規則を適用した回数として構造に刻む</strong>点が、有限オートマトンとの違いである。
+  </p>
+
+  <p>
+    正規表現の繰り返し <code>*</code> も同じ記述を何度でも適用できるが、繰り返すのは左から右への連接である。
+    <code>a*b*</code> は a の並びの後に b の並びが続く文字列を表すが、両者の個数を揃えることはできない。
+    一方、「S は <code>ab</code> であるか、<code>a</code> と S と <code>b</code> をこの順に並べたものである」と再帰的に定めると、
+    規則を一回適用するたびに a と b が一つずつ同時に増えるため、個数は常に揃う。
+    <code>(</code> を a、<code>)</code> を b と読み替えれば、これは括弧が対応した入れ子の並びである。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 1-1　プログラムに現れる入れ子の構造と、それを定める再帰的定義。いずれも定義の中に定義される対象自身が現れており、この参照が入れ子の深さに上限がないことを表す。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>構造</th><th>入れ子の例</th><th>再帰的定義</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>括弧で囲んだ式</td>
+          <td><code>((a + b) + c)</code></td>
+          <td>式を括弧で囲んだものは式である</td>
+        </tr>
+        <tr>
+          <td>ブロック</td>
+          <td>繰り返しの本体の中に、条件分岐の本体がある</td>
+          <td>ブロックは文の並びであり、ブロックはそれ自体が文でもある</td>
+        </tr>
+        <tr>
+          <td>関数呼び出し</td>
+          <td><code>f(g(x), y)</code></td>
+          <td>引数は式であり、関数呼び出しはそれ自体が式でもある</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    言葉による定義は、規則が増えると読み手によって解釈が食い違う。本講では、再帰的定義を記号で書き表す枠組みと、その記法を扱う。
+  </p>
+
+  <ul>
+    <li>文脈自由文法の構成要素</li>
+    <li>文法を書き表す記法である BNF と EBNF</li>
+    <li>文法から文を生み出す手順である導出</li>
+    <li>導出の結果を表す構文木と、後段の処理のために簡略化した抽象構文木</li>
+    <li>一つの文に複数の構文木を許してしまうあいまいな文法と、演算子の優先順位・結合性の定め方</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>文脈自由文法の構成要素を説明し、BNF・EBNF で文法を記述できる</li>
+      <li>文法に従って導出を追い、構文木を描ける</li>
+      <li>構文木と抽象構文木の違いを、後段の処理が必要とする情報に基づいて説明できる</li>
+      <li>あいまいな文法を見分け、演算子の優先順位と結合性を文法の形で定められる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      次の規則のうち、正規表現では定められず、再帰的定義を要するものはどれか。
+    </p>
+    <ol class="choices">
+      <li>小数点を一つ含んでもよい数値リテラルの綴り</li>
+      <li>括弧を何重にでも入れ子にできる算術式の並び</li>
+      <li>キーワード <code>if</code> と、<code>if</code> で始まる識別子 <code>ifx</code> の区別</li>
+      <li>英字で始まり、長さが 31 文字以下である識別子の綴り</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          括弧の対応を確かめるには、開いたままの括弧の個数を覚える必要がある。
+          入れ子の深さに上限がないため、有限個の状態では足りず、正規表現でも定められない。
+          「式を括弧で囲んだものは式である」という再帰的定義によって初めて書き表せる。
+        </p>
+        <p>
+          (A) は規則がやや複雑に見えるが、数字の繰り返しと省略可能な小数部の連接であり、正規表現で書ける。
+          (C) は最長一致で <code>ifx</code> を読み切った後にキーワード表と照合すれば区別でき、字句解析の範囲で解決する。
+          (D) は長さを数えているが、上限が決まっているため、読んだ文字数ごとに状態を並べれば有限個で足りる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 文脈自由文法 ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>文脈自由文法 — 終端記号・非終端記号・生成規則</h2>
+
+  <p>
+    再帰的定義を記号で書き表す枠組みを <span class="term">文脈自由文法</span><span class="en">(context-free grammar)</span> と呼ぶ。
+    文脈自由文法は、次の四つの要素で一つの言語を定める。
+  </p>
+
+  <ul>
+    <li><span class="term">終端記号</span><span class="en">(terminal symbol)</span> — 文を実際に構成する記号。これ以上置き換えられない</li>
+    <li><span class="term">非終端記号</span><span class="en">(nonterminal symbol)</span> — 記号列のまとまりに付けた名前。「式」「文」のような構文上の単位を表す</li>
+    <li><span class="term">生成規則</span><span class="en">(production rule)</span> — 非終端記号を、終端記号と非終端記号を並べた記号列に置き換えてよいことを定める規則</li>
+    <li><span class="term">開始記号</span><span class="en">(start symbol)</span> — 非終端記号のうち、文全体を表すもの</li>
+  </ul>
+
+  <p>
+    生成規則は <code>左辺 → 右辺</code> の形で書く。1 節の「a と b の個数が揃った並び」は、次の文法で定まる。
+  </p>
+
+  <pre><code>S → a S b
+S → a b</code></pre>
+
+  <p>
+    左辺が同じ規則は <code>|</code> でまとめ、<code>S → a S b | a b</code> と書いてよい。
+    <code>|</code> は規則を区切る記号であり、これで規則が一つになるわけではない。
+    右辺に記号を一つも置かない規則も許され、その右辺を空文字列 ε で表す。
+    括弧が正しく対応した並びの全体は、ε を用いて <code>S → ( S ) S | ε</code> と定まる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　文脈自由文法の構成要素と、文法 S → a S b | a b における具体例。文法は記号の集合と規則の集合の組であり、規則の数は | で区切られた右辺の数に等しい。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>構成要素</th><th>役割</th><th>S → a S b | a b での例</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>終端記号</td><td>文に実際に現れる記号</td><td><code>a</code>, <code>b</code></td></tr>
+        <tr><td>非終端記号</td><td>置き換えの対象となる構文上の単位</td><td><code>S</code></td></tr>
+        <tr><td>生成規則</td><td>非終端記号の置き換え方</td><td><code>S → a S b</code> と <code>S → a b</code> の二つ</td></tr>
+        <tr><td>開始記号</td><td>置き換えを始める非終端記号</td><td><code>S</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    <span class="term">文脈自由</span><span class="en">(context-free)</span> という名は、<strong>生成規則の左辺が非終端記号一つだけである</strong>ことに由来する。
+    非終端記号は、その前後にどの記号が並んでいるか（文脈）によらず、同じ規則で置き換えられる。
+    左辺に前後の記号を書き、置き換えてよい場面を限る文法もあるが、プログラミング言語の構文の記述には一般に文脈自由文法が用いられる。
+  </p>
+
+  <h3>終端記号はトークンである</h3>
+
+  <p>
+    構文解析に用いる文法では、<strong>終端記号は文字ではなくトークンの種別である。</strong>
+    構文解析が受け取るのは字句解析が出力したトークン列であり、文字の並びではないためである。
+    識別子を一つの終端記号 <code>id</code> で、整数リテラルを <code>num</code> で表し、
+    <code>x</code> であるか <code>count</code> であるかという綴りの違いは文法では区別しない。
+    綴りや値はトークンに添えられた情報として後段の処理へ引き継がれる。
+    空白やコメントはトークンとして残らないため、文法にも現れない。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      二文字以上からなる演算子は、一つの終端記号である。<code>&lt;=</code> は最長一致によって一つのトークンとして切り出されるため、
+      文法では <code>&lt;</code> と <code>=</code> の二つを並べたものではなく、<code>&lt;=</code> という一つの記号として扱う。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      次の文法で、終端記号は <code>id</code>, <code>num</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>=</code> である。
+      ソースコード中の <code>x1 &lt;= 25</code> が構文解析に渡されるとき、この文法の終端記号の列として正しいものはどれか。
+    </p>
+    <pre><code>条件 → 項 比較 項
+比較 → &lt; | &lt;= | =
+項   → id | num</code></pre>
+    <ol class="choices">
+      <li><code>x 1 &lt; = 2 5</code></li>
+      <li><code>id &lt; = num</code></li>
+      <li><code>id &lt;= num</code></li>
+      <li><code>項 比較 項</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          字句解析は <code>x1</code> を識別子、<code>&lt;=</code> を演算子、<code>25</code> を整数リテラルとして切り出す。
+          構文解析が受け取るのはこの三つのトークンの種別であり、終端記号の列は <code>id &lt;= num</code> となる。
+        </p>
+        <p>
+          (A) は終端記号を文字と混同している。文法の終端記号はトークンであり、文字ではない。
+          (B) は <code>&lt;=</code> を二つのトークンに分けている。最長一致により <code>&lt;=</code> は一つのトークンとして切り出され、
+          <code>&lt;</code> の後に <code>=</code> が続く列は、この文法の <code>比較</code> のどの規則にも当てはまらない。
+          (D) は非終端記号の列である。非終端記号は文法の中の名前であり、構文解析への入力には現れない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-2</span>
+    <p class="q-body">
+      文法 <code>S → a S b | a b</code>（開始記号は S）について、正しい記述はどれか。
+    </p>
+    <ol class="choices">
+      <li>この文法の生成規則は二つである</li>
+      <li><code>a</code> と <code>b</code> は、S と同じく非終端記号である</li>
+      <li>規則 <code>S → a S b</code> だけを残しても、<code>ab</code> を含む同じ言語を定める</li>
+      <li>この文法が定める文の長さには上限がある</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          <code>|</code> は左辺が同じ規則をまとめて書くための区切りであり、<code>S → a S b</code> と <code>S → a b</code> の二つの規則を表す。
+        </p>
+        <p>
+          (B) の <code>a</code> と <code>b</code> は、どの規則の左辺にも現れず置き換えられないため、終端記号である。
+          (C) では、S を置き換えても必ず新しい S が残るため、終端記号だけの列に行き着かない。<code>S → a b</code> は再帰を終わらせる規則として欠かせない。
+          (D) は、規則の数が有限であることと文の長さを混同している。<code>S → a S b</code> は何度でも適用できるため、文の長さに上限はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. BNF と EBNF ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>BNF と EBNF</h2>
+
+  <p>
+    文脈自由文法を文書に書き表す記法として広く用いられるのが
+    <span class="term">BNF</span><span class="en">(Backus-Naur form)</span> である。
+    プログラミング言語の仕様書の多くは、この記法かその拡張で構文を示している。
+  </p>
+
+  <ul>
+    <li>非終端記号を山括弧で囲み、<code>&lt;式&gt;</code> のように書く</li>
+    <li>生成規則の矢印 → の代わりに <code>::=</code> を用いる</li>
+    <li>右辺の選択肢を <code>|</code> で区切る</li>
+    <li>山括弧で囲まれていない記号は終端記号である</li>
+  </ul>
+
+  <p>
+    次は、代入文・if 文・関数呼び出しを BNF で書いた例である。<code>id</code> は識別子のトークン、<code>if</code> と <code>else</code> はキーワードのトークンを表す。
+    <code>&lt;式&gt;</code> の規則は省略している。
+  </p>
+
+  <pre><code>&lt;文&gt;       ::= &lt;代入文&gt; | &lt;if文&gt;
+&lt;代入文&gt;   ::= id = &lt;式&gt; ;
+&lt;if文&gt;     ::= if ( &lt;式&gt; ) &lt;文&gt; | if ( &lt;式&gt; ) &lt;文&gt; else &lt;文&gt;
+&lt;呼び出し&gt; ::= id ( ) | id ( &lt;引数並び&gt; )
+&lt;引数並び&gt; ::= &lt;式&gt; | &lt;引数並び&gt; , &lt;式&gt;</code></pre>
+
+  <p>
+    <code>&lt;if文&gt;</code> の右辺に <code>&lt;文&gt;</code> が現れ、<code>&lt;文&gt;</code> の右辺に <code>&lt;if文&gt;</code> が現れる。
+    二つの規則が互いを参照することで、if 文の中に if 文を書く入れ子が表される。
+    <code>&lt;引数並び&gt;</code> は自身を右辺に含み、<code>,</code> で区切った式を何個でも並べられる。
+  </p>
+
+  <h3>EBNF — 省略と繰り返しの略記</h3>
+
+  <p>
+    BNF では、省略できる部分や繰り返しを表すたびに規則を書き分けるか、補助の非終端記号を設ける必要がある。
+    これを略記できるようにした記法を <span class="term">EBNF</span><span class="en">(extended BNF)</span> と呼ぶ。
+    上の <code>&lt;if文&gt;</code> と <code>&lt;呼び出し&gt;</code> は、EBNF では次のように一行で書ける。
+  </p>
+
+  <pre><code>&lt;if文&gt;     ::= "if" "(" &lt;式&gt; ")" &lt;文&gt; [ "else" &lt;文&gt; ]
+&lt;呼び出し&gt; ::= id "(" [ &lt;式&gt; { "," &lt;式&gt; } ] ")"</code></pre>
+
+  <p>
+    EBNF では <code>[ ]</code>, <code>{ }</code>, <code>( )</code> が記法の側の記号になる。
+    文法の記述に用いる記号を、記述される言語の記号と区別して <span class="term">メタ記号</span><span class="en">(metasymbol)</span> と呼ぶ。
+    終端記号の <code>(</code> とメタ記号の <code>(</code> が紛れるため、EBNF では記号そのものを表す終端記号を引用符で囲む。<code>id</code> のようにトークンの種別を表す名前は囲まない。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　EBNF の略記と、それを BNF に書き直した形。どの略記も補助の非終端記号 &lt;A&gt; を一つ設ければ BNF で書けるため、EBNF で定められる言語は BNF と変わらない。正規表現の略記と同じ関係である。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>EBNF</th><th>意味</th><th>BNF での書き直し</th><th>対応する正規表現</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>[ x ]</code></td><td>x を省いてもよい（0 回か 1 回）</td><td><code>&lt;A&gt; ::= ε | x</code></td><td><code>x?</code></td></tr>
+        <tr><td><code>{ x }</code></td><td>x を 0 回以上繰り返す</td><td><code>&lt;A&gt; ::= ε | x &lt;A&gt;</code></td><td><code>x*</code></td></tr>
+        <tr><td><code>( x | y )</code></td><td>まとまりの中で x か y を選ぶ</td><td><code>&lt;A&gt; ::= x | y</code></td><td><code>(x|y)</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    EBNF は規則の数が少なく、言語の仕様として人が読むには向く。
+    一方、繰り返しを <code>{ }</code> で書くと、並んだ要素が左から順にまとまるのか右からまとまるのかが規則から読み取れなくなる。
+    この違いが効くのは、演算子の結合の向きを文法で定めたい場合である（7 節）。
+    記法の細部は文書によって異なり、<code>::=</code> の代わりに <code>=</code> や <code>:</code> を用いるもの、非終端記号を山括弧で囲まないものもある。
+    文法を読む際は、その文書の冒頭にある記法の説明を確かめる必要がある。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      EBNF の規則 <code>&lt;並び&gt; ::= num { "," num }</code> と同じ言語を定める BNF の規則はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>&lt;並び&gt; ::= num | &lt;並び&gt; , num</code></li>
+      <li><code>&lt;並び&gt; ::= num | num , num</code></li>
+      <li><code>&lt;並び&gt; ::= ε | num , &lt;並び&gt;</code></li>
+      <li><code>&lt;並び&gt; ::= num , &lt;並び&gt;</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          EBNF の規則は、<code>num</code> の後に「<code>,</code> と <code>num</code> の組」を 0 回以上続けた列を表す。
+          (A) は、<code>num</code> 一つか、既にある並びの後に <code>, num</code> を一組付け足したものを並びとする。
+          付け足しは何度でも行えるため、同じ列の全体を定める。
+        </p>
+        <p>
+          (B) は繰り返しを一回に限っており、<code>num , num , num</code> を含まない。
+          (C) は空の列と、<code>num ,</code> のように末尾に <code>,</code> が残る列を含み、<code>num</code> 一つだけの列を含まない。
+          (D) には再帰を終わらせる選択肢がない。<code>&lt;並び&gt;</code> を置き換えるたびに新しい <code>&lt;並び&gt;</code> が残るため、終端記号だけの列に行き着かず、一つの列も定めない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      本節の EBNF の規則 <code>&lt;呼び出し&gt; ::= id "(" [ &lt;式&gt; { "," &lt;式&gt; } ] ")"</code> について、<code>&lt;式&gt;</code> が <code>id</code> 一つで置き換えられるものとする。
+      <code>&lt;呼び出し&gt;</code> に当てはまらないトークン列はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>id ( )</code></li>
+      <li><code>id ( id )</code></li>
+      <li><code>id ( id , id , id )</code></li>
+      <li><code>id ( id , )</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          <code>{ "," &lt;式&gt; }</code> は <code>,</code> と式を必ず組にして繰り返す。<code>,</code> の後に式が続かない (D) は当てはまらない。
+        </p>
+        <p>
+          (A) は <code>[ ]</code> の中身を丸ごと省いた場合であり、引数のない呼び出しとして当てはまる。
+          (B) は <code>[ ]</code> の中身を採り、<code>{ }</code> を 0 回とした場合である。
+          (C) は <code>{ }</code> を 2 回繰り返した場合である。<code>{ }</code> の繰り返しは 0 回以上であり、回数に上限はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 導出 ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>導出 — 開始記号から文を生み出す</h2>
+
+  <p>
+    文法がどの記号列を定めるかは、開始記号から出発して生成規則を一回ずつ適用し、非終端記号を置き換えていく手順で確かめられる。
+    この手順を <span class="term">導出</span><span class="en">(derivation)</span> と呼び、一回の置き換えを <code>⇒</code> で表す。
+  </p>
+
+  <p>
+    本節以降では、次の文法 G を例に用いる。開始記号は E（式）であり、<code>id</code> は識別子のトークンを表す。
+  </p>
+
+  <pre><code>E → E + E | E * E | ( E ) | id</code></pre>
+
+  <p>
+    ソースコードの <code>a + b * c</code> は、字句解析を経て <code>id + id * id</code> というトークン列になる。
+    この列が文法 G の文であることは、次の導出で示される。
+  </p>
+
+  <pre><code>E ⇒ E + E ⇒ id + E ⇒ id + E * E ⇒ id + id * E ⇒ id + id * id</code></pre>
+
+  <p>
+    開始記号から導出できる記号列を <span class="term">文形式</span><span class="en">(sentential form)</span> と呼ぶ。
+    途中に現れる、終端記号と非終端記号の混じった記号列も文形式である。非終端記号が一つも残らない文形式が文である。
+    <strong>文法 G が定める言語 L(G) とは、開始記号から導出できる文の全体である。</strong>
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 264" role="img" aria-label="E から id + id * id までの最左導出を一行ずつ並べた図。各行の文形式のうち、次に置き換える最も左の非終端記号が強調されている。右側には適用する生成規則 E → E + E、E → id、E → E * E、E → id、E → id が書かれ、最後の行は終端記号だけになった文である。">
+      <text x="30" y="18" class="svg-small" style="text-anchor:start">文形式（強調は次に置き換える非終端記号）</text>
+      <text x="300" y="18" class="svg-small" style="text-anchor:start">適用する生成規則</text>
+
+      <rect x="30" y="30" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="48" class="svg-mono">E</text>
+      <text x="300" y="48" class="svg-mono" style="text-anchor:start">E → E + E</text>
+
+      <text x="16" y="88" class="svg-text">⇒</text>
+      <rect x="76" y="70" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="70" width="40" height="26" class="svg-cell"/>
+      <rect x="30" y="70" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="88" class="svg-mono">E</text>
+      <text x="96" y="88" class="svg-mono">+</text>
+      <text x="142" y="88" class="svg-mono">E</text>
+      <text x="300" y="88" class="svg-mono" style="text-anchor:start">E → id</text>
+
+      <text x="16" y="128" class="svg-text">⇒</text>
+      <rect x="30" y="110" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="76" y="110" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="110" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="128" class="svg-mono">id</text>
+      <text x="96" y="128" class="svg-mono">+</text>
+      <text x="142" y="128" class="svg-mono">E</text>
+      <text x="300" y="128" class="svg-mono" style="text-anchor:start">E → E * E</text>
+
+      <text x="16" y="168" class="svg-text">⇒</text>
+      <rect x="30" y="150" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="76" y="150" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="168" y="150" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="150" width="40" height="26" class="svg-cell"/>
+      <rect x="122" y="150" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="168" class="svg-mono">id</text>
+      <text x="96" y="168" class="svg-mono">+</text>
+      <text x="142" y="168" class="svg-mono">E</text>
+      <text x="188" y="168" class="svg-mono">*</text>
+      <text x="234" y="168" class="svg-mono">E</text>
+      <text x="300" y="168" class="svg-mono" style="text-anchor:start">E → id</text>
+
+      <text x="16" y="208" class="svg-text">⇒</text>
+      <rect x="30" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="76" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="168" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="190" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="208" class="svg-mono">id</text>
+      <text x="96" y="208" class="svg-mono">+</text>
+      <text x="142" y="208" class="svg-mono">id</text>
+      <text x="188" y="208" class="svg-mono">*</text>
+      <text x="234" y="208" class="svg-mono">E</text>
+      <text x="300" y="208" class="svg-mono" style="text-anchor:start">E → id</text>
+
+      <text x="16" y="248" class="svg-text">⇒</text>
+      <rect x="30" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="76" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="168" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <text x="50" y="248" class="svg-mono">id</text>
+      <text x="96" y="248" class="svg-mono">+</text>
+      <text x="142" y="248" class="svg-mono">id</text>
+      <text x="188" y="248" class="svg-mono">*</text>
+      <text x="234" y="248" class="svg-mono">id</text>
+      <text x="300" y="248" class="svg-small" style="text-anchor:start">終端記号だけの記号列（文）になった</text>
+    </svg>
+    <figcaption>
+      図 4-1　id + id * id の最左導出。塗りの枠は非終端記号、線だけの枠は終端記号を表す。
+      一回の置き換えで変わるのは強調した非終端記号一つだけであり、終端記号は一度置かれると以後変わらない。
+    </figcaption>
+  </figure>
+
+  <h3>置き換える位置の選び方</h3>
+
+  <p>
+    文形式に非終端記号が複数あるとき、どれを先に置き換えてもよい。
+    図 4-1 は、常に最も左の非終端記号を置き換えている。この導出を <span class="term">最左導出</span><span class="en">(leftmost derivation)</span> と呼ぶ。
+    常に最も右の非終端記号を置き換える導出を <span class="term">最右導出</span><span class="en">(rightmost derivation)</span> と呼ぶ。
+    同じ id + id * id の最右導出は次のとおりである。
+  </p>
+
+  <pre><code>E ⇒ E + E ⇒ E + E * E ⇒ E + E * id ⇒ E + id * id ⇒ id + id * id</code></pre>
+
+  <p>
+    最左導出と最右導出は途中の文形式が異なるが、<strong>どの非終端記号にどの規則を適用したかの組は同じ</strong>である。
+    どちらも、最初の E に E → E + E を、その右の E に E → E * E を、残る三つの E に E → id を適用している。
+    違うのは適用の順序だけである。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      文法 G（<code>E → E + E | E * E | ( E ) | id</code>、開始記号は E）から導出<strong>できない</strong>トークン列はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>id</code></li>
+      <li><code>( ( id ) )</code></li>
+      <li><code>id ( id )</code></li>
+      <li><code>id * id + id</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          文法 G で <code>(</code> を置くのは <code>E → ( E )</code> だけであり、<code>(</code> は E が置かれていた位置の先頭に来る。右辺に現れる E の直前は常に <code>+</code>, <code>*</code>, <code>(</code> のいずれかか右辺の先頭であるため、<code>(</code> の直前に来うるのもこれらの記号か列の先頭に限られる。
+          <code>id</code> の直後に <code>(</code> が続く並びはどの規則からも生じない。関数呼び出しに似た形であるが、文法 G はその規則を持たない。
+        </p>
+        <p>
+          (A) は <code>E → id</code> を一回適用するだけで導出できる。式には演算子が必要だという思い込みがあると誤る。
+          (B) は <code>E → ( E )</code> を二回、続けて <code>E → id</code> を適用すれば導出できる。括弧の入れ子に回数の制限はない。
+          (D) は <code>E → E + E</code> の左の E に <code>E → E * E</code> を適用すれば導出できる。文法 G は演算子の並ぶ順序を制限していない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      文法 G でトークン列 <code>( id ) * id</code> を最右導出する。一段目は <code>E ⇒ E * E</code> である。二段目の文形式はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>( E ) * E</code></li>
+      <li><code>E * id</code></li>
+      <li><code>( E ) * id</code></li>
+      <li><code>E * ( E )</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          最右導出では最も右の非終端記号を置き換える。<code>E * E</code> の右の E は、最終的に <code>id</code> になる位置にあるため、<code>E → id</code> を適用して <code>E * id</code> を得る。
+          以降は <code>( E ) * id</code>、<code>( id ) * id</code> と続く。
+        </p>
+        <p>
+          (A) は左の E を先に置き換えており、最左導出の二段目である。
+          (C) は二つの E を一度に置き換えている。一回の導出で置き換えるのは非終端記号一つだけである。
+          (D) は右の E を括弧に置き換えているが、目標の列で <code>*</code> の右にあるのは <code>id</code> であり、括弧ではない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 構文木と抽象構文木 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>構文木と抽象構文木</h2>
+
+  <p>
+    導出で適用した規則を木の形に描いたものを <span class="term">構文木</span><span class="en">(parse tree)</span> と呼ぶ。
+    次の手順で描く。
+  </p>
+
+  <ul>
+    <li>根には開始記号を置く</li>
+    <li>非終端記号 A に規則 A → X<sub>1</sub> X<sub>2</sub> … X<sub>n</sub> を適用したら、A の子として X<sub>1</sub> から X<sub>n</sub> を左から順に置く</li>
+    <li>内部の節点は非終端記号、葉は終端記号（右辺が ε の規則を適用した箇所では ε）となる</li>
+  </ul>
+
+  <p>
+    <strong>構文木の葉を左から順に読むと、導出した文に一致する。</strong>
+    木が記録するのは「どの非終端記号にどの規則を適用したか」であり、適用の順序は記録しない。
+    このため、4 節の最左導出と最右導出は同じ一つの構文木を与える。
+    導出の順序という本質的でない違いが木の上では消え、文の構造だけが残る。
+  </p>
+
+  <h3>後段の処理に要る情報だけを残す</h3>
+
+  <p>
+    構文木は文法の規則をそのまま写すため、構造の決定に使い終えた記号も含んでいる。
+    括弧は、どの部分を先にまとめるかを指定する役目を持つが、その指定は木の形に既に反映されている。
+    非終端記号 E の節点も、そこに式があるという情報以上のものを持たない。
+  </p>
+
+  <p>
+    そこで、演算子を内部の節点、被演算子をその子とし、構造の決定にだけ用いた記号を除いた木を作る。
+    この木を <span class="term">抽象構文木</span><span class="en">(abstract syntax tree, AST)</span> と呼ぶ。
+    これと区別する場合、文法の規則をそのまま写した構文木を <span class="term">具象構文木</span><span class="en">(concrete syntax tree)</span> と呼ぶ。
+    図 5-1 は、<code>(a + b) * c</code> の二つの木を並べたものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 286" role="img" aria-label="左に、文法 G による (a + b) * c の構文木を描く。根の E の子は E、*、E であり、左の E の子は (、E、) で、その E の子は E、+、E である。強調した括弧の葉を含め、葉を左から読むと ( a + b ) * c になる。右に、同じ式の抽象構文木を描く。根は * で、その子は + と c、+ の子は a と b であり、括弧と E の節点は無い。">
+      <path d="M 352 8 L 352 280" class="svg-line" stroke-dasharray="4 4"/>
+
+      <path d="M 200 54 L 110 80" class="svg-line"/>
+      <path d="M 200 54 L 220 80" class="svg-line"/>
+      <path d="M 200 54 L 300 80" class="svg-line"/>
+      <path d="M 110 104 L 40 130" class="svg-line"/>
+      <path d="M 110 104 L 110 130" class="svg-line"/>
+      <path d="M 110 104 L 180 130" class="svg-line"/>
+      <path d="M 300 104 L 300 130" class="svg-line"/>
+      <path d="M 110 154 L 60 180" class="svg-line"/>
+      <path d="M 110 154 L 110 180" class="svg-line"/>
+      <path d="M 110 154 L 160 180" class="svg-line"/>
+      <path d="M 60 204 L 60 230" class="svg-line"/>
+      <path d="M 160 204 L 160 230" class="svg-line"/>
+
+      <path d="M 470 104 L 420 130" class="svg-line"/>
+      <path d="M 470 104 L 520 130" class="svg-line"/>
+      <path d="M 420 154 L 390 180" class="svg-line"/>
+      <path d="M 420 154 L 450 180" class="svg-line"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">構文木（文法 G）</text>
+      <text x="372" y="18" class="svg-small" style="text-anchor:start">抽象構文木（AST）</text>
+
+      <rect x="183" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="93" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="203" y="80" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="283" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="93" y="130" width="34" height="24" class="svg-cell"/>
+      <rect x="283" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="43" y="180" width="34" height="24" class="svg-cell"/>
+      <rect x="93" y="180" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="143" y="180" width="34" height="24" class="svg-cell"/>
+      <rect x="43" y="230" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="143" y="230" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="23" y="130" width="34" height="24" class="svg-hl"/>
+      <rect x="163" y="130" width="34" height="24" class="svg-hl"/>
+
+      <text x="200" y="47" class="svg-mono">E</text>
+      <text x="110" y="97" class="svg-mono">E</text>
+      <text x="220" y="97" class="svg-mono">*</text>
+      <text x="300" y="97" class="svg-mono">E</text>
+      <text x="40" y="147" class="svg-mono">(</text>
+      <text x="110" y="147" class="svg-mono">E</text>
+      <text x="180" y="147" class="svg-mono">)</text>
+      <text x="300" y="147" class="svg-mono">c</text>
+      <text x="60" y="197" class="svg-mono">E</text>
+      <text x="110" y="197" class="svg-mono">+</text>
+      <text x="160" y="197" class="svg-mono">E</text>
+      <text x="60" y="247" class="svg-mono">a</text>
+      <text x="160" y="247" class="svg-mono">b</text>
+      <text x="170" y="276" class="svg-small">葉を左から読むと ( a + b ) * c</text>
+
+      <rect x="453" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="403" y="130" width="34" height="24" class="svg-cell"/>
+      <rect x="503" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="373" y="180" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="433" y="180" width="34" height="24" class="svg-cell-plain"/>
+
+      <text x="470" y="97" class="svg-mono">*</text>
+      <text x="420" y="147" class="svg-mono">+</text>
+      <text x="520" y="147" class="svg-mono">c</text>
+      <text x="390" y="197" class="svg-mono">a</text>
+      <text x="450" y="197" class="svg-mono">b</text>
+      <text x="455" y="234" class="svg-small">括弧と E の節点は残らない</text>
+    </svg>
+    <figcaption>
+      図 5-1　(a + b) * c の構文木（左）と抽象構文木（右）。葉の a, b, c はいずれも終端記号 id であり、どの名前であったかを示すために綴りで書いている。
+      強調した括弧は、+ を * より先にまとめる指定であった。抽象構文木ではこの指定が「+ が * の子である」という形に置き換わるため、括弧そのものは不要になる。
+    </figcaption>
+  </figure>
+
+  <p>
+    意味解析は木をたどり、各演算子について被演算子の型が適合するかを調べる。
+    コード生成は、木の下から順に演算を並べて命令列を作る。
+    どちらの処理が必要とするのも、どの演算子がどの被演算子に作用するかであり、括弧や E の節点はたどる手間を増やすだけである。
+    <strong>構文解析の出力として後段に渡されるのは、多くの処理系では抽象構文木である。</strong>
+    「構文木」という語は文献によって両方の木を指すため、どちらの意味かを文脈で確かめる必要がある。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　構文木と抽象構文木の比較。構文木は文法の形に従い、抽象構文木は計算の構造に従う。同じ言語の文法を書き換えると構文木の形は変わるが、抽象構文木は変わらない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>構文木（具象構文木）</th><th>抽象構文木</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>内部の節点</td><td>非終端記号</td><td>演算子・文の種類（代入、if など）</td></tr>
+        <tr><td>括弧・区切り記号</td><td>葉として残る</td><td>木の形に反映し、記号は除く</td></tr>
+        <tr><td>形を決めるもの</td><td>文法の規則の立て方</td><td>処理系の設計者が定めた節点の種類</td></tr>
+        <tr><td>葉の並び</td><td>入力のトークン列に一致する</td><td>入力のトークン列に一致するとは限らない</td></tr>
+        <tr><td>主な用途</td><td>文法と入力の対応の確認</td><td>意味解析・最適化・コード生成への受け渡し</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    抽象構文木にすると、文法の細部を書き換えても後段の処理は影響を受けない。この利点は、文法の書き換えが起こりうる言語ほど大きい。
+    ただし、抽象構文木にどの節点を設けるかに決まった形はなく、処理系によって異なる。
+    また、ソースコードの体裁を保ったまま書き換える整形ツールのように、括弧やコメントの位置を必要とする用途では、除いた情報を別に保持する必要がある。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      文法 G のもとで、二つの式 <code>(a + b) * c</code> と <code>((a + b)) * c</code> を比べる。正しい記述はどれか。
+    </p>
+    <ol class="choices">
+      <li>抽象構文木は同じであり、構文木は異なる</li>
+      <li>抽象構文木も構文木も同じである</li>
+      <li>構文木は同じであり、抽象構文木は二つ目の式のほうが節点が多い</li>
+      <li>抽象構文木も構文木も異なり、二つ目の式は二つ目の括弧を表す節点を抽象構文木に持つ</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          二つ目の式では <code>E → ( E )</code> が一回多く適用されるため、構文木には E の節点と括弧の葉が一組多く現れる。
+          一方、どちらの式も「a と b の和に c を掛ける」という同じ計算を表し、抽象構文木は根が <code>*</code>、その子が <code>+</code> と c の同じ形になる。
+        </p>
+        <p>
+          (B) は、構文木も括弧を除いた形だと考えている。構文木は適用した規則をすべて写すため、余分な括弧の分だけ節点が増える。
+          (C) は二つの木の性質を取り違えている。括弧の数に応じて変わるのは構文木の側である。
+          (D) は、抽象構文木が括弧を節点として残すと考えている。括弧の役目は木の形に置き換わり、記号は除かれる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-2</span>
+    <p class="q-body">
+      構文木（具象構文木）について、正しい記述はどれか。
+    </p>
+    <ol class="choices">
+      <li>同じ文の最左導出と最右導出からは、異なる構文木が得られる</li>
+      <li>内部の節点は終端記号であり、葉は非終端記号である</li>
+      <li>葉を左から順に読むと、導出した文に一致する</li>
+      <li>葉の個数は、導出で生成規則を適用した回数に等しい</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          規則の右辺の記号を左から順に子として置くため、葉の並びは導出の最後に得られる文そのものである。
+        </p>
+        <p>
+          (A) は、木が適用の順序を記録すると考えている。木が記録するのはどの非終端記号にどの規則を適用したかだけであり、最左導出と最右導出は同じ木を与える。
+          (B) は内部と葉を逆にしている。子を持つのは置き換えられる非終端記号であり、置き換えられない終端記号は葉になる。
+          (D) は、規則の適用回数と葉の数を混同している。規則一回の適用が作るのは内部の節点一つであり、図 5-1 の構文木では規則を 6 回適用しているが、葉は 7 個である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. あいまいな文法 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>あいまいな文法</h2>
+
+  <p>
+    文法 G で <code>id + id * id</code> を導出する方法は、4 節の導出だけではない。
+    最初に <code>E → E * E</code> を適用し、その左の E に <code>E → E + E</code> を適用しても、同じ列に行き着く。
+    これも最左導出である。
+  </p>
+
+  <pre><code>E ⇒ E * E ⇒ E + E * E ⇒ id + E * E ⇒ id + id * E ⇒ id + id * id</code></pre>
+
+  <p>
+    二つの導出は、どの非終端記号にどの規則を適用したかが異なるため、異なる構文木を与える。
+    図 6-1 はその二つの木である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="同じトークン列 a + b * c に対する二つの構文木を左右に並べた図。左の木 1 は根の規則が E → E + E であり、+ の右の子の下に b * c がまとまる。右の木 2 は根の規則が E → E * E であり、* の左の子の下に a + b がまとまる。a を 2、b を 3、c を 4 とすると、木 1 では 14、木 2 では 20 になる。">
+      <path d="M 291 8 L 291 256" class="svg-line" stroke-dasharray="4 4"/>
+
+      <path d="M 140 54 L 60 80" class="svg-line"/>
+      <path d="M 140 54 L 140 80" class="svg-line"/>
+      <path d="M 140 54 L 215 80" class="svg-line"/>
+      <path d="M 60 104 L 60 130" class="svg-line"/>
+      <path d="M 215 104 L 165 130" class="svg-line"/>
+      <path d="M 215 104 L 215 130" class="svg-line"/>
+      <path d="M 215 104 L 265 130" class="svg-line"/>
+      <path d="M 165 154 L 165 180" class="svg-line"/>
+      <path d="M 265 154 L 265 180" class="svg-line"/>
+
+      <path d="M 445 54 L 368 80" class="svg-line"/>
+      <path d="M 445 54 L 445 80" class="svg-line"/>
+      <path d="M 445 54 L 522 80" class="svg-line"/>
+      <path d="M 368 104 L 318 130" class="svg-line"/>
+      <path d="M 368 104 L 368 130" class="svg-line"/>
+      <path d="M 368 104 L 418 130" class="svg-line"/>
+      <path d="M 522 104 L 522 130" class="svg-line"/>
+      <path d="M 318 154 L 318 180" class="svg-line"/>
+      <path d="M 418 154 L 418 180" class="svg-line"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">木 1（根で E → E + E を適用）</text>
+      <text x="304" y="18" class="svg-small" style="text-anchor:start">木 2（根で E → E * E を適用）</text>
+
+      <rect x="123" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="43" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="198" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="43" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="148" y="130" width="34" height="24" class="svg-cell"/>
+      <rect x="198" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="248" y="130" width="34" height="24" class="svg-cell"/>
+      <rect x="148" y="180" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="248" y="180" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="123" y="80" width="34" height="24" class="svg-hl"/>
+
+      <text x="140" y="47" class="svg-mono">E</text>
+      <text x="60" y="97" class="svg-mono">E</text>
+      <text x="140" y="97" class="svg-mono">+</text>
+      <text x="215" y="97" class="svg-mono">E</text>
+      <text x="60" y="147" class="svg-mono">a</text>
+      <text x="165" y="147" class="svg-mono">E</text>
+      <text x="215" y="147" class="svg-mono">*</text>
+      <text x="265" y="147" class="svg-mono">E</text>
+      <text x="165" y="197" class="svg-mono">b</text>
+      <text x="265" y="197" class="svg-mono">c</text>
+
+      <rect x="428" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="351" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="505" y="80" width="34" height="24" class="svg-cell"/>
+      <rect x="301" y="130" width="34" height="24" class="svg-cell"/>
+      <rect x="351" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="401" y="130" width="34" height="24" class="svg-cell"/>
+      <rect x="505" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="301" y="180" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="401" y="180" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="428" y="80" width="34" height="24" class="svg-hl"/>
+
+      <text x="445" y="47" class="svg-mono">E</text>
+      <text x="368" y="97" class="svg-mono">E</text>
+      <text x="445" y="97" class="svg-mono">*</text>
+      <text x="522" y="97" class="svg-mono">E</text>
+      <text x="318" y="147" class="svg-mono">E</text>
+      <text x="368" y="147" class="svg-mono">+</text>
+      <text x="418" y="147" class="svg-mono">E</text>
+      <text x="522" y="147" class="svg-mono">c</text>
+      <text x="318" y="197" class="svg-mono">a</text>
+      <text x="418" y="197" class="svg-mono">b</text>
+
+      <text x="150" y="232" class="svg-small">a + (b * c) を表す</text>
+      <text x="150" y="252" class="svg-small">a=2, b=3, c=4 のとき 2 + 12 = 14</text>
+      <text x="430" y="232" class="svg-small">(a + b) * c を表す</text>
+      <text x="430" y="252" class="svg-small">a=2, b=3, c=4 のとき 5 × 4 = 20</text>
+    </svg>
+    <figcaption>
+      図 6-1　文法 G は a + b * c に二つの構文木を与える。強調した演算子は根の直下にあり、最後に計算される。
+      葉の並びはどちらも a + b * c であるが、木 1 は掛け算を先に、木 2 は足し算を先に行う構造を表し、計算結果が異なる。
+    </figcaption>
+  </figure>
+
+  <p>
+    ある文に対して構文木が二つ以上存在する文法を <span class="term">あいまい</span><span class="en">(ambiguous)</span> な文法と呼ぶ。
+    文法 G はあいまいである。
+    構文木が異なれば、それをもとに作る抽象構文木も、意味解析とコード生成の結果も異なる。
+    <strong>あいまいな文法だけでは、一つの文に一つの意味を定められない。</strong>
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      最左導出と最右導出があることは、あいまいさではない。5 節で見たとおり、両者は同じ構文木を与えうる。
+      あいまいさは構文木が複数あることで定まり、導出で言い換えるなら、<strong>一つの文に最左導出が二通り以上ある</strong>ことに当たる。
+    </p>
+  </div>
+
+  <p>
+    あいまいさは文法の性質であって、言語の性質ではない。
+    文法 G と同じ言語を定め、どの文にも構文木を一つしか与えない文法が存在する（7 節）。
+    一方、任意の文脈自由文法があいまいかどうかを判定する一般的な手順は存在しないことが知られている。
+    そのため、言語の設計では、あいまいにならないことが分かっている規則の型を用いて文法を組み立てる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      文法があいまいであることの説明として、正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>ある文について、最左導出と最右導出がともに存在する</li>
+      <li>ある文について、構文木が二つ以上存在する</li>
+      <li>文法が定める言語に、無限個の文が含まれる</li>
+      <li>ある生成規則の右辺に、左辺と同じ非終端記号が現れる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          あいまいさは、一つの文に構文木が複数あることで定まる。木が異なれば文の構造の解釈が異なり、意味が一つに定まらない。
+        </p>
+        <p>
+          (A) は導出の順序の違いと構造の違いを混同している。どの文にも最左導出と最右導出があり、それらは同じ木を与えうる。
+          (C) は言語の大きさとあいまいさを混同している。<code>S → a S b | a b</code> は無限個の文を定めるが、どの文にも構文木は一つしかない。
+          (D) は再帰とあいまいさを混同している。再帰は入れ子を表すために欠かせず、それだけであいまいになるわけではない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-2</span>
+    <p class="q-body">
+      文法 <code>E → E - E | id</code> で <code>a - b - c</code> を考える。a = 10, b = 4, c = 3 とするとき、構文木の違いによって得られる計算結果として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>演算子が一種類なので構文木は一つであり、結果は 3 だけである</li>
+      <li>構文木は二つあり、結果は 3 と 9 である</li>
+      <li>構文木は二つあり、どちらも左から計算するため結果は 3 だけである</li>
+      <li>構文木は一つであり、右から計算するため結果は 9 だけである</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          根で <code>E → E - E</code> を適用したとき、a - b を左の E にまとめる木と、b - c を右の E にまとめる木の二つがある。
+          前者は (10 - 4) - 3 = 3、後者は 10 - (4 - 3) = 9 である。演算子が一種類でも、まとめ方の違いによってあいまいさは生じる。
+        </p>
+        <p>
+          (A) は、あいまいさが異なる演算子の組合せでしか生じないと考えている。
+          (C) は、計算の順序が木と別に決まると考えている。計算の順序は木の形そのものであり、木 2 では b - c を先に計算する。
+          (D) は、一方の読み方だけが文法から定まると考えている。この文法には、どちらか一方に決める手掛かりがない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 優先順位と結合性を文法で定める ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>優先順位と結合性を文法で定める</h2>
+
+  <p>
+    あいまいさを除くには、一つの文に許す木の形が一つになるよう文法を書き換える。
+    文法 G のあいまいさには二つの種類がある。
+  </p>
+
+  <ul>
+    <li><span class="term">優先順位</span><span class="en">(precedence)</span> — 異なる演算子が並んだとき、どちらを先にまとめるか（a + b * c で <code>*</code> を先にする）</li>
+    <li><span class="term">結合性</span><span class="en">(associativity)</span> — 同じ優先順位の演算子が並んだとき、左右どちらからまとめるか（a - b - c を (a - b) - c とする）</li>
+  </ul>
+
+  <h3>段を分けて優先順位を定める</h3>
+
+  <p>
+    優先順位ごとに非終端記号を一段ずつ設ける。E（式）は項を <code>+</code> でつないだもの、T（項）は因子を <code>*</code> でつないだもの、F（因子）は識別子か括弧で囲んだ式とする。
+  </p>
+
+  <pre><code>E → E + T | T
+T → T * F | F
+F → ( E ) | id</code></pre>
+
+  <p>
+    <code>*</code> は T の規則にしか現れないため、構文木の上で <code>*</code> の節点は必ず T の内側、すなわち <code>+</code> の節点より下に置かれる。
+    <strong>下の段に置いた演算子ほど先にまとめられ、優先順位が高くなる。</strong>
+    <code>F → ( E )</code> は、括弧の中で最も上の段 E に戻ることを許す規則であり、括弧で優先順位を変えられることを表す。
+    この文法は文法 G と同じ言語を定め、どの文にも構文木を一つしか与えない。
+  </p>
+
+  <h3>再帰の向きで結合性を定める</h3>
+
+  <p>
+    <code>E → E + T</code> は右辺の左端に左辺と同じ非終端記号を持つ。このような規則を <span class="term">左再帰</span><span class="en">(left recursion)</span> の規則と呼ぶ。
+    左の E は再び <code>E + T</code> に展開できるが、右の T には <code>+</code> を含められない。
+    したがって、<code>+</code> が並んだときは左側がより深くまとまり、左から順に結合する。
+    逆に、右辺の右端に左辺と同じ非終端記号を持つ規則を <span class="term">右再帰</span><span class="en">(right recursion)</span> の規則と呼び、右から結合させる。
+    図 7-1 は、減算を同じ段に加えた文法 <code>E → E - T | T</code> で <code>a - b - c</code> を描いたものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 316" role="img" aria-label="左に、E → E - T | T、T → F、F → id による a - b - c の構文木を描く。根の E の子は E、-、T であり、強調した左の E の下に a - b がまとまる。a、b、c の上には T と F の節点が一つずつ連なる。右に抽象構文木を描く。根は - で、左の子が強調した - であり、その子が a と b、根の右の子が c である。">
+      <path d="M 340 8 L 340 310" class="svg-line" stroke-dasharray="4 4"/>
+
+      <path d="M 190 54 L 110 76" class="svg-line"/>
+      <path d="M 190 54 L 190 76" class="svg-line"/>
+      <path d="M 190 54 L 270 76" class="svg-line"/>
+      <path d="M 110 100 L 50 122" class="svg-line"/>
+      <path d="M 110 100 L 110 122" class="svg-line"/>
+      <path d="M 110 100 L 170 122" class="svg-line"/>
+      <path d="M 270 100 L 270 122" class="svg-line"/>
+      <path d="M 50 146 L 50 168" class="svg-line"/>
+      <path d="M 170 146 L 170 168" class="svg-line"/>
+      <path d="M 270 146 L 270 168" class="svg-line"/>
+      <path d="M 50 192 L 50 214" class="svg-line"/>
+      <path d="M 170 192 L 170 214" class="svg-line"/>
+      <path d="M 50 238 L 50 260" class="svg-line"/>
+
+      <path d="M 470 100 L 420 122" class="svg-line"/>
+      <path d="M 470 100 L 520 122" class="svg-line"/>
+      <path d="M 420 146 L 390 168" class="svg-line"/>
+      <path d="M 420 146 L 450 168" class="svg-line"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">構文木</text>
+      <text x="360" y="18" class="svg-small" style="text-anchor:start">抽象構文木（AST）</text>
+
+      <rect x="173" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="173" y="76" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="253" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="33" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="93" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="153" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="253" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="33" y="168" width="34" height="24" class="svg-cell"/>
+      <rect x="153" y="168" width="34" height="24" class="svg-cell"/>
+      <rect x="253" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="33" y="214" width="34" height="24" class="svg-cell"/>
+      <rect x="153" y="214" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="33" y="260" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="93" y="76" width="34" height="24" class="svg-hl"/>
+
+      <text x="190" y="47" class="svg-mono">E</text>
+      <text x="110" y="93" class="svg-mono">E</text>
+      <text x="190" y="93" class="svg-mono">-</text>
+      <text x="270" y="93" class="svg-mono">T</text>
+      <text x="50" y="139" class="svg-mono">E</text>
+      <text x="110" y="139" class="svg-mono">-</text>
+      <text x="170" y="139" class="svg-mono">T</text>
+      <text x="270" y="139" class="svg-mono">F</text>
+      <text x="50" y="185" class="svg-mono">T</text>
+      <text x="170" y="185" class="svg-mono">F</text>
+      <text x="270" y="185" class="svg-mono">c</text>
+      <text x="50" y="231" class="svg-mono">F</text>
+      <text x="170" y="231" class="svg-mono">b</text>
+      <text x="50" y="277" class="svg-mono">a</text>
+      <text x="170" y="306" class="svg-small">葉を左から読むと a - b - c</text>
+
+      <rect x="453" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="503" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="373" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="433" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="403" y="122" width="34" height="24" class="svg-hl"/>
+
+      <text x="470" y="93" class="svg-mono">-</text>
+      <text x="420" y="139" class="svg-mono">-</text>
+      <text x="520" y="139" class="svg-mono">c</text>
+      <text x="390" y="185" class="svg-mono">a</text>
+      <text x="450" y="185" class="svg-mono">b</text>
+      <text x="455" y="222" class="svg-small">(a - b) - c を表す</text>
+    </svg>
+    <figcaption>
+      図 7-1　左再帰の規則 E → E - T は、減算を左から結合させる。強調した節点の下に a - b がまとまり、根の減算はその結果から c を引く。
+      構文木には T → F, F → id による一つ子の連鎖が現れるが、抽象構文木ではこれらが除かれ、演算子と被演算子だけが残る。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　二項演算子の規則の形と結合性。op は演算子、B は一段下の非終端記号を表す。どの形でも、op の片側に同じ段の非終端記号を許すかどうかで、連続した演算子のまとまり方が決まる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>規則の形</th><th>結合性</th><th>連続した演算子の読み方</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>A → A op B | B</code>（左再帰）</td><td>左結合</td><td><code>a - b - c</code> を <code>(a - b) - c</code> と読む</td></tr>
+        <tr><td><code>A → B op A | B</code>（右再帰）</td><td>右結合</td><td>べき乗 <code>a ^ b ^ c</code> を <code>a ^ (b ^ c)</code> と読む</td></tr>
+        <tr><td><code>A → B op B | B</code></td><td>結合しない</td><td><code>a &lt; b &lt; c</code> のように連続して書くことを文法で禁じる</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    どの演算子を左結合にし、どれを右結合にするかは言語の設計で定まり、言語によって異なる。
+    多くの言語では四則演算を左結合とする。比較演算子を連続して書けるかどうかも言語によって異なる。
+  </p>
+
+  <h3>優先順位の定め方の選択</h3>
+
+  <p>
+    3 節の EBNF で <code>E → T { + T }</code> と書くと、言語は <code>E → E + T | T</code> と同じであるが、
+    <code>+</code> が並んだときに左右どちらからまとめるかは規則から読み取れなくなる。
+    結合性は、仕様の本文で別に定めることになる。
+    また、あいまいな文法 G のまま、演算子ごとの優先順位と結合性を表にして添え、その表で構文木を一つに選ぶ方式もある。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-2　優先順位と結合性の定め方と、それぞれが選ばれる条件。どちらの方式でも、最終的に一つの文に一つの構文木を対応させる点は変わらない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>方式</th><th>利点</th><th>欠点が効く条件</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>文法の段と再帰の向きで定める</td>
+          <td>文法だけで構造が一つに定まり、規則を読めば解釈が分かる</td>
+          <td>優先順位の段が多い言語では、段の数だけ非終端記号と一つ子の連鎖が増え、文法が読みにくくなる</td>
+        </tr>
+        <tr>
+          <td>あいまいな文法に優先順位の表を添える</td>
+          <td>式の規則が短く保て、演算子の追加は表に一行を足すだけで済む</td>
+          <td>文法と表の二箇所を読まなければ解釈が定まらず、文法だけを読んでも構造が分からない。演算子の種類が多いほど表との照合が要る</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="note caution">
+    <span class="label">注意</span>
+    <p>
+      あいまいさは演算子の式に限らない。3 節の <code>&lt;if文&gt;</code> の規則では、<code>if (x) if (y) s1 else s2</code> の <code>else</code> が内側と外側のどちらの if に対応するかで、構文木が二つになる。
+      このあいまいさを <span class="term">ぶら下がり else</span><span class="en">(dangling else)</span> と呼ぶ。
+      多くの言語は「else は対応の付いていない最も近い if に対応する」と定めて解消している。この規則は文法を書き換えて表すこともでき、仕様の本文で別に定めることもある。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      次の文法で、<code>^</code> はべき乗を表す。トークン列 <code>2 ^ 3 ^ 2 + 1</code> を、この文法が定める唯一の構文木に従って計算した結果はどれか。
+    </p>
+    <pre><code>E → E + T | T
+T → F ^ T | F
+F → ( E ) | num</code></pre>
+    <ol class="choices">
+      <li>65</li>
+      <li>513</li>
+      <li>1024</li>
+      <li>512</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          <code>^</code> は T の段にあり、<code>+</code> の E の段より下にあるため、先にまとめられる。
+          また <code>T → F ^ T</code> は右再帰であり、<code>^</code> は右から結合する。
+          したがって構文木は <code>(2 ^ (3 ^ 2)) + 1</code> を表し、2 ^ 9 + 1 = 513 となる。
+        </p>
+        <p>
+          (A) は <code>^</code> を左結合と読み、<code>(2 ^ 3) ^ 2 + 1</code> = 65 としている。再帰の向きを確かめていない。
+          (C) は <code>+</code> を <code>^</code> より先にまとめ、<code>2 ^ (3 ^ 2 + 1)</code> = 2 ^ 10 としている。段の上下と優先順位の関係を逆にしている。
+          (D) は結合性と優先順位の両方を誤り、<code>(2 ^ 3) ^ (2 + 1)</code> = 8 ^ 3 としている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-2</span>
+    <p class="q-body">
+      T を一段下の非終端記号とする。<code>a - b - c</code> を必ず <code>(a - b) - c</code> と読ませ、かつ <code>a - b - c</code> を文として含む規則はどれか。
+    </p>
+    <ol class="choices">
+      <li><code>E → T - E | T</code></li>
+      <li><code>E → E - E | T</code></li>
+      <li><code>E → E - T | T</code></li>
+      <li><code>E → T - T | T</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          左再帰の規則では、<code>-</code> の左側だけが再び <code>E - T</code> に展開できる。
+          このため <code>a - b</code> が左の E にまとまり、構文木は <code>(a - b) - c</code> の一つに定まる。
+        </p>
+        <p>
+          (A) は右再帰であり、<code>a - (b - c)</code> と右から結合させる。
+          (B) は <code>-</code> の両側に同じ段の E を許すため、二つの構文木を持つあいまいな規則である。
+          (D) は <code>-</code> の両側に一段下の T しか許さないため、減算を一つしか含まない。<code>a - b - c</code> は文として含まれない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li>
+      <strong>入れ子の構造を有限の規則で書く</strong> — 深さに上限のない入れ子は、有限オートマトンでも正規表現でも扱えない。
+      定義の中で自身を参照する再帰的定義によって、有限個の規則で書き表せる。
+    </li>
+    <li>
+      <strong>文脈自由文法</strong> — 終端記号・非終端記号・生成規則・開始記号の四つで言語を定める。
+      構文解析の文法では、終端記号はトークンの種別である。
+    </li>
+    <li>
+      <strong>BNF と EBNF</strong> — BNF は <code>&lt; &gt;</code>, <code>::=</code>, <code>|</code> で文法を書く記法である。
+      EBNF の <code>[ ]</code>, <code>{ }</code> は省略と繰り返しの略記であり、定められる言語を広げない。
+    </li>
+    <li>
+      <strong>導出</strong> — 開始記号から規則を一回ずつ適用して非終端記号を置き換える。導出できる文の全体が文法の定める言語である。
+    </li>
+    <li>
+      <strong>構文木と抽象構文木</strong> — 構文木は適用した規則を写した木であり、導出の順序によらない。
+      抽象構文木は括弧や一つ子の連鎖を除き、演算子と被演算子だけを残した木であり、後段の処理に渡される。
+    </li>
+    <li>
+      <strong>あいまいな文法</strong> — 一つの文に構文木が二つ以上ある文法であり、文の意味が一つに定まらない。最左導出と最右導出があることとは別である。
+    </li>
+    <li>
+      <strong>優先順位と結合性</strong> — 演算子ごとに段を分けると、下の段ほど優先順位が高くなる。
+      左再帰の規則は左結合を、右再帰の規則は右結合を定める。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／BNF記法と構文木<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
