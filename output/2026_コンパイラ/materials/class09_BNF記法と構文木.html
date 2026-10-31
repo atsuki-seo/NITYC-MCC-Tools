@@ -44,7 +44,65 @@
     プログラムの並びには入れ子が現れる。<code>(a + (b * c)) - d</code> のように括弧の中に括弧を含む式、
     ブロックの中にさらにブロックを含む文、関数呼び出しの引数に別の関数呼び出しを書く式などである。
     括弧の対応を判定するには、開いたままの括弧の個数、すなわち入れ子の深さを覚えておく必要がある。
-    <strong>有限オートマトンは有限個の状態しか持たないため、深さに上限のない入れ子は判定できない。</strong>
+    図 1-1 は、<code>((a + b) + c)</code> を一記号ずつ読み、読んだ直後の深さを記したものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 124" role="img" aria-label="((a + b) + c) の九つの記号を一つずつセルに並べ、その下に各記号を読んだ直後の深さ 1, 2, 2, 2, 2, 1, 1, 1, 0 を記した図。読み終えた時点の深さ 0 が強調されている。">
+      <text x="16" y="49" class="svg-small" style="text-anchor:start">記号</text>
+      <text x="16" y="103" class="svg-small" style="text-anchor:start">深さ</text>
+
+      <rect x="190" y="26" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="230" y="26" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="270" y="26" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="350" y="26" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="390" y="26" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="110" y="26" width="40" height="36" class="svg-cell"/>
+      <rect x="150" y="26" width="40" height="36" class="svg-cell"/>
+      <rect x="310" y="26" width="40" height="36" class="svg-cell"/>
+      <rect x="430" y="26" width="40" height="36" class="svg-cell"/>
+
+      <text x="130" y="49" class="svg-mono">(</text>
+      <text x="170" y="49" class="svg-mono">(</text>
+      <text x="210" y="49" class="svg-mono">a</text>
+      <text x="250" y="49" class="svg-mono">+</text>
+      <text x="290" y="49" class="svg-mono">b</text>
+      <text x="330" y="49" class="svg-mono">)</text>
+      <text x="370" y="49" class="svg-mono">+</text>
+      <text x="410" y="49" class="svg-mono">c</text>
+      <text x="450" y="49" class="svg-mono">)</text>
+
+      <rect x="110" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="150" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="190" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="230" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="270" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="310" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="350" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="390" y="80" width="40" height="36" class="svg-cell-plain"/>
+      <rect x="430" y="80" width="40" height="36" class="svg-hl"/>
+
+      <text x="130" y="103" class="svg-mono">1</text>
+      <text x="170" y="103" class="svg-mono">2</text>
+      <text x="210" y="103" class="svg-mono">2</text>
+      <text x="250" y="103" class="svg-mono">2</text>
+      <text x="290" y="103" class="svg-mono">2</text>
+      <text x="330" y="103" class="svg-mono">1</text>
+      <text x="370" y="103" class="svg-mono">1</text>
+      <text x="410" y="103" class="svg-mono">1</text>
+      <text x="450" y="103" class="svg-mono">0</text>
+      <text x="484" y="103" class="svg-small" style="text-anchor:start">読み終えて 0</text>
+    </svg>
+    <figcaption>
+      図 1-1　((a + b) + c) を読みながら、開いたままの括弧の数（深さ）を数える。塗りのセルが括弧であり、( で 1 増え、) で 1 減る。
+      途中で負にならず、読み終えた時点で 0 に戻るため、括弧は対応している。
+    </figcaption>
+  </figure>
+
+  <p>
+    有限オートマトンでこの深さを覚えるには、深さごとに別の状態を用意するほかない。
+    深さ k までの状態しか持たないオートマトンは、k + 1 個目の <code>(</code> を続けて読んだとき、移るべき状態を持たない。
+    <strong>有限個の状態では、深さに上限のない入れ子は判定できない。</strong>
     したがって、正規表現でこれらの並びを定めることもできない。
     語の綴りを字句解析に、語の並びを構文解析に受け持たせる分担は、この限界に由来する。
   </p>
@@ -56,25 +114,129 @@
   </p>
 
   <ul>
-    <li>識別子は式である</li>
-    <li>式と式を <code>+</code> でつないだものは式である</li>
-    <li>式を <code>(</code> と <code>)</code> で囲んだものは式である</li>
+    <li>規則 1：識別子は式である</li>
+    <li>規則 2：式と式を <code>+</code> でつないだものは式である</li>
+    <li>規則 3：式を <code>(</code> と <code>)</code> で囲んだものは式である</li>
   </ul>
 
   <p>
     この定義は「式」を定めるのに「式」を用いている。定義の中で定義される対象そのものを参照する書き方を
     <span class="term">再帰的定義</span><span class="en">(recursive definition)</span> と呼ぶ。
-    規則は三つしかないが、三つ目を何度でも適用できるため、どれほど深い入れ子の式もこの定義に含まれる。
-    <strong>深さを状態として覚えるのではなく、規則を適用した回数として構造に刻む</strong>点が、有限オートマトンとの違いである。
+    規則は三つしかないが、規則 3 を何度でも適用できるため、どれほど深い入れ子の式もこの定義に含まれる。
   </p>
 
   <p>
+    図 1-2 は、<code>((a + b) + c)</code> が式であることを、内側から規則を当てはめて確かめたものである。
+    a, b, c がそれぞれ規則 1 で式となり、規則 2 と規則 3 を交互に当てはめるたびに、式を表す範囲が一回り外へ広がる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 236" role="img" aria-label="((a + b) + c) の九つの記号を横に並べ、その下に式とみなせる範囲を括弧線で示した図。内側から順に、a, b, c がそれぞれ規則 1 で、a + b が規則 2 で、(a + b) が規則 3 で、(a + b) + c が規則 2 で、全体が規則 3 で式となる。">
+      <path d="M 192 68 L 192 76 L 228 76 L 228 68" class="svg-line"/>
+      <path d="M 272 68 L 272 76 L 308 76 L 308 68" class="svg-line"/>
+      <path d="M 392 68 L 392 76 L 428 76 L 428 68" class="svg-line"/>
+      <path d="M 192 102 L 192 110 L 308 110 L 308 102" class="svg-line"/>
+      <path d="M 152 136 L 152 144 L 348 144 L 348 136" class="svg-line"/>
+      <path d="M 152 170 L 152 178 L 428 178 L 428 170" class="svg-line"/>
+      <path d="M 112 204 L 112 212 L 468 212 L 468 204" class="svg-line"/>
+
+      <rect x="110" y="20" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="150" y="20" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="230" y="20" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="310" y="20" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="350" y="20" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="430" y="20" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="190" y="20" width="40" height="40" class="svg-cell"/>
+      <rect x="270" y="20" width="40" height="40" class="svg-cell"/>
+      <rect x="390" y="20" width="40" height="40" class="svg-cell"/>
+
+      <text x="130" y="45" class="svg-mono">(</text>
+      <text x="170" y="45" class="svg-mono">(</text>
+      <text x="210" y="45" class="svg-mono">a</text>
+      <text x="250" y="45" class="svg-mono">+</text>
+      <text x="290" y="45" class="svg-mono">b</text>
+      <text x="330" y="45" class="svg-mono">)</text>
+      <text x="370" y="45" class="svg-mono">+</text>
+      <text x="410" y="45" class="svg-mono">c</text>
+      <text x="450" y="45" class="svg-mono">)</text>
+
+      <text x="210" y="92" class="svg-small">規則 1</text>
+      <text x="290" y="92" class="svg-small">規則 1</text>
+      <text x="410" y="92" class="svg-small">規則 1</text>
+      <text x="250" y="126" class="svg-small">規則 2</text>
+      <text x="250" y="160" class="svg-small">規則 3</text>
+      <text x="290" y="194" class="svg-small">規則 2</text>
+      <text x="290" y="228" class="svg-small">規則 3</text>
+    </svg>
+    <figcaption>
+      図 1-2　((a + b) + c) が式であることの確かめ方。括弧線の一本一本が「式」とみなせる範囲を表し、その下に当てはめた規則を記す。
+      入れ子の深さは、状態として覚えられるのではなく、規則を重ねて当てはめた段数として範囲の包含関係に現れる。
+    </figcaption>
+  </figure>
+
+  <p>
+    <strong>深さを状態として覚えるのではなく、規則を適用した回数として構造に刻む</strong>点が、有限オートマトンとの違いである。
     正規表現の繰り返し <code>*</code> も同じ記述を何度でも適用できるが、繰り返すのは左から右への連接である。
     <code>a*b*</code> は a の並びの後に b の並びが続く文字列を表すが、両者の個数を揃えることはできない。
     一方、「S は <code>ab</code> であるか、<code>a</code> と S と <code>b</code> をこの順に並べたものである」と再帰的に定めると、
-    規則を一回適用するたびに a と b が一つずつ同時に増えるため、個数は常に揃う。
+    規則を一回適用するたびに a と b が一つずつ同時に増えるため、個数は常に揃う（図 1-3）。
     <code>(</code> を a、<code>)</code> を b と読み替えれば、これは括弧が対応した入れ子の並びである。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 196" role="img" aria-label="左に、S を再帰的に定めた規則から得られる ab, aabb, aaabbb を三段に並べ、各段で外側に加わった a と b の組を強調した図。右に、a*b* に属するが個数の揃わない aab を示し、S の規則からは作れないことを記す。">
+      <path d="M 360 8 L 360 188" class="svg-line" stroke-dasharray="4 4"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">S を再帰的に定めた規則が作る文字列</text>
+      <text x="380" y="18" class="svg-small" style="text-anchor:start">a*b* に属する文字列の例</text>
+
+      <rect x="24" y="32" width="30" height="30" class="svg-cell"/>
+      <rect x="54" y="32" width="30" height="30" class="svg-cell"/>
+      <text x="39" y="52" class="svg-mono">a</text>
+      <text x="69" y="52" class="svg-mono">b</text>
+      <text x="220" y="52" class="svg-small" style="text-anchor:start">S は ab である</text>
+
+      <rect x="54" y="82" width="30" height="30" class="svg-cell"/>
+      <rect x="84" y="82" width="30" height="30" class="svg-cell"/>
+      <rect x="24" y="82" width="30" height="30" class="svg-hl"/>
+      <rect x="114" y="82" width="30" height="30" class="svg-hl"/>
+      <text x="39" y="102" class="svg-mono">a</text>
+      <text x="69" y="102" class="svg-mono">a</text>
+      <text x="99" y="102" class="svg-mono">b</text>
+      <text x="129" y="102" class="svg-mono">b</text>
+      <text x="220" y="102" class="svg-small" style="text-anchor:start">a S b の形（1 回）</text>
+
+      <rect x="54" y="132" width="30" height="30" class="svg-cell"/>
+      <rect x="84" y="132" width="30" height="30" class="svg-cell"/>
+      <rect x="114" y="132" width="30" height="30" class="svg-cell"/>
+      <rect x="144" y="132" width="30" height="30" class="svg-cell"/>
+      <rect x="24" y="132" width="30" height="30" class="svg-hl"/>
+      <rect x="174" y="132" width="30" height="30" class="svg-hl"/>
+      <text x="39" y="152" class="svg-mono">a</text>
+      <text x="69" y="152" class="svg-mono">a</text>
+      <text x="99" y="152" class="svg-mono">a</text>
+      <text x="129" y="152" class="svg-mono">b</text>
+      <text x="159" y="152" class="svg-mono">b</text>
+      <text x="189" y="152" class="svg-mono">b</text>
+      <text x="220" y="152" class="svg-small" style="text-anchor:start">a S b の形（2 回）</text>
+
+      <text x="180" y="184" class="svg-small">a と b の個数は常に揃う</text>
+
+      <rect x="400" y="82" width="30" height="30" class="svg-cell"/>
+      <rect x="430" y="82" width="30" height="30" class="svg-cell"/>
+      <rect x="460" y="82" width="30" height="30" class="svg-cell"/>
+      <text x="415" y="102" class="svg-mono">a</text>
+      <text x="445" y="102" class="svg-mono">a</text>
+      <text x="475" y="102" class="svg-mono">b</text>
+      <text x="460" y="138" class="svg-small">a が 2 個、b が 1 個</text>
+      <text x="460" y="158" class="svg-small">a*b* には属する</text>
+      <text x="460" y="178" class="svg-small">S の規則からは作れない</text>
+    </svg>
+    <figcaption>
+      図 1-3　再帰的に定めた S は、規則を一回当てはめるたびに外側へ a と b を一つずつ加える（強調したセル）。そのため個数は常に揃う。
+      a*b* は a の繰り返しと b の繰り返しを独立に選ぶため、aab のように個数の揃わない文字列も含む。
+    </figcaption>
+  </figure>
 
   <div class="table-block">
     <p class="table-caption">
@@ -188,6 +350,89 @@ S → a b</code></pre>
     括弧が正しく対応した並びの全体は、ε を用いて <code>S → ( S ) S | ε</code> と定まる。
   </p>
 
+  <p>
+    開始記号 S から始め、S を規則の右辺で一つずつ置き換えていくと、この文法が <code>()()</code> を生み出す過程を追える。
+    一回の置き換えを <code>⇒</code> で表すと、図 2-1 のように五回で終端記号だけの並びに行き着く。
+    <strong>S → ε を適用した段では、S が何も残さずに消える。</strong>
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 264" role="img" aria-label="開始記号 S から ()() に至る置き換えを一行ずつ並べた図。各行で次に置き換える S が強調され、右に適用する規則が書かれる。S → ( S ) S を二回、S → ε を三回適用し、S → ε の段ではその S が消える。">
+      <text x="30" y="18" class="svg-small" style="text-anchor:start">並び（強調は次に置き換える S）</text>
+      <text x="300" y="18" class="svg-small" style="text-anchor:start">適用する規則</text>
+
+      <rect x="30" y="30" width="34" height="26" class="svg-hl"/>
+      <text x="47" y="48" class="svg-mono">S</text>
+      <text x="300" y="48" class="svg-mono" style="text-anchor:start">S → ( S ) S</text>
+
+      <text x="16" y="88" class="svg-text">⇒</text>
+      <rect x="30" y="70" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="110" y="70" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="150" y="70" width="34" height="26" class="svg-cell"/>
+      <rect x="70" y="70" width="34" height="26" class="svg-hl"/>
+      <text x="47" y="88" class="svg-mono">(</text>
+      <text x="87" y="88" class="svg-mono">S</text>
+      <text x="127" y="88" class="svg-mono">)</text>
+      <text x="167" y="88" class="svg-mono">S</text>
+      <text x="300" y="88" class="svg-mono" style="text-anchor:start">S → ε</text>
+      <text x="360" y="88" class="svg-small" style="text-anchor:start">この S が消える</text>
+
+      <text x="16" y="128" class="svg-text">⇒</text>
+      <rect x="30" y="110" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="110" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="110" y="110" width="34" height="26" class="svg-hl"/>
+      <text x="47" y="128" class="svg-mono">(</text>
+      <text x="87" y="128" class="svg-mono">)</text>
+      <text x="127" y="128" class="svg-mono">S</text>
+      <text x="300" y="128" class="svg-mono" style="text-anchor:start">S → ( S ) S</text>
+
+      <text x="16" y="168" class="svg-text">⇒</text>
+      <rect x="30" y="150" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="150" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="110" y="150" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="190" y="150" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="230" y="150" width="34" height="26" class="svg-cell"/>
+      <rect x="150" y="150" width="34" height="26" class="svg-hl"/>
+      <text x="47" y="168" class="svg-mono">(</text>
+      <text x="87" y="168" class="svg-mono">)</text>
+      <text x="127" y="168" class="svg-mono">(</text>
+      <text x="167" y="168" class="svg-mono">S</text>
+      <text x="207" y="168" class="svg-mono">)</text>
+      <text x="247" y="168" class="svg-mono">S</text>
+      <text x="300" y="168" class="svg-mono" style="text-anchor:start">S → ε</text>
+      <text x="360" y="168" class="svg-small" style="text-anchor:start">この S が消える</text>
+
+      <text x="16" y="208" class="svg-text">⇒</text>
+      <rect x="30" y="190" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="190" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="110" y="190" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="150" y="190" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="190" y="190" width="34" height="26" class="svg-hl"/>
+      <text x="47" y="208" class="svg-mono">(</text>
+      <text x="87" y="208" class="svg-mono">)</text>
+      <text x="127" y="208" class="svg-mono">(</text>
+      <text x="167" y="208" class="svg-mono">)</text>
+      <text x="207" y="208" class="svg-mono">S</text>
+      <text x="300" y="208" class="svg-mono" style="text-anchor:start">S → ε</text>
+      <text x="360" y="208" class="svg-small" style="text-anchor:start">この S が消える</text>
+
+      <text x="16" y="248" class="svg-text">⇒</text>
+      <rect x="30" y="230" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="70" y="230" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="110" y="230" width="34" height="26" class="svg-cell-plain"/>
+      <rect x="150" y="230" width="34" height="26" class="svg-cell-plain"/>
+      <text x="47" y="248" class="svg-mono">(</text>
+      <text x="87" y="248" class="svg-mono">)</text>
+      <text x="127" y="248" class="svg-mono">(</text>
+      <text x="167" y="248" class="svg-mono">)</text>
+      <text x="300" y="248" class="svg-small" style="text-anchor:start">終端記号だけの並びになった</text>
+    </svg>
+    <figcaption>
+      図 2-1　S → ( S ) S | ε から ()() を生み出す過程。塗りの枠は非終端記号 S、線だけの枠は終端記号を表す。
+      S → ( S ) S は括弧の組を一つ置いて S を二つ残し、S → ε はその S を消す。ε の規則がなければ S は増える一方で、終端記号だけの並びに行き着かない。
+    </figcaption>
+  </figure>
+
   <div class="table-block">
     <p class="table-caption">
       表 2-1　文脈自由文法の構成要素と、文法 S → a S b | a b における具体例。文法は記号の集合と規則の集合の組であり、規則の数は | で区切られた右辺の数に等しい。
@@ -218,8 +463,90 @@ S → a b</code></pre>
   <p>
     構文解析に用いる文法では、<strong>終端記号は文字ではなくトークンの種別である。</strong>
     構文解析が受け取るのは字句解析が出力したトークン列であり、文字の並びではないためである。
+    図 2-2 は、ソースコード <code>x1 = 42 + y</code> が文法の終端記号の列になるまでを示したものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="ソースコード x1 = 42 + y の 11 文字を一列に並べ、その下に字句解析で得た五つのトークン x1, =, 42, +, y を、さらにその下に文法の終端記号の列 id = num + id を示す図。四つの空白はトークンにも終端記号にも残らない。id の下には綴り x1 と綴り y が、num の下には値 42 が添えられる。">
+      <path d="M 160 78 L 160 106" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 260 78 L 260 106" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 360 78 L 360 106" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 460 78 L 460 106" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 540 78 L 540 106" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 160 156 L 160 184" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 260 156 L 260 184" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 360 156 L 360 184" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 460 156 L 460 184" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 540 156 L 540 184" class="svg-arrow" marker-end="url(#ah1)"/>
+
+      <text x="16" y="59" class="svg-small" style="text-anchor:start">文字</text>
+      <text x="16" y="137" class="svg-small" style="text-anchor:start">トークン</text>
+      <text x="16" y="215" class="svg-small" style="text-anchor:start">終端記号</text>
+      <text x="16" y="250" class="svg-small" style="text-anchor:start">添える情報</text>
+
+      <rect x="200" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="280" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="400" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="480" y="34" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="120" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="160" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="240" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="320" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="360" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="440" y="34" width="40" height="40" class="svg-cell"/>
+      <rect x="520" y="34" width="40" height="40" class="svg-cell"/>
+
+      <text x="140" y="59" class="svg-mono">x</text>
+      <text x="180" y="59" class="svg-mono">1</text>
+      <text x="260" y="59" class="svg-mono">=</text>
+      <text x="340" y="59" class="svg-mono">4</text>
+      <text x="380" y="59" class="svg-mono">2</text>
+      <text x="460" y="59" class="svg-mono">+</text>
+      <text x="540" y="59" class="svg-mono">y</text>
+
+      <rect x="120" y="112" width="80" height="40" class="svg-cell"/>
+      <rect x="240" y="112" width="40" height="40" class="svg-cell"/>
+      <rect x="320" y="112" width="80" height="40" class="svg-cell"/>
+      <rect x="440" y="112" width="40" height="40" class="svg-cell"/>
+      <rect x="520" y="112" width="40" height="40" class="svg-cell"/>
+
+      <text x="160" y="137" class="svg-mono">x1</text>
+      <text x="260" y="137" class="svg-mono">=</text>
+      <text x="360" y="137" class="svg-mono">42</text>
+      <text x="460" y="137" class="svg-mono">+</text>
+      <text x="540" y="137" class="svg-mono">y</text>
+
+      <rect x="120" y="190" width="80" height="40" class="svg-hl"/>
+      <rect x="240" y="190" width="40" height="40" class="svg-hl"/>
+      <rect x="320" y="190" width="80" height="40" class="svg-hl"/>
+      <rect x="440" y="190" width="40" height="40" class="svg-hl"/>
+      <rect x="520" y="190" width="40" height="40" class="svg-hl"/>
+
+      <text x="160" y="215" class="svg-mono">id</text>
+      <text x="260" y="215" class="svg-mono">=</text>
+      <text x="360" y="215" class="svg-mono">num</text>
+      <text x="460" y="215" class="svg-mono">+</text>
+      <text x="540" y="215" class="svg-mono">id</text>
+
+      <text x="160" y="250" class="svg-small">綴り x1</text>
+      <text x="360" y="250" class="svg-small">値 42</text>
+      <text x="540" y="250" class="svg-small">綴り y</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-2　ソースコード x1 = 42 + y が終端記号の列 id = num + id になるまで。枠線だけのセルは空白であり、トークンにも終端記号にも残らない。
+      文法が見るのは強調した終端記号の列だけであり、x1 と y はどちらも同じ id になる。綴りや値は、各記号に添えられた情報として後段へ引き継がれる。
+    </figcaption>
+  </figure>
+
+  <p>
     識別子を一つの終端記号 <code>id</code> で、整数リテラルを <code>num</code> で表し、
-    <code>x</code> であるか <code>count</code> であるかという綴りの違いは文法では区別しない。
+    <code>x1</code> であるか <code>y</code> であるかという綴りの違いは文法では区別しない。
     綴りや値はトークンに添えられた情報として後段の処理へ引き継がれる。
     空白やコメントはトークンとして残らないため、文法にも現れない。
   </p>
@@ -327,6 +654,50 @@ S → a b</code></pre>
     <code>&lt;引数並び&gt;</code> は自身を右辺に含み、<code>,</code> で区切った式を何個でも並べられる。
   </p>
 
+  <p>
+    図 3-1 は、<code>f(x, y, z)</code> のトークン列 <code>id ( id , id , id )</code> を <code>&lt;呼び出し&gt;</code> に当てはめたものである。
+    <code>&lt;引数並び&gt;</code> は、二つ目の選択肢を適用するたびに右端へ <code>, &lt;式&gt;</code> を一組加えて伸び、
+    最も内側で一つ目の選択肢 <code>&lt;式&gt;</code> を適用して止まる。引数が三つなら、二つ目の選択肢を二回、一つ目の選択肢を一回適用する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 206" role="img" aria-label="f(x, y, z) のトークン列 id ( id , id , id ) を横に並べ、その下に引数並びの範囲を括弧線で入れ子に示した図。最も内側の一つ目の id が選択肢 引数並び ::= 式 で、id , id と id , id , id がそれぞれ選択肢 引数並び ::= 引数並び , 式 で引数並びとなり、全体が 呼び出し ::= id ( 引数並び ) に当てはまる。">
+      <path d="M 192 72 L 192 80 L 238 80 L 238 72" class="svg-line"/>
+      <path d="M 192 106 L 192 114 L 338 114 L 338 106" class="svg-line"/>
+      <path d="M 192 140 L 192 148 L 438 148 L 438 140" class="svg-line"/>
+      <path d="M 92 174 L 92 182 L 488 182 L 488 174" class="svg-line"/>
+
+      <text x="290" y="14" class="svg-small">f(x, y, z) のトークン列</text>
+
+      <rect x="90" y="24" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="140" y="24" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="240" y="24" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="340" y="24" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="440" y="24" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="190" y="24" width="50" height="40" class="svg-cell"/>
+      <rect x="290" y="24" width="50" height="40" class="svg-cell"/>
+      <rect x="390" y="24" width="50" height="40" class="svg-cell"/>
+
+      <text x="115" y="49" class="svg-mono">id</text>
+      <text x="165" y="49" class="svg-mono">(</text>
+      <text x="215" y="49" class="svg-mono">id</text>
+      <text x="265" y="49" class="svg-mono">,</text>
+      <text x="315" y="49" class="svg-mono">id</text>
+      <text x="365" y="49" class="svg-mono">,</text>
+      <text x="415" y="49" class="svg-mono">id</text>
+      <text x="465" y="49" class="svg-mono">)</text>
+
+      <text x="215" y="96" class="svg-small">&lt;引数並び&gt; ::= &lt;式&gt;</text>
+      <text x="265" y="130" class="svg-small">&lt;引数並び&gt; ::= &lt;引数並び&gt; , &lt;式&gt;</text>
+      <text x="315" y="164" class="svg-small">&lt;引数並び&gt; ::= &lt;引数並び&gt; , &lt;式&gt;</text>
+      <text x="290" y="198" class="svg-small">&lt;呼び出し&gt; ::= id ( &lt;引数並び&gt; )</text>
+    </svg>
+    <figcaption>
+      図 3-1　id ( id , id , id ) を &lt;呼び出し&gt; に当てはめる。塗りのセルは引数の式であり、括弧線の下に、その範囲に適用した選択肢を記す。
+      &lt;引数並び&gt; は左端を共有したまま右へ一組ずつ伸び、入れ子の内側ほど先頭に近い引数だけを含む。
+    </figcaption>
+  </figure>
+
   <h3>EBNF — 省略と繰り返しの略記</h3>
 
   <p>
@@ -343,6 +714,86 @@ S → a b</code></pre>
     文法の記述に用いる記号を、記述される言語の記号と区別して <span class="term">メタ記号</span><span class="en">(metasymbol)</span> と呼ぶ。
     終端記号の <code>(</code> とメタ記号の <code>(</code> が紛れるため、EBNF では記号そのものを表す終端記号を引用符で囲む。<code>id</code> のようにトークンの種別を表す名前は囲まない。
   </p>
+
+  <p>
+    あるトークン列が EBNF の規則に当てはまることは、列の各部分を規則の各部分に割り当てられることを意味する。
+    図 3-2 は、<code>id ( id , id , id )</code> と <code>id ( )</code> を <code>&lt;呼び出し&gt;</code> の規則に割り当てたものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 210" role="img" aria-label="上段に id ( id , id , id ) を並べ、二つ目から七つ目の要素のうち、一つ目の id を省略可能部分の先頭の式に、続く , id を繰り返しの一回目に、その次の , id を繰り返しの二回目に割り当て、id から id までの範囲全体が省略可能部分を採用した範囲であることを示す図。下段に id ( ) を並べ、省略可能部分を丸ごと省いた形であることを記す。">
+      <path d="M 242 74 L 242 82 L 338 82 L 338 74" class="svg-line"/>
+      <path d="M 342 74 L 342 82 L 438 82 L 438 74" class="svg-line"/>
+      <path d="M 192 108 L 192 116 L 438 116 L 438 108" class="svg-line"/>
+
+      <text x="290" y="16" class="svg-small">id ( id , id , id ) の割り当て</text>
+
+      <rect x="90" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="140" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="440" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="190" y="26" width="50" height="40" class="svg-cell"/>
+      <rect x="240" y="26" width="50" height="40" class="svg-hl"/>
+      <rect x="290" y="26" width="50" height="40" class="svg-hl"/>
+      <rect x="340" y="26" width="50" height="40" class="svg-hl"/>
+      <rect x="390" y="26" width="50" height="40" class="svg-hl"/>
+
+      <text x="115" y="51" class="svg-mono">id</text>
+      <text x="165" y="51" class="svg-mono">(</text>
+      <text x="215" y="51" class="svg-mono">id</text>
+      <text x="265" y="51" class="svg-mono">,</text>
+      <text x="315" y="51" class="svg-mono">id</text>
+      <text x="365" y="51" class="svg-mono">,</text>
+      <text x="415" y="51" class="svg-mono">id</text>
+      <text x="465" y="51" class="svg-mono">)</text>
+
+      <text x="290" y="98" class="svg-small">{ } 1 回目</text>
+      <text x="390" y="98" class="svg-small">{ } 2 回目</text>
+      <text x="315" y="132" class="svg-small">[ ] を採用</text>
+
+      <rect x="90" y="160" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="140" y="160" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="190" y="160" width="50" height="40" class="svg-cell-plain"/>
+      <text x="115" y="185" class="svg-mono">id</text>
+      <text x="165" y="185" class="svg-mono">(</text>
+      <text x="215" y="185" class="svg-mono">)</text>
+      <text x="260" y="185" class="svg-small" style="text-anchor:start">[ ] を省略した形（引数なし）</text>
+    </svg>
+    <figcaption>
+      図 3-2　EBNF の規則 &lt;呼び出し&gt; ::= id "(" [ &lt;式&gt; { "," &lt;式&gt; } ] ")" への割り当て。塗りのセルが [ ] の先頭の &lt;式&gt;、強調したセルが { } の繰り返しに当たる。
+      { } は「,」と式の組を単位として繰り返す。[ ] を省けば、( の直後に ) が来る。
+    </figcaption>
+  </figure>
+
+  <p>
+    逆に、どう割り当てても食い違いが出る列は、規則に当てはまらない。
+    図 3-3 の <code>id ( , id )</code> では、<code>(</code> の直後に <code>,</code> が来ている。
+    [ ] を採用するなら <code>(</code> の直後は <code>&lt;式&gt;</code>、省略するなら <code>)</code> でなければならず、<code>,</code> はどちらにも当たらない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 132" role="img" aria-label="id ( , id ) を並べ、三つ目の , を強調した図。( の直後に来てよいのは、省略可能部分を採用した場合の式か、省略した場合の ) であり、, はどちらでもないため割り当てられないことを記す。">
+      <text x="290" y="16" class="svg-small">id ( , id ) の割り当て</text>
+
+      <rect x="140" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="190" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="340" y="26" width="50" height="40" class="svg-cell-plain"/>
+      <rect x="240" y="26" width="50" height="40" class="svg-hl"/>
+
+      <text x="165" y="51" class="svg-mono">id</text>
+      <text x="215" y="51" class="svg-mono">(</text>
+      <text x="265" y="51" class="svg-mono">,</text>
+      <text x="315" y="51" class="svg-mono">id</text>
+      <text x="365" y="51" class="svg-mono">)</text>
+
+      <text x="265" y="92" class="svg-small">[ ] を採用するなら、ここは &lt;式&gt; でなければならない</text>
+      <text x="265" y="112" class="svg-small">[ ] を省略するなら、ここは ) でなければならない</text>
+    </svg>
+    <figcaption>
+      図 3-3　id ( , id ) は &lt;呼び出し&gt; に当てはまらない。強調した , は、[ ] を採用した場合にも省略した場合にも、規則のどの部分にも割り当てられない。
+      { } の繰り返しは [ ] の内側にあり、先頭の &lt;式&gt; を飛ばして始めることはできない。
+    </figcaption>
+  </figure>
 
   <div class="table-block">
     <p class="table-caption">
@@ -457,13 +908,13 @@ S → a b</code></pre>
   </p>
 
   <figure>
-    <svg viewBox="0 0 580 264" role="img" aria-label="E から id + id * id までの最左導出を一行ずつ並べた図。各行の文形式のうち、次に置き換える最も左の非終端記号が強調されている。右側には適用する生成規則 E → E + E、E → id、E → E * E、E → id、E → id が書かれ、最後の行は終端記号だけになった文である。">
+    <svg viewBox="0 0 580 264" role="img" aria-label="E から id + id * id までの最左導出を一行ずつ並べた図。各行の文形式のうち、次に置き換える最も左の非終端記号が強調されている。右側には適用順の番号を付けた生成規則 ① E → E + E、② E → id、③ E → E * E、④ E → id、⑤ E → id が書かれ、最後の行は終端記号だけになった文である。">
       <text x="30" y="18" class="svg-small" style="text-anchor:start">文形式（強調は次に置き換える非終端記号）</text>
-      <text x="300" y="18" class="svg-small" style="text-anchor:start">適用する生成規則</text>
+      <text x="300" y="18" class="svg-small" style="text-anchor:start">適用する生成規則（番号は適用順）</text>
 
       <rect x="30" y="30" width="40" height="26" class="svg-hl"/>
       <text x="50" y="48" class="svg-mono">E</text>
-      <text x="300" y="48" class="svg-mono" style="text-anchor:start">E → E + E</text>
+      <text x="300" y="48" class="svg-mono" style="text-anchor:start">① E → E + E</text>
 
       <text x="16" y="88" class="svg-text">⇒</text>
       <rect x="76" y="70" width="40" height="26" class="svg-cell-plain"/>
@@ -472,7 +923,7 @@ S → a b</code></pre>
       <text x="50" y="88" class="svg-mono">E</text>
       <text x="96" y="88" class="svg-mono">+</text>
       <text x="142" y="88" class="svg-mono">E</text>
-      <text x="300" y="88" class="svg-mono" style="text-anchor:start">E → id</text>
+      <text x="300" y="88" class="svg-mono" style="text-anchor:start">② E → id</text>
 
       <text x="16" y="128" class="svg-text">⇒</text>
       <rect x="30" y="110" width="40" height="26" class="svg-cell-plain"/>
@@ -481,7 +932,7 @@ S → a b</code></pre>
       <text x="50" y="128" class="svg-mono">id</text>
       <text x="96" y="128" class="svg-mono">+</text>
       <text x="142" y="128" class="svg-mono">E</text>
-      <text x="300" y="128" class="svg-mono" style="text-anchor:start">E → E * E</text>
+      <text x="300" y="128" class="svg-mono" style="text-anchor:start">③ E → E * E</text>
 
       <text x="16" y="168" class="svg-text">⇒</text>
       <rect x="30" y="150" width="40" height="26" class="svg-cell-plain"/>
@@ -494,7 +945,7 @@ S → a b</code></pre>
       <text x="142" y="168" class="svg-mono">E</text>
       <text x="188" y="168" class="svg-mono">*</text>
       <text x="234" y="168" class="svg-mono">E</text>
-      <text x="300" y="168" class="svg-mono" style="text-anchor:start">E → id</text>
+      <text x="300" y="168" class="svg-mono" style="text-anchor:start">④ E → id</text>
 
       <text x="16" y="208" class="svg-text">⇒</text>
       <rect x="30" y="190" width="40" height="26" class="svg-cell-plain"/>
@@ -507,7 +958,7 @@ S → a b</code></pre>
       <text x="142" y="208" class="svg-mono">id</text>
       <text x="188" y="208" class="svg-mono">*</text>
       <text x="234" y="208" class="svg-mono">E</text>
-      <text x="300" y="208" class="svg-mono" style="text-anchor:start">E → id</text>
+      <text x="300" y="208" class="svg-mono" style="text-anchor:start">⑤ E → id</text>
 
       <text x="16" y="248" class="svg-text">⇒</text>
       <rect x="30" y="230" width="40" height="26" class="svg-cell-plain"/>
@@ -523,7 +974,7 @@ S → a b</code></pre>
       <text x="300" y="248" class="svg-small" style="text-anchor:start">終端記号だけの記号列（文）になった</text>
     </svg>
     <figcaption>
-      図 4-1　id + id * id の最左導出。塗りの枠は非終端記号、線だけの枠は終端記号を表す。
+      図 4-1　id + id * id の最左導出。塗りの枠は非終端記号、線だけの枠は終端記号を表し、①〜⑤ は規則を適用した順を表す。
       一回の置き換えで変わるのは強調した非終端記号一つだけであり、終端記号は一度置かれると以後変わらない。
     </figcaption>
   </figure>
@@ -534,15 +985,98 @@ S → a b</code></pre>
     文形式に非終端記号が複数あるとき、どれを先に置き換えてもよい。
     図 4-1 は、常に最も左の非終端記号を置き換えている。この導出を <span class="term">最左導出</span><span class="en">(leftmost derivation)</span> と呼ぶ。
     常に最も右の非終端記号を置き換える導出を <span class="term">最右導出</span><span class="en">(rightmost derivation)</span> と呼ぶ。
-    同じ id + id * id の最右導出は次のとおりである。
+    同じ id + id * id の最右導出を図 4-2 に示す。各段の番号は、図 4-1 で同じ非終端記号に同じ規則を適用した段の番号である。
   </p>
 
-  <pre><code>E ⇒ E + E ⇒ E + E * E ⇒ E + E * id ⇒ E + id * id ⇒ id + id * id</code></pre>
+  <figure>
+    <svg viewBox="0 0 580 264" role="img" aria-label="E から id + id * id までの最右導出を一行ずつ並べた図。各行で最も右の非終端記号が強調され、右側に図 4-1 と同じ番号を付けた規則が、① E → E + E、③ E → E * E、⑤ E → id、④ E → id、② E → id の順に並ぶ。">
+      <text x="30" y="18" class="svg-small" style="text-anchor:start">文形式（強調は最も右の非終端記号）</text>
+      <text x="300" y="18" class="svg-small" style="text-anchor:start">適用する生成規則（番号は図 4-1 と同じ）</text>
+
+      <rect x="30" y="30" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="48" class="svg-mono">E</text>
+      <text x="300" y="48" class="svg-mono" style="text-anchor:start">① E → E + E</text>
+
+      <text x="16" y="88" class="svg-text">⇒</text>
+      <rect x="30" y="70" width="40" height="26" class="svg-cell"/>
+      <rect x="76" y="70" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="70" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="88" class="svg-mono">E</text>
+      <text x="96" y="88" class="svg-mono">+</text>
+      <text x="142" y="88" class="svg-mono">E</text>
+      <text x="300" y="88" class="svg-mono" style="text-anchor:start">③ E → E * E</text>
+
+      <text x="16" y="128" class="svg-text">⇒</text>
+      <rect x="30" y="110" width="40" height="26" class="svg-cell"/>
+      <rect x="76" y="110" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="110" width="40" height="26" class="svg-cell"/>
+      <rect x="168" y="110" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="110" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="128" class="svg-mono">E</text>
+      <text x="96" y="128" class="svg-mono">+</text>
+      <text x="142" y="128" class="svg-mono">E</text>
+      <text x="188" y="128" class="svg-mono">*</text>
+      <text x="234" y="128" class="svg-mono">E</text>
+      <text x="300" y="128" class="svg-mono" style="text-anchor:start">⑤ E → id</text>
+
+      <text x="16" y="168" class="svg-text">⇒</text>
+      <rect x="30" y="150" width="40" height="26" class="svg-cell"/>
+      <rect x="76" y="150" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="168" y="150" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="150" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="150" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="168" class="svg-mono">E</text>
+      <text x="96" y="168" class="svg-mono">+</text>
+      <text x="142" y="168" class="svg-mono">E</text>
+      <text x="188" y="168" class="svg-mono">*</text>
+      <text x="234" y="168" class="svg-mono">id</text>
+      <text x="300" y="168" class="svg-mono" style="text-anchor:start">④ E → id</text>
+
+      <text x="16" y="208" class="svg-text">⇒</text>
+      <rect x="76" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="168" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="190" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="30" y="190" width="40" height="26" class="svg-hl"/>
+      <text x="50" y="208" class="svg-mono">E</text>
+      <text x="96" y="208" class="svg-mono">+</text>
+      <text x="142" y="208" class="svg-mono">id</text>
+      <text x="188" y="208" class="svg-mono">*</text>
+      <text x="234" y="208" class="svg-mono">id</text>
+      <text x="300" y="208" class="svg-mono" style="text-anchor:start">② E → id</text>
+
+      <text x="16" y="248" class="svg-text">⇒</text>
+      <rect x="30" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="76" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="122" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="168" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <rect x="214" y="230" width="40" height="26" class="svg-cell-plain"/>
+      <text x="50" y="248" class="svg-mono">id</text>
+      <text x="96" y="248" class="svg-mono">+</text>
+      <text x="142" y="248" class="svg-mono">id</text>
+      <text x="188" y="248" class="svg-mono">*</text>
+      <text x="234" y="248" class="svg-mono">id</text>
+      <text x="300" y="248" class="svg-small" style="text-anchor:start">図 4-1 と同じ文に行き着く</text>
+    </svg>
+    <figcaption>
+      図 4-2　id + id * id の最右導出。番号は図 4-1 と同じ「どの E にどの規則を適用したか」を指し、それが ①③⑤④② の順に現れる。
+      五つの適用の組は図 4-1 と変わらず、並ぶ順序だけが異なる。
+    </figcaption>
+  </figure>
 
   <p>
     最左導出と最右導出は途中の文形式が異なるが、<strong>どの非終端記号にどの規則を適用したかの組は同じ</strong>である。
     どちらも、最初の E に E → E + E を、その右の E に E → E * E を、残る三つの E に E → id を適用している。
-    違うのは適用の順序だけである。
+    違うのは適用の順序だけであり、最左導出は ①②③④⑤、最右導出は ①③⑤④② の順に適用する。
+  </p>
+
+  <h3>導出できない列</h3>
+
+  <p>
+    どの順序で置き換えても行き着かない列は、文法の言語に属さない。
+    たとえば <code>id + * id</code> は文法 G の文ではない。
+    文法 G で <code>+</code> の右に置かれるのは E であり、E から導出される列は必ず <code>id</code> か <code>(</code> で始まる。
+    <strong>ある記号の直後に来うる記号は規則の形から限られ</strong>、<code>+</code> の直後に <code>*</code> が来る並びはどの規則からも生じない。
   </p>
 
   <div class="quiz">
@@ -618,6 +1152,168 @@ S → a b</code></pre>
   </ul>
 
   <p>
+    図 5-1 は、図 4-1 の最左導出を一段ずつ木に描き加えたものである。
+    各段で、置き換えた非終端記号の節点（強調）が、規則の右辺の記号を子として得る。
+    各段の木の葉を左から読むと、その段の文形式になる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 382" role="img" aria-label="図 4-1 の最左導出の五つの段に合わせて、構文木が育つ様子を五つのこまで示した図。① で根の E が E, +, E を子に得て、② で左の E が id を、③ で右の E が E, *, E を、④ でその左の E が id を、⑤ で右の E が id を得る。各こまの下にはその段の文形式が書かれる。六つ目の区画には完成した木の各 E に番号 ① から ⑤ を付け、最右導出では同じ節点が ①③⑤④② の順に子を得ることを記す。">
+      <path d="M 16 196 L 566 196" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 69 54 L 33 68" class="svg-line"/>
+      <path d="M 69 54 L 69 68" class="svg-line"/>
+      <path d="M 69 54 L 141 68" class="svg-line"/>
+      <path d="M 259 54 L 223 68" class="svg-line"/>
+      <path d="M 259 54 L 259 68" class="svg-line"/>
+      <path d="M 259 54 L 331 68" class="svg-line"/>
+      <path d="M 223 88 L 223 102" class="svg-line"/>
+      <path d="M 449 54 L 413 68" class="svg-line"/>
+      <path d="M 449 54 L 449 68" class="svg-line"/>
+      <path d="M 449 54 L 521 68" class="svg-line"/>
+      <path d="M 413 88 L 413 102" class="svg-line"/>
+      <path d="M 521 88 L 485 102" class="svg-line"/>
+      <path d="M 521 88 L 521 102" class="svg-line"/>
+      <path d="M 521 88 L 557 102" class="svg-line"/>
+      <path d="M 69 254 L 33 268" class="svg-line"/>
+      <path d="M 69 254 L 69 268" class="svg-line"/>
+      <path d="M 69 254 L 141 268" class="svg-line"/>
+      <path d="M 33 288 L 33 302" class="svg-line"/>
+      <path d="M 141 288 L 105 302" class="svg-line"/>
+      <path d="M 141 288 L 141 302" class="svg-line"/>
+      <path d="M 141 288 L 177 302" class="svg-line"/>
+      <path d="M 105 322 L 105 336" class="svg-line"/>
+      <path d="M 259 254 L 223 268" class="svg-line"/>
+      <path d="M 259 254 L 259 268" class="svg-line"/>
+      <path d="M 259 254 L 331 268" class="svg-line"/>
+      <path d="M 223 288 L 223 302" class="svg-line"/>
+      <path d="M 331 288 L 295 302" class="svg-line"/>
+      <path d="M 331 288 L 331 302" class="svg-line"/>
+      <path d="M 331 288 L 367 302" class="svg-line"/>
+      <path d="M 295 322 L 295 336" class="svg-line"/>
+      <path d="M 367 322 L 367 336" class="svg-line"/>
+      <path d="M 449 254 L 413 268" class="svg-line"/>
+      <path d="M 449 254 L 449 268" class="svg-line"/>
+      <path d="M 449 254 L 521 268" class="svg-line"/>
+      <path d="M 413 288 L 413 302" class="svg-line"/>
+      <path d="M 521 288 L 485 302" class="svg-line"/>
+      <path d="M 521 288 L 521 302" class="svg-line"/>
+      <path d="M 521 288 L 557 302" class="svg-line"/>
+      <path d="M 485 322 L 485 336" class="svg-line"/>
+      <path d="M 557 322 L 557 336" class="svg-line"/>
+      
+      <rect x="56" y="68" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="20" y="68" width="26" height="20" class="svg-cell"/>
+      <rect x="128" y="68" width="26" height="20" class="svg-cell"/>
+      <rect x="56" y="34" width="26" height="20" class="svg-hl"/>
+      <rect x="246" y="34" width="26" height="20" class="svg-cell"/>
+      <rect x="210" y="102" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="246" y="68" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="318" y="68" width="26" height="20" class="svg-cell"/>
+      <rect x="210" y="68" width="26" height="20" class="svg-hl"/>
+      <rect x="436" y="34" width="26" height="20" class="svg-cell"/>
+      <rect x="400" y="68" width="26" height="20" class="svg-cell"/>
+      <rect x="400" y="102" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="508" y="102" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="436" y="68" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="472" y="102" width="26" height="20" class="svg-cell"/>
+      <rect x="544" y="102" width="26" height="20" class="svg-cell"/>
+      <rect x="508" y="68" width="26" height="20" class="svg-hl"/>
+      <rect x="128" y="302" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="20" y="302" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="164" y="302" width="26" height="20" class="svg-cell"/>
+      <rect x="56" y="268" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="92" y="336" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="56" y="234" width="26" height="20" class="svg-cell"/>
+      <rect x="20" y="268" width="26" height="20" class="svg-cell"/>
+      <rect x="128" y="268" width="26" height="20" class="svg-cell"/>
+      <rect x="92" y="302" width="26" height="20" class="svg-hl"/>
+      <rect x="354" y="336" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="318" y="302" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="210" y="302" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="246" y="268" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="282" y="302" width="26" height="20" class="svg-cell"/>
+      <rect x="282" y="336" width="26" height="20" class="svg-cell-plain"/>
+      <rect x="246" y="234" width="26" height="20" class="svg-cell"/>
+      <rect x="210" y="268" width="26" height="20" class="svg-cell"/>
+      <rect x="318" y="268" width="26" height="20" class="svg-cell"/>
+      <rect x="354" y="302" width="26" height="20" class="svg-hl"/>
+      <rect x="542" y="336" width="30" height="20" class="svg-cell-plain"/>
+      <rect x="506" y="302" width="30" height="20" class="svg-cell-plain"/>
+      <rect x="398" y="302" width="30" height="20" class="svg-cell-plain"/>
+      <rect x="542" y="302" width="30" height="20" class="svg-cell"/>
+      <rect x="434" y="268" width="30" height="20" class="svg-cell-plain"/>
+      <rect x="470" y="302" width="30" height="20" class="svg-cell"/>
+      <rect x="470" y="336" width="30" height="20" class="svg-cell-plain"/>
+      <rect x="434" y="234" width="30" height="20" class="svg-cell"/>
+      <rect x="398" y="268" width="30" height="20" class="svg-cell"/>
+      <rect x="506" y="268" width="30" height="20" class="svg-cell"/>
+      
+      <text x="69" y="83" class="svg-mono">+</text>
+      <text x="33" y="83" class="svg-mono">E</text>
+      <text x="141" y="83" class="svg-mono">E</text>
+      <text x="69" y="49" class="svg-mono">E</text>
+      <text x="105" y="26" class="svg-small">① E → E + E</text>
+      <text x="105" y="174" class="svg-mono">E + E</text>
+      <text x="259" y="49" class="svg-mono">E</text>
+      <text x="223" y="117" class="svg-mono">id</text>
+      <text x="259" y="83" class="svg-mono">+</text>
+      <text x="331" y="83" class="svg-mono">E</text>
+      <text x="223" y="83" class="svg-mono">E</text>
+      <text x="295" y="26" class="svg-small">② E → id</text>
+      <text x="295" y="174" class="svg-mono">id + E</text>
+      <text x="449" y="49" class="svg-mono">E</text>
+      <text x="413" y="83" class="svg-mono">E</text>
+      <text x="413" y="117" class="svg-mono">id</text>
+      <text x="521" y="117" class="svg-mono">*</text>
+      <text x="449" y="83" class="svg-mono">+</text>
+      <text x="485" y="117" class="svg-mono">E</text>
+      <text x="557" y="117" class="svg-mono">E</text>
+      <text x="521" y="83" class="svg-mono">E</text>
+      <text x="485" y="26" class="svg-small">③ E → E * E</text>
+      <text x="485" y="174" class="svg-mono">id + E * E</text>
+      <text x="141" y="317" class="svg-mono">*</text>
+      <text x="33" y="317" class="svg-mono">id</text>
+      <text x="177" y="317" class="svg-mono">E</text>
+      <text x="69" y="283" class="svg-mono">+</text>
+      <text x="105" y="351" class="svg-mono">id</text>
+      <text x="69" y="249" class="svg-mono">E</text>
+      <text x="33" y="283" class="svg-mono">E</text>
+      <text x="141" y="283" class="svg-mono">E</text>
+      <text x="105" y="317" class="svg-mono">E</text>
+      <text x="105" y="226" class="svg-small">④ E → id</text>
+      <text x="105" y="374" class="svg-mono">id + id * E</text>
+      <text x="367" y="351" class="svg-mono">id</text>
+      <text x="331" y="317" class="svg-mono">*</text>
+      <text x="223" y="317" class="svg-mono">id</text>
+      <text x="259" y="283" class="svg-mono">+</text>
+      <text x="295" y="317" class="svg-mono">E</text>
+      <text x="295" y="351" class="svg-mono">id</text>
+      <text x="259" y="249" class="svg-mono">E</text>
+      <text x="223" y="283" class="svg-mono">E</text>
+      <text x="331" y="283" class="svg-mono">E</text>
+      <text x="367" y="317" class="svg-mono">E</text>
+      <text x="295" y="226" class="svg-small">⑤ E → id</text>
+      <text x="295" y="374" class="svg-mono">id + id * id</text>
+      <text x="557" y="351" class="svg-mono">id</text>
+      <text x="521" y="317" class="svg-mono">*</text>
+      <text x="413" y="317" class="svg-mono">id</text>
+      <text x="557" y="317" class="svg-mono">E⑤</text>
+      <text x="449" y="283" class="svg-mono">+</text>
+      <text x="485" y="317" class="svg-mono">E④</text>
+      <text x="485" y="351" class="svg-mono">id</text>
+      <text x="449" y="249" class="svg-mono">E①</text>
+      <text x="413" y="283" class="svg-mono">E②</text>
+      <text x="521" y="283" class="svg-mono">E③</text>
+      <text x="485" y="226" class="svg-small">番号は最左導出の順</text>
+      <text x="485" y="374" class="svg-small">最右導出では ①③⑤④② の順</text>
+    </svg>
+    <figcaption>
+      図 5-1　最左導出に合わせて構文木が育つ様子。各こまの上は適用した規則、下はその時点の葉の並び（文形式）であり、図 4-1 の各段と一致する。
+      右下は完成した木の各 E に、子を得た順の番号を付けたものである。最右導出では同じ節点が同じ子を得る順序だけが ①③⑤④② に変わり、完成する木は同じになる。
+    </figcaption>
+  </figure>
+
+  <p>
     <strong>構文木の葉を左から順に読むと、導出した文に一致する。</strong>
     木が記録するのは「どの非終端記号にどの規則を適用したか」であり、適用の順序は記録しない。
     このため、4 節の最左導出と最右導出は同じ一つの構文木を与える。
@@ -636,7 +1332,16 @@ S → a b</code></pre>
     そこで、演算子を内部の節点、被演算子をその子とし、構造の決定にだけ用いた記号を除いた木を作る。
     この木を <span class="term">抽象構文木</span><span class="en">(abstract syntax tree, AST)</span> と呼ぶ。
     これと区別する場合、文法の規則をそのまま写した構文木を <span class="term">具象構文木</span><span class="en">(concrete syntax tree)</span> と呼ぶ。
-    図 5-1 は、<code>(a + b) * c</code> の二つの木を並べたものである。
+  </p>
+
+  <p>
+    例として <code>(a + b) * c</code> を考える。字句解析を経たトークン列は <code>( id + id ) * id</code> であり、文法 G から次のように最左導出される。
+  </p>
+
+  <pre><code>E ⇒ E * E ⇒ ( E ) * E ⇒ ( E + E ) * E ⇒ ( id + E ) * E ⇒ ( id + id ) * E ⇒ ( id + id ) * id</code></pre>
+
+  <p>
+    規則の適用は 6 回である。この導出が与える構文木と、同じ式の抽象構文木を並べたものが図 5-2 である。
   </p>
 
   <figure>
@@ -707,7 +1412,7 @@ S → a b</code></pre>
       <text x="455" y="234" class="svg-small">括弧と E の節点は残らない</text>
     </svg>
     <figcaption>
-      図 5-1　(a + b) * c の構文木（左）と抽象構文木（右）。葉の a, b, c はいずれも終端記号 id であり、どの名前であったかを示すために綴りで書いている。
+      図 5-2　(a + b) * c の構文木（左）と抽象構文木（右）。葉の a, b, c はいずれも終端記号 id であり、どの名前であったかを示すために綴りで書いている。
       強調した括弧は、+ を * より先にまとめる指定であった。抽象構文木ではこの指定が「+ が * の子である」という形に置き換わるため、括弧そのものは不要になる。
     </figcaption>
   </figure>
@@ -719,6 +1424,55 @@ S → a b</code></pre>
     <strong>構文解析の出力として後段に渡されるのは、多くの処理系では抽象構文木である。</strong>
     「構文木」という語は文献によって両方の木を指すため、どちらの意味かを文脈で確かめる必要がある。
   </p>
+
+  <p>
+    木のたどり方の一つに、ある節点の子をすべて訪れてからその節点を訪れる順序がある。これを
+    <span class="term">帰りがけ順</span><span class="en">(post-order)</span> と呼ぶ。
+    抽象構文木を帰りがけ順にたどると、演算子に着いた時点でその被演算子の計算は済んでいる。
+    図 5-3 は、図 5-2 の抽象構文木を帰りがけ順にたどり、演算子を訪れるたびに計算を一つ書き出したものである。
+    t1, t2 は途中の結果を置く場所を表す。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 196" role="img" aria-label="左に (a + b) * c の抽象構文木を描き、帰りがけ順に訪れる順の番号を a ①、b ②、+ ③、c ④、* ⑤ と添えた図。右に、③ で + を訪れたときに書き出す 1. t1 ← a + b と、⑤ で * を訪れたときに書き出す 2. t2 ← t1 * c を並べる。">
+      <path d="M 150 54 L 90 80" class="svg-line"/>
+      <path d="M 150 54 L 210 80" class="svg-line"/>
+      <path d="M 90 104 L 50 130" class="svg-line"/>
+      <path d="M 90 104 L 130 130" class="svg-line"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">帰りがけ順にたどる（番号は訪れる順）</text>
+      <text x="300" y="18" class="svg-small" style="text-anchor:start">演算子を訪れたときに書き出す計算</text>
+
+      <rect x="133" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="193" y="80" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="33" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="113" y="130" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="73" y="80" width="34" height="24" class="svg-hl"/>
+
+      <text x="150" y="47" class="svg-mono">*</text>
+      <text x="90" y="97" class="svg-mono">+</text>
+      <text x="210" y="97" class="svg-mono">c</text>
+      <text x="50" y="147" class="svg-mono">a</text>
+      <text x="130" y="147" class="svg-mono">b</text>
+
+      <text x="172" y="47" class="svg-small" style="text-anchor:start">⑤</text>
+      <text x="112" y="97" class="svg-small" style="text-anchor:start">③</text>
+      <text x="232" y="97" class="svg-small" style="text-anchor:start">④</text>
+      <text x="72" y="147" class="svg-small" style="text-anchor:start">①</text>
+      <text x="152" y="147" class="svg-small" style="text-anchor:start">②</text>
+
+      <text x="300" y="60" class="svg-small" style="text-anchor:start">③ + を訪れたとき</text>
+      <text x="316" y="82" class="svg-mono" style="text-anchor:start">1. t1 ← a + b</text>
+      <text x="300" y="124" class="svg-small" style="text-anchor:start">⑤ * を訪れたとき</text>
+      <text x="316" y="146" class="svg-mono" style="text-anchor:start">2. t2 ← t1 * c</text>
+
+      <text x="290" y="184" class="svg-small">a, b, c を訪れたときは何も書き出さず、その値を親の計算に渡す</text>
+    </svg>
+    <figcaption>
+      図 5-3　抽象構文木を帰りがけ順にたどると、計算すべき順に演算が並ぶ。強調した + は * より先に訪れるため、t1 ← a + b が先に書き出される。
+      この順序は括弧によってではなく、+ が * の子であるという木の形によって決まる。
+    </figcaption>
+  </figure>
 
   <div class="table-block">
     <p class="table-caption">
@@ -795,7 +1549,7 @@ S → a b</code></pre>
         <p>
           (A) は、木が適用の順序を記録すると考えている。木が記録するのはどの非終端記号にどの規則を適用したかだけであり、最左導出と最右導出は同じ木を与える。
           (B) は内部と葉を逆にしている。子を持つのは置き換えられる非終端記号であり、置き換えられない終端記号は葉になる。
-          (D) は、規則の適用回数と葉の数を混同している。規則一回の適用が作るのは内部の節点一つであり、図 5-1 の構文木では規則を 6 回適用しているが、葉は 7 個である。
+          (D) は、規則の適用回数と葉の数を混同している。規則一回の適用が作るのは内部の節点一つであり、図 5-2 の構文木では規則を 6 回適用しているが、葉は 7 個である。
         </p>
       </div>
     </details>
@@ -1010,6 +1764,99 @@ F → ( E ) | id</code></pre>
     この文法は文法 G と同じ言語を定め、どの文にも構文木を一つしか与えない。
   </p>
 
+  <p>
+    図 7-1 は、この文法で <code>a + b * c</code> を描いたものである。
+    図 6-1 の木 2 の形、すなわち <code>*</code> を最上位に置き、その左に <code>a + b</code> をまとめる形を作ろうとすると、T の下に <code>+</code> を置く必要がある。
+    T の規則にも F の規則にも、括弧で囲まずに <code>+</code> を含む右辺はないため、この形は作れない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 270" role="img" aria-label="左に、E, T, F の文法による a + b * c の構文木を描く。根の E の子は E, +, T であり、強調した T の子が T, *, F となって b * c をまとめる。右に、図 6-1 の木 2 の形を作ろうとした途中の木を描く。E の子の T が T, *, F を子に得たところで、強調した左の T の下に a + b を置こうとするが、T の規則に + を含む右辺がないため × で止まる。">
+      <path d="M 296 8 L 296 262" class="svg-line" stroke-dasharray="4 4"/>
+
+      <path d="M 115 54 L 40 76" class="svg-line"/>
+      <path d="M 115 54 L 90 76" class="svg-line"/>
+      <path d="M 115 54 L 190 76" class="svg-line"/>
+      <path d="M 40 100 L 40 122" class="svg-line"/>
+      <path d="M 190 100 L 140 122" class="svg-line"/>
+      <path d="M 190 100 L 190 122" class="svg-line"/>
+      <path d="M 190 100 L 240 122" class="svg-line"/>
+      <path d="M 40 146 L 40 168" class="svg-line"/>
+      <path d="M 140 146 L 140 168" class="svg-line"/>
+      <path d="M 240 146 L 240 168" class="svg-line"/>
+      <path d="M 40 192 L 40 214" class="svg-line"/>
+      <path d="M 140 192 L 140 214" class="svg-line"/>
+
+      <path d="M 450 54 L 450 76" class="svg-line"/>
+      <path d="M 450 100 L 390 122" class="svg-line"/>
+      <path d="M 450 100 L 450 122" class="svg-line"/>
+      <path d="M 450 100 L 510 122" class="svg-line"/>
+      <path d="M 510 146 L 510 168" class="svg-line"/>
+      <path d="M 390 146 L 340 168" class="svg-line" stroke-dasharray="4 3"/>
+      <path d="M 390 146 L 390 168" class="svg-line" stroke-dasharray="4 3"/>
+      <path d="M 390 146 L 440 168" class="svg-line" stroke-dasharray="4 3"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">E, T, F の文法による構文木</text>
+      <text x="310" y="18" class="svg-small" style="text-anchor:start">図 6-1 の木 2 の形を作ろうとすると</text>
+
+      <rect x="98" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="23" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="73" y="76" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="23" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="123" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="173" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="223" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="23" y="168" width="34" height="24" class="svg-cell"/>
+      <rect x="123" y="168" width="34" height="24" class="svg-cell"/>
+      <rect x="223" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="23" y="214" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="123" y="214" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="173" y="76" width="34" height="24" class="svg-hl"/>
+
+      <text x="115" y="47" class="svg-mono">E</text>
+      <text x="40" y="93" class="svg-mono">E</text>
+      <text x="90" y="93" class="svg-mono">+</text>
+      <text x="190" y="93" class="svg-mono">T</text>
+      <text x="40" y="139" class="svg-mono">T</text>
+      <text x="140" y="139" class="svg-mono">T</text>
+      <text x="190" y="139" class="svg-mono">*</text>
+      <text x="240" y="139" class="svg-mono">F</text>
+      <text x="40" y="185" class="svg-mono">F</text>
+      <text x="140" y="185" class="svg-mono">F</text>
+      <text x="240" y="185" class="svg-mono">c</text>
+      <text x="40" y="231" class="svg-mono">a</text>
+      <text x="140" y="231" class="svg-mono">b</text>
+      <text x="140" y="260" class="svg-small">a + (b * c) の一通りに決まる</text>
+
+      <rect x="433" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="433" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="433" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="493" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="493" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="323" y="168" width="34" height="24" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="373" y="168" width="34" height="24" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="423" y="168" width="34" height="24" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="373" y="122" width="34" height="24" class="svg-hl"/>
+
+      <text x="450" y="47" class="svg-mono">E</text>
+      <text x="450" y="93" class="svg-mono">T</text>
+      <text x="390" y="139" class="svg-mono">T</text>
+      <text x="450" y="139" class="svg-mono">*</text>
+      <text x="510" y="139" class="svg-mono">F</text>
+      <text x="510" y="185" class="svg-mono">c</text>
+      <text x="340" y="185" class="svg-mono">a</text>
+      <text x="390" y="185" class="svg-mono">+</text>
+      <text x="440" y="185" class="svg-mono">b</text>
+      <text x="390" y="216" class="svg-text">×</text>
+      <text x="430" y="240" class="svg-small">T → T * F | F の右辺に + はない</text>
+      <text x="430" y="260" class="svg-small">a + b を T の下にまとめられない</text>
+    </svg>
+    <figcaption>
+      図 7-1　E, T, F の文法は a + b * c に一つの構文木しか与えない。* は強調した T の内側にしか置けず、+ より下でまとまる。
+      右は * を最上位に置こうとした場合であり、強調した T の下に a + b（破線）を置く規則がないため、× の位置で行き詰まる。
+    </figcaption>
+  </figure>
+
   <h3>再帰の向きで結合性を定める</h3>
 
   <p>
@@ -1017,11 +1864,13 @@ F → ( E ) | id</code></pre>
     左の E は再び <code>E + T</code> に展開できるが、右の T には <code>+</code> を含められない。
     したがって、<code>+</code> が並んだときは左側がより深くまとまり、左から順に結合する。
     逆に、右辺の右端に左辺と同じ非終端記号を持つ規則を <span class="term">右再帰</span><span class="en">(right recursion)</span> の規則と呼び、右から結合させる。
-    図 7-1 は、減算を同じ段に加えた文法 <code>E → E - T | T</code> で <code>a - b - c</code> を描いたものである。
+    図 7-2 は、減算を同じ段に加えた文法 <code>E → E - T | T</code> による <code>a - b - c</code> の木と、
+    べき乗 <code>^</code> を右再帰で定めた文法 <code>T → F ^ T | F</code> による <code>a ^ b ^ c</code> の木を並べたものである。
+    二つの木は、左右を写したような形になる。
   </p>
 
   <figure>
-    <svg viewBox="0 0 580 316" role="img" aria-label="左に、E → E - T | T、T → F、F → id による a - b - c の構文木を描く。根の E の子は E、-、T であり、強調した左の E の下に a - b がまとまる。a、b、c の上には T と F の節点が一つずつ連なる。右に抽象構文木を描く。根は - で、左の子が強調した - であり、その子が a と b、根の右の子が c である。">
+    <svg viewBox="0 0 580 316" role="img" aria-label="左に、左再帰の規則 E → E - T | T、T → F、F → id による a - b - c の構文木を描く。根の E の子は E、-、T であり、強調した左の E の下に a - b がまとまる。右に、右再帰の規則 T → F ^ T | F、F → id による a ^ b ^ c の構文木を描く。根の T の子は F、^、T であり、強調した右の T の下に b ^ c がまとまる。二つの木は左右を写した形である。">
       <path d="M 340 8 L 340 310" class="svg-line" stroke-dasharray="4 4"/>
 
       <path d="M 190 54 L 110 76" class="svg-line"/>
@@ -1038,13 +1887,19 @@ F → ( E ) | id</code></pre>
       <path d="M 170 192 L 170 214" class="svg-line"/>
       <path d="M 50 238 L 50 260" class="svg-line"/>
 
-      <path d="M 470 100 L 420 122" class="svg-line"/>
-      <path d="M 470 100 L 520 122" class="svg-line"/>
-      <path d="M 420 146 L 390 168" class="svg-line"/>
-      <path d="M 420 146 L 450 168" class="svg-line"/>
+      <path d="M 430 54 L 370 76" class="svg-line"/>
+      <path d="M 430 54 L 430 76" class="svg-line"/>
+      <path d="M 430 54 L 500 76" class="svg-line"/>
+      <path d="M 370 100 L 370 122" class="svg-line"/>
+      <path d="M 500 100 L 450 122" class="svg-line"/>
+      <path d="M 500 100 L 500 122" class="svg-line"/>
+      <path d="M 500 100 L 550 122" class="svg-line"/>
+      <path d="M 450 146 L 450 168" class="svg-line"/>
+      <path d="M 550 146 L 550 168" class="svg-line"/>
+      <path d="M 550 192 L 550 214" class="svg-line"/>
 
-      <text x="24" y="18" class="svg-small" style="text-anchor:start">構文木</text>
-      <text x="360" y="18" class="svg-small" style="text-anchor:start">抽象構文木（AST）</text>
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">左再帰 E → E - T | T</text>
+      <text x="360" y="18" class="svg-small" style="text-anchor:start">右再帰 T → F ^ T | F</text>
 
       <rect x="173" y="30" width="34" height="24" class="svg-cell"/>
       <rect x="173" y="76" width="34" height="24" class="svg-cell-plain"/>
@@ -1060,7 +1915,6 @@ F → ( E ) | id</code></pre>
       <rect x="153" y="214" width="34" height="24" class="svg-cell-plain"/>
       <rect x="33" y="260" width="34" height="24" class="svg-cell-plain"/>
       <rect x="93" y="76" width="34" height="24" class="svg-hl"/>
-
       <text x="190" y="47" class="svg-mono">E</text>
       <text x="110" y="93" class="svg-mono">E</text>
       <text x="190" y="93" class="svg-mono">-</text>
@@ -1075,24 +1929,36 @@ F → ( E ) | id</code></pre>
       <text x="50" y="231" class="svg-mono">F</text>
       <text x="170" y="231" class="svg-mono">b</text>
       <text x="50" y="277" class="svg-mono">a</text>
-      <text x="170" y="306" class="svg-small">葉を左から読むと a - b - c</text>
+      <text x="170" y="306" class="svg-small">(a - b) - c を表す</text>
 
-      <rect x="453" y="76" width="34" height="24" class="svg-cell"/>
-      <rect x="503" y="122" width="34" height="24" class="svg-cell-plain"/>
-      <rect x="373" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="413" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="353" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="413" y="76" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="353" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="433" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="483" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="533" y="122" width="34" height="24" class="svg-cell"/>
       <rect x="433" y="168" width="34" height="24" class="svg-cell-plain"/>
-      <rect x="403" y="122" width="34" height="24" class="svg-hl"/>
+      <rect x="533" y="168" width="34" height="24" class="svg-cell"/>
+      <rect x="533" y="214" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="483" y="76" width="34" height="24" class="svg-hl"/>
 
-      <text x="470" y="93" class="svg-mono">-</text>
-      <text x="420" y="139" class="svg-mono">-</text>
-      <text x="520" y="139" class="svg-mono">c</text>
-      <text x="390" y="185" class="svg-mono">a</text>
+      <text x="430" y="47" class="svg-mono">T</text>
+      <text x="370" y="93" class="svg-mono">F</text>
+      <text x="430" y="93" class="svg-mono">^</text>
+      <text x="500" y="93" class="svg-mono">T</text>
+      <text x="370" y="139" class="svg-mono">a</text>
+      <text x="450" y="139" class="svg-mono">F</text>
+      <text x="500" y="139" class="svg-mono">^</text>
+      <text x="550" y="139" class="svg-mono">T</text>
       <text x="450" y="185" class="svg-mono">b</text>
-      <text x="455" y="222" class="svg-small">(a - b) - c を表す</text>
+      <text x="550" y="185" class="svg-mono">F</text>
+      <text x="550" y="231" class="svg-mono">c</text>
+      <text x="460" y="306" class="svg-small">a ^ (b ^ c) を表す</text>
     </svg>
     <figcaption>
-      図 7-1　左再帰の規則 E → E - T は、減算を左から結合させる。強調した節点の下に a - b がまとまり、根の減算はその結果から c を引く。
-      構文木には T → F, F → id による一つ子の連鎖が現れるが、抽象構文木ではこれらが除かれ、演算子と被演算子だけが残る。
+      図 7-2　再帰の向きと結合性。左再帰の規則（左）では強調した左の E の下に a - b がまとまり、左から結合する。右再帰の規則（右）では強調した右の T の下に b ^ c がまとまり、右から結合する。
+      どちらの木にも T → F, F → id などの一つ子の連鎖が現れるが、抽象構文木ではこれらが除かれる（図 5-2）。
     </figcaption>
   </figure>
 
@@ -1125,6 +1991,90 @@ F → ( E ) | id</code></pre>
     3 節の EBNF で <code>E → T { + T }</code> と書くと、言語は <code>E → E + T | T</code> と同じであるが、
     <code>+</code> が並んだときに左右どちらからまとめるかは規則から読み取れなくなる。
     結合性は、仕様の本文で別に定めることになる。
+    図 7-3 は、<code>a + b + c</code> の構文木を二つの書き方で比べたものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 270" role="img" aria-label="左に、EBNF の E → T { + T } による a + b + c の木を描く。根の E の下に T, +, T, +, T が一段に平たく並び、各 T の下に a, b, c がある。右に、BNF の左再帰 E → E + T | T による木を描く。根の E の子は E, +, T で、強調した左の E の下にさらに E, +, T が入り、a + b が深い位置でまとまる。">
+      <path d="M 296 8 L 296 262" class="svg-line" stroke-dasharray="4 4"/>
+
+      <path d="M 150 54 L 50 76" class="svg-line"/>
+      <path d="M 150 54 L 100 76" class="svg-line"/>
+      <path d="M 150 54 L 150 76" class="svg-line"/>
+      <path d="M 150 54 L 200 76" class="svg-line"/>
+      <path d="M 150 54 L 250 76" class="svg-line"/>
+      <path d="M 50 100 L 50 122" class="svg-line"/>
+      <path d="M 150 100 L 150 122" class="svg-line"/>
+      <path d="M 250 100 L 250 122" class="svg-line"/>
+
+      <path d="M 465 54 L 385 76" class="svg-line"/>
+      <path d="M 465 54 L 490 76" class="svg-line"/>
+      <path d="M 465 54 L 545 76" class="svg-line"/>
+      <path d="M 385 100 L 340 122" class="svg-line"/>
+      <path d="M 385 100 L 385 122" class="svg-line"/>
+      <path d="M 385 100 L 430 122" class="svg-line"/>
+      <path d="M 545 100 L 545 122" class="svg-line"/>
+      <path d="M 340 146 L 340 168" class="svg-line"/>
+      <path d="M 430 146 L 430 168" class="svg-line"/>
+      <path d="M 340 192 L 340 214" class="svg-line"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">EBNF の E → T { + T }</text>
+      <text x="310" y="18" class="svg-small" style="text-anchor:start">BNF の E → E + T | T（左再帰）</text>
+
+      <rect x="133" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="33" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="83" y="76" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="133" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="183" y="76" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="233" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="33" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="133" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="233" y="122" width="34" height="24" class="svg-cell-plain"/>
+
+      <text x="150" y="47" class="svg-mono">E</text>
+      <text x="50" y="93" class="svg-mono">T</text>
+      <text x="100" y="93" class="svg-mono">+</text>
+      <text x="150" y="93" class="svg-mono">T</text>
+      <text x="200" y="93" class="svg-mono">+</text>
+      <text x="250" y="93" class="svg-mono">T</text>
+      <text x="50" y="139" class="svg-mono">a</text>
+      <text x="150" y="139" class="svg-mono">b</text>
+      <text x="250" y="139" class="svg-mono">c</text>
+      <text x="150" y="176" class="svg-small">T が一段に平たく並ぶ</text>
+      <text x="150" y="196" class="svg-small">まとめ方は木の形に現れない</text>
+
+      <rect x="448" y="30" width="34" height="24" class="svg-cell"/>
+      <rect x="473" y="76" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="528" y="76" width="34" height="24" class="svg-cell"/>
+      <rect x="323" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="368" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="413" y="122" width="34" height="24" class="svg-cell"/>
+      <rect x="528" y="122" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="323" y="168" width="34" height="24" class="svg-cell"/>
+      <rect x="413" y="168" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="323" y="214" width="34" height="24" class="svg-cell-plain"/>
+      <rect x="368" y="76" width="34" height="24" class="svg-hl"/>
+
+      <text x="465" y="47" class="svg-mono">E</text>
+      <text x="385" y="93" class="svg-mono">E</text>
+      <text x="490" y="93" class="svg-mono">+</text>
+      <text x="545" y="93" class="svg-mono">T</text>
+      <text x="340" y="139" class="svg-mono">E</text>
+      <text x="385" y="139" class="svg-mono">+</text>
+      <text x="430" y="139" class="svg-mono">T</text>
+      <text x="545" y="139" class="svg-mono">c</text>
+      <text x="340" y="185" class="svg-mono">T</text>
+      <text x="430" y="185" class="svg-mono">b</text>
+      <text x="340" y="231" class="svg-mono">a</text>
+      <text x="445" y="262" class="svg-small">左が深くなり (a + b) + c に決まる</text>
+    </svg>
+    <figcaption>
+      図 7-3　a + b + c の構文木を EBNF の繰り返し（左）と左再帰（右）で比べる。T から識別子までの F は省いた。
+      繰り返しでは三つの T が同じ深さに並び、どちらから足すかは木から読み取れない。左再帰では強調した E の下に a + b がまとまり、左から結合することが木の形で定まる。
+    </figcaption>
+  </figure>
+
+  <p>
     また、あいまいな文法 G のまま、演算子ごとの優先順位と結合性を表にして添え、その表で構文木を一つに選ぶ方式もある。
   </p>
 
@@ -1153,14 +2103,74 @@ F → ( E ) | id</code></pre>
     </div>
   </div>
 
-  <div class="note caution">
-    <span class="label">注意</span>
-    <p>
-      あいまいさは演算子の式に限らない。3 節の <code>&lt;if文&gt;</code> の規則では、<code>if (x) if (y) s1 else s2</code> の <code>else</code> が内側と外側のどちらの if に対応するかで、構文木が二つになる。
-      このあいまいさを <span class="term">ぶら下がり else</span><span class="en">(dangling else)</span> と呼ぶ。
-      多くの言語は「else は対応の付いていない最も近い if に対応する」と定めて解消している。この規則は文法を書き換えて表すこともでき、仕様の本文で別に定めることもある。
-    </p>
-  </div>
+  <h3>if 文のあいまいさ</h3>
+
+  <p>
+    あいまいさは演算子の式に限らない。3 節の <code>&lt;if文&gt;</code> の規則では、<code>if (x) if (y) s1 else s2</code> の <code>else</code> が内側と外側のどちらの if に対応するかで、構文木が二つになる（図 7-4）。
+    このあいまいさを <span class="term">ぶら下がり else</span><span class="en">(dangling else)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 206" role="img" aria-label="if (x) if (y) s1 else s2 に対する二つの木を左右に並べた図。左の木では外側の if の子が条件 x と内側の if であり、強調した内側の if が条件 y、s1、強調した else 部 s2 を子に持つ。右の木では強調した外側の if が条件 x、内側の if、強調した else 部 s2 を子に持ち、内側の if は条件 y と s1 だけを持つ。">
+      <path d="M 290 8 L 290 196" class="svg-line" stroke-dasharray="4 4"/>
+
+      <path d="M 140 54 L 70 80" class="svg-line"/>
+      <path d="M 140 54 L 190 80" class="svg-line"/>
+      <path d="M 190 104 L 130 130" class="svg-line"/>
+      <path d="M 190 104 L 190 130" class="svg-line"/>
+      <path d="M 190 104 L 250 130" class="svg-line"/>
+
+      <path d="M 430 54 L 350 80" class="svg-line"/>
+      <path d="M 430 54 L 430 80" class="svg-line"/>
+      <path d="M 430 54 L 520 80" class="svg-line"/>
+      <path d="M 430 104 L 390 130" class="svg-line"/>
+      <path d="M 430 104 L 470 130" class="svg-line"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">木 1</text>
+      <text x="304" y="18" class="svg-small" style="text-anchor:start">木 2</text>
+
+      <rect x="120" y="30" width="40" height="24" class="svg-cell"/>
+      <rect x="50" y="80" width="40" height="24" class="svg-cell-plain"/>
+      <rect x="110" y="130" width="40" height="24" class="svg-cell-plain"/>
+      <rect x="170" y="130" width="40" height="24" class="svg-cell-plain"/>
+      <rect x="170" y="80" width="40" height="24" class="svg-hl"/>
+      <rect x="230" y="130" width="40" height="24" class="svg-hl"/>
+
+      <text x="140" y="47" class="svg-mono">if</text>
+      <text x="70" y="97" class="svg-mono">x</text>
+      <text x="190" y="97" class="svg-mono">if</text>
+      <text x="130" y="147" class="svg-mono">y</text>
+      <text x="190" y="147" class="svg-mono">s1</text>
+      <text x="250" y="147" class="svg-mono">s2</text>
+      <text x="250" y="172" class="svg-small">else 部</text>
+      <text x="145" y="192" class="svg-small">else は内側の if に付く</text>
+
+      <rect x="330" y="80" width="40" height="24" class="svg-cell-plain"/>
+      <rect x="410" y="80" width="40" height="24" class="svg-cell"/>
+      <rect x="370" y="130" width="40" height="24" class="svg-cell-plain"/>
+      <rect x="450" y="130" width="40" height="24" class="svg-cell-plain"/>
+      <rect x="410" y="30" width="40" height="24" class="svg-hl"/>
+      <rect x="500" y="80" width="40" height="24" class="svg-hl"/>
+
+      <text x="430" y="47" class="svg-mono">if</text>
+      <text x="350" y="97" class="svg-mono">x</text>
+      <text x="430" y="97" class="svg-mono">if</text>
+      <text x="520" y="97" class="svg-mono">s2</text>
+      <text x="390" y="147" class="svg-mono">y</text>
+      <text x="470" y="147" class="svg-mono">s1</text>
+      <text x="520" y="122" class="svg-small">else 部</text>
+      <text x="435" y="192" class="svg-small">else は外側の if に付く</text>
+    </svg>
+    <figcaption>
+      図 7-4　if (x) if (y) s1 else s2 の二つの構文木を、if 文の構造だけに絞って描いたもの。各 if の子は左から条件、条件が成り立つときの文、else 部である。
+      強調したのは else 部 s2 と、それを持つ if である。木 1 では x が成り立たないとき何も実行しないが、木 2 では s2 を実行する。
+    </figcaption>
+  </figure>
+
+  <p>
+    多くの言語は「else は対応の付いていない最も近い if に対応する」と定め、木 1 を採ることで解消している。
+    この規則は文法を書き換えて表すこともでき、仕様の本文で別に定めることもある。
+  </p>
 
   <div class="quiz">
     <span class="quiz-label">確認問題 7-1</span>
