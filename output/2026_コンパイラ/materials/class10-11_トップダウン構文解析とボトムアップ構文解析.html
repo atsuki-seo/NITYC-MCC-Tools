@@ -260,9 +260,168 @@
 7. そうでなければ 構文エラーとする</code></pre>
 
   <p>
-    3 行目で <code>式()</code> を呼ぶと、括弧の内側の式全体を読み終えてから戻ってくる。
-    内側にさらに括弧があれば、<code>式()</code> の中から再び <code>因子()</code> が呼ばれる。
-    入れ子が一段深くなるたびに呼び出しが一段積み重なり、閉じ括弧を読むたびに一段戻る。
+    図 2-1 は、<code>因子()</code> に三つの字句列を与えたときに実行される行をたどったものである。
+    1 行目と 5 行目で次の字句を覗き、どの選択肢かが決まってから読み進める。どちらの選択肢の先頭にも当たらない字句であれば、何も読まずに構文エラーとなる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 196" role="img" aria-label="因子() に三つの字句列を与えたときに実行される行を示す図。字句列 7 では 1 行目、5 行目、6 行目と進み、7 を読んで戻る。字句列 ( 7 ) では 1 行目、2 行目、3 行目、4 行目と進み、( と ) を因子() が読み、7 は 3 行目で呼んだ式() が読む。字句列 + 7 では 1 行目、5 行目、7 行目と進み、構文エラーとなる。">
+      <path d="M 228 49 L 256 49" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 292 49 L 320 49" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 228 109 L 256 109" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 292 109 L 320 109" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 356 109 L 384 109" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 228 169 L 256 169" class="svg-arrow" marker-end="url(#ah3)"/>
+      <path d="M 292 169 L 320 169" class="svg-arrow" marker-end="url(#ah3)"/>
+
+      <text x="24" y="18" class="svg-small" style="text-anchor:start">字句列</text>
+      <text x="196" y="18" class="svg-small" style="text-anchor:start">実行される行（因子() の行番号）</text>
+      <text x="440" y="18" class="svg-small" style="text-anchor:start">結果</text>
+
+      <rect x="64" y="94" width="40" height="30" class="svg-cell"/>
+      <rect x="64" y="154" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="24" y="34" width="40" height="30" class="svg-hl"/>
+      <rect x="24" y="94" width="40" height="30" class="svg-hl"/>
+      <rect x="104" y="94" width="40" height="30" class="svg-hl"/>
+      <rect x="24" y="154" width="40" height="30" class="svg-hl"/>
+      <text x="44" y="54" class="svg-mono">7</text>
+      <text x="44" y="114" class="svg-mono">(</text>
+      <text x="84" y="114" class="svg-mono">7</text>
+      <text x="124" y="114" class="svg-mono">)</text>
+      <text x="44" y="174" class="svg-mono">+</text>
+      <text x="84" y="174" class="svg-mono">7</text>
+
+      <rect x="196" y="34" width="30" height="30" class="svg-cell"/>
+      <rect x="260" y="34" width="30" height="30" class="svg-cell"/>
+      <rect x="324" y="34" width="30" height="30" class="svg-cell"/>
+      <rect x="196" y="94" width="30" height="30" class="svg-cell"/>
+      <rect x="260" y="94" width="30" height="30" class="svg-cell"/>
+      <rect x="324" y="94" width="30" height="30" class="svg-cell"/>
+      <rect x="388" y="94" width="30" height="30" class="svg-cell"/>
+      <rect x="196" y="154" width="30" height="30" class="svg-cell"/>
+      <rect x="260" y="154" width="30" height="30" class="svg-cell"/>
+      <rect x="324" y="154" width="30" height="30" class="svg-cell"/>
+      <text x="211" y="54" class="svg-mono">1</text>
+      <text x="275" y="54" class="svg-mono">5</text>
+      <text x="339" y="54" class="svg-mono">6</text>
+      <text x="211" y="114" class="svg-mono">1</text>
+      <text x="275" y="114" class="svg-mono">2</text>
+      <text x="339" y="114" class="svg-mono">3</text>
+      <text x="403" y="114" class="svg-mono">4</text>
+      <text x="211" y="174" class="svg-mono">1</text>
+      <text x="275" y="174" class="svg-mono">5</text>
+      <text x="339" y="174" class="svg-mono">7</text>
+
+      <text x="440" y="54" class="svg-small" style="text-anchor:start">7 を読んで戻る</text>
+      <text x="440" y="106" class="svg-small" style="text-anchor:start">( と ) を読む</text>
+      <text x="440" y="122" class="svg-small" style="text-anchor:start">7 は 式() が読む</text>
+      <text x="440" y="174" class="svg-small" style="text-anchor:start">構文エラー</text>
+
+      <defs>
+        <marker id="ah3" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-1　因子() に三つの字句列を与えたときに実行される行。強調した字句は、因子() が覗いて選択肢を決めた字句、または読んだ字句である。
+      + 7 では、+ がどちらの選択肢の先頭にも当たらないため、7 行目で構文エラーとなり、7 は読まれない。
+    </figcaption>
+  </figure>
+
+  <p>
+    <code>( 7 )</code> では、3 行目で <code>式()</code> を呼び、括弧の内側の式全体を読み終えてから戻ってくる。
+    括弧の内側を読む <code>式()</code> は、<code>&lt;expr&gt;</code> から <code>&lt;term&gt;</code>、<code>&lt;term&gt;</code> から <code>&lt;factor&gt;</code> へと書き換えが進むのに従い、<code>項()</code> を経て再び <code>因子()</code> を呼ぶ。
+    内側にさらに括弧があれば、その <code>因子()</code> がまた <code>式()</code> を呼ぶ。
+    図 2-2 は、<code>( ( 7 ) )</code> を <code>式()</code> から解析したとき、各字句を読む時点で実行中の関数を積み上げたものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 280" role="img" aria-label="字句列 ( ( 7 ) ) の五つの字句それぞれの上に、その字句を読む時点で実行中の関数を下から積み上げた図。一つ目の ( では式、項、因子の 3 段、二つ目の ( では 6 段、7 では 9 段、一つ目の ) では 6 段、二つ目の ) では 3 段である。各列の最上段の因子() がその字句を読む。">
+      <text x="16" y="20" class="svg-small" style="text-anchor:start">実行中の関数（下が外側）</text>
+      <text x="16" y="260" class="svg-small" style="text-anchor:start">字句</text>
+
+      <rect x="74" y="212" width="72" height="20" class="svg-cell"/>
+      <rect x="74" y="192" width="72" height="20" class="svg-cell"/>
+      <rect x="174" y="212" width="72" height="20" class="svg-cell"/>
+      <rect x="174" y="192" width="72" height="20" class="svg-cell"/>
+      <rect x="174" y="172" width="72" height="20" class="svg-cell"/>
+      <rect x="174" y="152" width="72" height="20" class="svg-cell"/>
+      <rect x="174" y="132" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="212" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="192" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="172" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="152" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="132" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="112" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="92" width="72" height="20" class="svg-cell"/>
+      <rect x="274" y="72" width="72" height="20" class="svg-cell"/>
+      <rect x="374" y="212" width="72" height="20" class="svg-cell"/>
+      <rect x="374" y="192" width="72" height="20" class="svg-cell"/>
+      <rect x="374" y="172" width="72" height="20" class="svg-cell"/>
+      <rect x="374" y="152" width="72" height="20" class="svg-cell"/>
+      <rect x="374" y="132" width="72" height="20" class="svg-cell"/>
+      <rect x="474" y="212" width="72" height="20" class="svg-cell"/>
+      <rect x="474" y="192" width="72" height="20" class="svg-cell"/>
+      <rect x="74" y="172" width="72" height="20" class="svg-hl"/>
+      <rect x="174" y="112" width="72" height="20" class="svg-hl"/>
+      <rect x="274" y="52" width="72" height="20" class="svg-hl"/>
+      <rect x="374" y="112" width="72" height="20" class="svg-hl"/>
+      <rect x="474" y="172" width="72" height="20" class="svg-hl"/>
+
+      <text x="110" y="227" class="svg-small">式</text>
+      <text x="110" y="207" class="svg-small">項</text>
+      <text x="110" y="187" class="svg-small">因子</text>
+      <text x="210" y="227" class="svg-small">式</text>
+      <text x="210" y="207" class="svg-small">項</text>
+      <text x="210" y="187" class="svg-small">因子</text>
+      <text x="210" y="167" class="svg-small">式</text>
+      <text x="210" y="147" class="svg-small">項</text>
+      <text x="210" y="127" class="svg-small">因子</text>
+      <text x="310" y="227" class="svg-small">式</text>
+      <text x="310" y="207" class="svg-small">項</text>
+      <text x="310" y="187" class="svg-small">因子</text>
+      <text x="310" y="167" class="svg-small">式</text>
+      <text x="310" y="147" class="svg-small">項</text>
+      <text x="310" y="127" class="svg-small">因子</text>
+      <text x="310" y="107" class="svg-small">式</text>
+      <text x="310" y="87" class="svg-small">項</text>
+      <text x="310" y="67" class="svg-small">因子</text>
+      <text x="410" y="227" class="svg-small">式</text>
+      <text x="410" y="207" class="svg-small">項</text>
+      <text x="410" y="187" class="svg-small">因子</text>
+      <text x="410" y="167" class="svg-small">式</text>
+      <text x="410" y="147" class="svg-small">項</text>
+      <text x="410" y="127" class="svg-small">因子</text>
+      <text x="510" y="227" class="svg-small">式</text>
+      <text x="510" y="207" class="svg-small">項</text>
+      <text x="510" y="187" class="svg-small">因子</text>
+
+      <text x="110" y="166" class="svg-small">3 段</text>
+      <text x="210" y="106" class="svg-small">6 段</text>
+      <text x="310" y="46" class="svg-small">9 段</text>
+      <text x="410" y="106" class="svg-small">6 段</text>
+      <text x="510" y="166" class="svg-small">3 段</text>
+
+      <rect x="90" y="240" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="190" y="240" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="290" y="240" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="390" y="240" width="40" height="30" class="svg-cell-plain"/>
+      <rect x="490" y="240" width="40" height="30" class="svg-cell-plain"/>
+      <text x="110" y="260" class="svg-mono">(</text>
+      <text x="210" y="260" class="svg-mono">(</text>
+      <text x="310" y="260" class="svg-mono">7</text>
+      <text x="410" y="260" class="svg-mono">)</text>
+      <text x="510" y="260" class="svg-mono">)</text>
+    </svg>
+    <figcaption>
+      図 2-2　( ( 7 ) ) の各字句を読む時点で実行中の関数。強調した最上段の因子() がその字句を読む。
+      開き括弧を一つ読むたびに式・項・因子の 3 段が積み重なり、閉じ括弧を読むたびに 3 段ずつ戻る。開いたままの括弧の数は、積み重なった段数から読み取れる。
+    </figcaption>
+  </figure>
+
+  <p>
+    入れ子が一段深くなるたびに呼び出しが積み重なり、閉じ括弧を読むたびに戻る。
     入れ子の深さに比例する記憶は、この呼び出しの積み重なりとして実現される。
   </p>
 
@@ -326,7 +485,52 @@
     <code>式()</code> は、最初の手順で字句を一つも読まないまま <code>式()</code> を呼ぶ。
     呼ばれた側も同じ位置から同じ手順を始めるため、再び字句を読まずに <code>式()</code> を呼ぶ。
     位置が進まないので、呼び出しは止まらず、やがて呼び出しの積み重なりのための記憶を使い果たして異常終了する。
+    図 3-1 は、字句列 <code>1 + 2</code> を与えたときの様子である。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 266" role="img" aria-label="字句列 1 + 2 の上で、読む位置が最初の字句 1 を指したまま動かず、その下に式() の呼び出しが 1 段目、2 段目、3 段目、4 段目と積み上がり、さらに省略記号で続く図。各段の右に、読む位置は 1 のままであることを記す。左側の下向きの矢印は、字句を読まずに式() を呼び続けることを示す。">
+      <path d="M 250 8 L 250 36" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 176 100 L 176 236" class="svg-arrow" marker-end="url(#ah4)"/>
+
+      <text x="240" y="24" class="svg-small" style="text-anchor:end">読む位置</text>
+
+      <rect x="270" y="40" width="40" height="32" class="svg-cell"/>
+      <rect x="310" y="40" width="40" height="32" class="svg-cell"/>
+      <rect x="230" y="40" width="40" height="32" class="svg-hl"/>
+      <text x="250" y="61" class="svg-mono">1</text>
+      <text x="290" y="61" class="svg-mono">+</text>
+      <text x="330" y="61" class="svg-mono">2</text>
+
+      <rect x="190" y="96" width="120" height="28" class="svg-cell"/>
+      <rect x="190" y="132" width="120" height="28" class="svg-cell"/>
+      <rect x="190" y="168" width="120" height="28" class="svg-cell"/>
+      <rect x="190" y="204" width="120" height="28" class="svg-cell"/>
+      <text x="250" y="115" class="svg-text">式()</text>
+      <text x="250" y="151" class="svg-text">式()</text>
+      <text x="250" y="187" class="svg-text">式()</text>
+      <text x="250" y="223" class="svg-text">式()</text>
+      <text x="250" y="256" class="svg-text">…</text>
+
+      <text x="322" y="115" class="svg-small" style="text-anchor:start">1 段目: 読む位置は 1</text>
+      <text x="322" y="151" class="svg-small" style="text-anchor:start">2 段目: 読む位置は 1</text>
+      <text x="322" y="187" class="svg-small" style="text-anchor:start">3 段目: 読む位置は 1</text>
+      <text x="322" y="223" class="svg-small" style="text-anchor:start">4 段目: 読む位置は 1</text>
+
+      <text x="166" y="160" class="svg-small" style="text-anchor:end">字句を読まずに</text>
+      <text x="166" y="176" class="svg-small" style="text-anchor:end">式() を呼び続ける</text>
+
+      <defs>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 3-1　左再帰をそのまま写した 式() に 1 + 2 を与えたときの呼び出し。読む位置は 1 を指したまま進まず、式() の呼び出しだけが積み上がる。
+      どの段も 1 段目と同じ状況から同じ手順を始めるため、終わる理由がない。
+    </figcaption>
+  </figure>
 
   <p>
     このように、生成規則の右辺の先頭に左辺と同じ非終端記号が現れることを
@@ -385,6 +589,7 @@
     数学の慣習どおり <code>(8 - 3) - 2 = 3</code> と解釈するには、左の二つを先に結び付ける木を作らなければならない。
     このような結び付き方を <span class="term">左結合</span><span class="en">(left associative)</span>、その逆を
     <span class="term">右結合</span><span class="en">(right associative)</span> と呼ぶ。
+    以下では演算の木を、<code>-(8, 3)</code> のように演算子の後に左右の部分木を括弧で並べて書く。図 3-2 は二通りの木である。
   </p>
 
   <figure>
@@ -428,20 +633,109 @@
       <text x="435" y="222" class="svg-text">値は 8 - 1 = 7</text>
     </svg>
     <figcaption>
-      図 3-1　8 - 3 - 2 に対する左結合と右結合の木。強調した減算が先に計算される。
+      図 3-2　8 - 3 - 2 に対する左結合と右結合の木。強調した減算が先に計算される。
       字句の並びは同じでも、木の形が違えば計算結果が変わる。減算・除算では左結合の木を作らなければならない。
     </figcaption>
   </figure>
 
   <p>
-    <code>&lt;expr'&gt;</code> を導入する書き換えでは、<code>&lt;expr'&gt;</code> の部分木が右へ右へと伸びる。
-    この構文木をそのまま演算の木にすると右結合になり、<code>8 - 3 - 2</code> が 7 と計算される。
+    減算を含めて <code>&lt;expr'&gt;</code> を導入すると、<code>&lt;expr'&gt; ::= "+" &lt;term&gt; &lt;expr'&gt; | "-" &lt;term&gt; &lt;expr'&gt; | ε</code> となる。
+    この文法で <code>8 - 3 - 2</code> を導出した構文木が、図 3-3 の左である。
+    <code>&lt;expr'&gt;</code> の部分木が右へ右へと伸び、2 つ目の減算は、1 つ目の減算の後ろにある <code>&lt;expr'&gt;</code> の内側に入る。
+    この入れ子をそのまま演算の木にすると、<code>3 - 2</code> が先にまとまる右結合になり、<code>8 - 3 - 2</code> が 7 と計算される。
     左結合の木を得るには、それまでに組んだ左側の木を <code>&lt;expr'&gt;</code> の関数に引数として渡していく工夫が要る。
   </p>
 
   <p>
     繰り返しの書き方であれば、この工夫は自然に入る。
-    ループに入る前に左側の木を持ち、一周するごとに「それまでの木」と「新たに読んだ項」を演算子で結んだ木に置き換えれば、木は左へ伸び、左結合になる。
+    ループに入る前に左側の木 <code>左</code> を持ち、一周するごとに「それまでの <code>左</code>」と「新たに読んだ項」を演算子で結んだ木で <code>左</code> を置き換えればよい。
+    図 3-3 の右は、<code>左</code> が <code>8</code>、<code>-(8, 3)</code>、<code>-(-(8, 3), 2)</code> と育つ様子である。新しい節は常に古い木の上にでき、古い木はその左の子になるため、木は左へ伸びて左結合になる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 340" role="img" aria-label="左右二つの部分からなる図。左は、expr' を導入した文法による 8 - 3 - 2 の構文木で、expr が term の 8 と expr' に分かれ、その expr' が -、term の 3、expr' に分かれ、さらにその expr' が -、term の 2、ε の expr' に分かれる。expr' の節が右下へ一直線に伸びる。右は、繰り返しのループで左が育つ三つの段階で、ループ前は葉 8 だけ、1 周目の後は 8 と 3 を子にもつ減算、2 周目の後はその減算を左の子とし、2 を右の子とする減算である。">
+      <path d="M 364 26 L 364 336" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 76 56 L 42 80" class="svg-line"/>
+      <path d="M 76 56 L 150 80" class="svg-line"/>
+      <path d="M 42 106 L 42 130" class="svg-line"/>
+      <path d="M 150 106 L 100 130" class="svg-line"/>
+      <path d="M 150 106 L 166 130" class="svg-line"/>
+      <path d="M 150 106 L 246 130" class="svg-line"/>
+      <path d="M 166 156 L 166 180" class="svg-line"/>
+      <path d="M 246 156 L 196 180" class="svg-line"/>
+      <path d="M 246 156 L 250 180" class="svg-line"/>
+      <path d="M 246 156 L 322 180" class="svg-line"/>
+      <path d="M 250 206 L 250 230" class="svg-line"/>
+      <path d="M 322 206 L 322 230" class="svg-line"/>
+      <path d="M 474 138 L 448 160" class="svg-line"/>
+      <path d="M 474 138 L 500 160" class="svg-line"/>
+      <path d="M 500 244 L 466 262" class="svg-line"/>
+      <path d="M 500 244 L 534 262" class="svg-line"/>
+      <path d="M 466 288 L 440 306" class="svg-line"/>
+      <path d="M 466 288 L 492 306" class="svg-line"/>
+
+      <text x="182" y="18" class="svg-small">&lt;expr'&gt; による構文木（右へ伸びる）</text>
+      <text x="474" y="18" class="svg-small">繰り返しで育つ 左（左へ伸びる）</text>
+
+      <rect x="43" y="30" width="66" height="26" class="svg-cell"/>
+      <rect x="9" y="80" width="66" height="26" class="svg-cell"/>
+      <rect x="28" y="130" width="28" height="26" class="svg-cell"/>
+      <rect x="86" y="130" width="28" height="26" class="svg-cell"/>
+      <rect x="133" y="130" width="66" height="26" class="svg-cell"/>
+      <rect x="152" y="180" width="28" height="26" class="svg-cell"/>
+      <rect x="182" y="180" width="28" height="26" class="svg-cell"/>
+      <rect x="217" y="180" width="66" height="26" class="svg-cell"/>
+      <rect x="236" y="230" width="28" height="26" class="svg-cell"/>
+      <rect x="308" y="230" width="28" height="26" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="117" y="80" width="66" height="26" class="svg-hl"/>
+      <rect x="213" y="130" width="66" height="26" class="svg-hl"/>
+      <rect x="289" y="180" width="66" height="26" class="svg-hl"/>
+
+      <text x="76" y="48" class="svg-mono">&lt;expr&gt;</text>
+      <text x="42" y="98" class="svg-mono">&lt;term&gt;</text>
+      <text x="150" y="98" class="svg-mono">&lt;expr'&gt;</text>
+      <text x="42" y="148" class="svg-mono">8</text>
+      <text x="100" y="148" class="svg-mono">-</text>
+      <text x="166" y="148" class="svg-mono">&lt;term&gt;</text>
+      <text x="246" y="148" class="svg-mono">&lt;expr'&gt;</text>
+      <text x="166" y="198" class="svg-mono">3</text>
+      <text x="196" y="198" class="svg-mono">-</text>
+      <text x="250" y="198" class="svg-mono">&lt;term&gt;</text>
+      <text x="322" y="198" class="svg-mono">&lt;expr'&gt;</text>
+      <text x="250" y="248" class="svg-mono">2</text>
+      <text x="322" y="248" class="svg-mono">ε</text>
+
+      <text x="474" y="44" class="svg-small">ループ前</text>
+      <text x="474" y="104" class="svg-small">1 周目の後</text>
+      <text x="474" y="210" class="svg-small">2 周目の後</text>
+
+      <rect x="460" y="52" width="28" height="26" class="svg-cell"/>
+      <rect x="434" y="160" width="28" height="26" class="svg-cell"/>
+      <rect x="486" y="160" width="28" height="26" class="svg-cell"/>
+      <rect x="460" y="112" width="28" height="26" class="svg-hl"/>
+      <rect x="452" y="262" width="28" height="26" class="svg-cell"/>
+      <rect x="520" y="262" width="28" height="26" class="svg-cell"/>
+      <rect x="426" y="306" width="28" height="26" class="svg-cell"/>
+      <rect x="478" y="306" width="28" height="26" class="svg-cell"/>
+      <rect x="486" y="218" width="28" height="26" class="svg-hl"/>
+
+      <text x="474" y="70" class="svg-mono">8</text>
+      <text x="474" y="130" class="svg-mono">-</text>
+      <text x="448" y="178" class="svg-mono">8</text>
+      <text x="500" y="178" class="svg-mono">3</text>
+      <text x="500" y="236" class="svg-mono">-</text>
+      <text x="466" y="280" class="svg-mono">-</text>
+      <text x="534" y="280" class="svg-mono">2</text>
+      <text x="440" y="324" class="svg-mono">8</text>
+      <text x="492" y="324" class="svg-mono">3</text>
+    </svg>
+    <figcaption>
+      図 3-3　8 - 3 - 2 に対する二つの組み立て方。左は &lt;expr'&gt; を導入した文法の構文木で、強調した &lt;expr'&gt; が右下へ伸び、後の減算ほど深い位置に入る。&lt;term&gt; の下は数一つに縮めて描いた。
+      右は繰り返しのループで 左 が 8 → -(8, 3) → -(-(8, 3), 2) と育つ様子で、強調した節がその周で新たに作られる。古い木は常に新しい節の左の子になる。
+    </figcaption>
+  </figure>
+
+  <p>
     <strong>再帰下降パーサーを手で書く場合は、左再帰を繰り返しに書き換えるのが扱いやすい。</strong>
   </p>
 
@@ -518,10 +812,95 @@
   <h3>文法 G を書き換えたものの FIRST と FOLLOW</h3>
 
   <p>
-    <code>&lt;expr'&gt;</code> と <code>&lt;term'&gt;</code> を導入して左再帰を除いた文法 G について、FIRST と FOLLOW を求めると表 4-1 のようになる。
-    FIRST は右辺の先頭を、FOLLOW は右辺の中でその非終端記号の後ろに何があるかをたどって求める。
-    たとえば <code>&lt;factor&gt; ::= "(" &lt;expr&gt; ")"</code> に <code>&lt;expr&gt;</code> の直後の <code>")"</code> が現れるので、<code>")"</code> は FOLLOW(<code>&lt;expr&gt;</code>) に属する。
-    開始記号の後には入力の終わりが来るので、<code>$</code> も属する。
+    <code>&lt;expr'&gt;</code> と <code>&lt;term'&gt;</code> を導入して左再帰を除いた文法 G について、FIRST と FOLLOW を求める。
+  </p>
+
+  <p>
+    FIRST は、右辺の先頭から左辺へ受け継がれる。
+    <code>&lt;factor&gt;</code> の選択肢は <code>"("</code> と <code>数</code> で始まるので、FIRST(<code>&lt;factor&gt;</code>) = { <code>(</code>, <code>数</code> } である。
+    <code>&lt;term&gt; ::= &lt;factor&gt; &lt;term'&gt;</code> の右辺は <code>&lt;factor&gt;</code> で始まるので、FIRST(<code>&lt;term&gt;</code>) は FIRST(<code>&lt;factor&gt;</code>) と同じになる。
+    同じ理由で、FIRST(<code>&lt;expr&gt;</code>) も FIRST(<code>&lt;term&gt;</code>) と同じになる。
+    <code>&lt;expr'&gt;</code> と <code>&lt;term'&gt;</code> の FIRST は、一つ目の選択肢の先頭 <code>+</code> と <code>*</code> に、二つ目の選択肢の ε を加えたものである。
+  </p>
+
+  <p>
+    FOLLOW は、右辺の中でその非終端記号の後ろに何があるかをたどって求める。出発点は FOLLOW(<code>&lt;expr&gt;</code>) である。
+    開始記号の後には入力の終わりが来るので <code>$</code> が属し、<code>&lt;factor&gt; ::= "(" &lt;expr&gt; ")"</code> には <code>&lt;expr&gt;</code> の直後に <code>")"</code> が現れるので <code>)</code> も属する。
+    規則の右辺で非終端記号 A の後ろに記号列 β が続くとき、次の二つを FOLLOW(A) に加える。
+  </p>
+
+  <ul>
+    <li>FIRST(β) から ε を除いたもの</li>
+    <li>β が ε を導出しうるならば、その規則の左辺の FOLLOW</li>
+  </ul>
+
+  <p>
+    図 4-1 は、この二つを規則 <code>&lt;expr&gt; ::= &lt;term&gt; &lt;expr'&gt;</code> と <code>&lt;term&gt; ::= &lt;factor&gt; &lt;term'&gt;</code> に当てはめ、集合が上から順に増えていく様子を示したものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 336" role="img" aria-label="上下二段の図。上段は FIRST の受け継ぎで、FIRST(factor) = { (, 数 } が規則 term ::= factor term' によって FIRST(term) に、さらに規則 expr ::= term expr' によって FIRST(expr) に受け継がれる。下段は FOLLOW の伝わり方で、FOLLOW(expr) = { ), $ } から出発する。規則 expr ::= term expr' から、FIRST(expr') − ε = { + } と、expr' が ε を導出しうるので FOLLOW(expr) が FOLLOW(term) に加わり、FOLLOW(term) = { +, ), $ } になる。規則 term ::= factor term' から、FIRST(term') − ε = { * } と、term' が ε を導出しうるので FOLLOW(term) が FOLLOW(factor) に加わり、FOLLOW(factor) = { *, +, ), $ } になる。">
+      <path d="M 158 50 L 218 50" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 364 50 L 424 50" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 328 158 L 294 158" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 60 174 L 60 214" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 328 234 L 294 234" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 60 250 L 60 290" class="svg-arrow" marker-end="url(#ah5)"/>
+      <path d="M 328 310 L 294 310" class="svg-arrow" marker-end="url(#ah5)"/>
+
+      <text x="16" y="18" class="svg-small" style="text-anchor:start">FIRST の受け継ぎ（右辺の先頭から左辺へ）</text>
+      <rect x="16" y="28" width="140" height="44" class="svg-cell"/>
+      <rect x="222" y="28" width="140" height="44" class="svg-cell"/>
+      <rect x="428" y="28" width="140" height="44" class="svg-cell"/>
+      <text x="86" y="45" class="svg-mono">FIRST(&lt;factor&gt;)</text>
+      <text x="86" y="66" class="svg-mono">{ (, 数 }</text>
+      <text x="292" y="45" class="svg-mono">FIRST(&lt;term&gt;)</text>
+      <text x="292" y="66" class="svg-mono">{ (, 数 }</text>
+      <text x="498" y="45" class="svg-mono">FIRST(&lt;expr&gt;)</text>
+      <text x="498" y="66" class="svg-mono">{ (, 数 }</text>
+      <text x="189" y="88" class="svg-small">&lt;term&gt; ::=</text>
+      <text x="189" y="104" class="svg-small">&lt;factor&gt; &lt;term'&gt;</text>
+      <text x="395" y="88" class="svg-small">&lt;expr&gt; ::=</text>
+      <text x="395" y="104" class="svg-small">&lt;term&gt; &lt;expr'&gt;</text>
+
+      <text x="16" y="130" class="svg-small" style="text-anchor:start">FOLLOW の伝わり方（上から順に集合が増える）</text>
+      <rect x="16" y="142" width="274" height="32" class="svg-cell"/>
+      <rect x="330" y="138" width="238" height="40" class="svg-cell-plain"/>
+      <text x="153" y="163" class="svg-mono">FOLLOW(&lt;expr&gt;) = { ), $ }</text>
+      <text x="449" y="154" class="svg-small">開始記号の直後: $</text>
+      <text x="449" y="170" class="svg-small">"(" &lt;expr&gt; ")" の中: )</text>
+
+      <text x="72" y="198" class="svg-small" style="text-anchor:start">&lt;expr'&gt; ⇒ ε なので加える</text>
+      <text x="449" y="202" class="svg-small">&lt;expr&gt; ::= &lt;term&gt; &lt;expr'&gt; より</text>
+      <rect x="16" y="218" width="274" height="32" class="svg-cell"/>
+      <rect x="330" y="218" width="238" height="32" class="svg-hl"/>
+      <text x="153" y="239" class="svg-mono">FOLLOW(&lt;term&gt;) = { +, ), $ }</text>
+      <text x="449" y="239" class="svg-mono">FIRST(&lt;expr'&gt;) − ε = { + }</text>
+
+      <text x="72" y="274" class="svg-small" style="text-anchor:start">&lt;term'&gt; ⇒ ε なので加える</text>
+      <text x="449" y="278" class="svg-small">&lt;term&gt; ::= &lt;factor&gt; &lt;term'&gt; より</text>
+      <rect x="16" y="294" width="274" height="32" class="svg-cell"/>
+      <rect x="330" y="294" width="238" height="32" class="svg-cell"/>
+      <text x="153" y="315" class="svg-mono">FOLLOW(&lt;factor&gt;) = { *, +, ), $ }</text>
+      <text x="449" y="315" class="svg-mono">FIRST(&lt;term'&gt;) − ε = { * }</text>
+
+      <defs>
+        <marker id="ah5" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　FIRST と FOLLOW の求め方。FIRST は右辺の先頭の記号から左辺へ受け継がれる。FOLLOW は FOLLOW(&lt;expr&gt;) から出発し、規則ごとに右側の箱の集合と、上の段の FOLLOW が加わって増えていく。
+      強調した { + } は、FOLLOW(&lt;term&gt;) を経て FOLLOW(&lt;factor&gt;) まで二段で伝わる。
+    </figcaption>
+  </figure>
+
+  <p>
+    <code>+</code> が FOLLOW(<code>&lt;factor&gt;</code>) に入るのは、FIRST(<code>&lt;expr'&gt;</code>) から FOLLOW(<code>&lt;term&gt;</code>) へ、さらに FOLLOW(<code>&lt;factor&gt;</code>) へと二段で伝わった結果である。
+    <code>1 + 2</code> の <code>1</code> の直後に <code>+</code> が来ることを思い浮かべれば、<code>&lt;factor&gt;</code> の直後に <code>+</code> が来うるのは当然であるが、規則だけから機械的に導くとこの二段を経る。
+    なお、<code>&lt;expr'&gt;</code> と <code>&lt;term'&gt;</code> はそれぞれ <code>&lt;expr&gt;</code> と <code>&lt;term&gt;</code> の右辺の右端にあるので、FOLLOW(<code>&lt;expr'&gt;</code>) は FOLLOW(<code>&lt;expr&gt;</code>) と、FOLLOW(<code>&lt;term'&gt;</code>) は FOLLOW(<code>&lt;term&gt;</code>) と等しい。
+    結果をまとめると表 4-1 になる。
   </p>
 
   <div class="table-block">
@@ -549,6 +928,40 @@
     それ以外の字句、たとえば <code>数</code> が来れば、どちらも選べないので構文エラーである。
     繰り返しの書き方では、この判断がループの継続条件として現れる。次の字句が <code>"+"</code> でなければループを抜けるが、抜けた後に来るべき字句は FOLLOW 集合の要素に限られる。
   </p>
+
+  <p>
+    表 4-2 は、字句列 <code>( 1 + 2 ) $</code> と <code>1 2 $</code> について、選択肢をもつ <code>&lt;factor&gt;</code>, <code>&lt;term'&gt;</code>, <code>&lt;expr'&gt;</code> の判断を 1 字句ずつ記録したものである。
+    <code>&lt;expr&gt;</code> と <code>&lt;term&gt;</code> は選択肢が一つしかないため、判断は生じない。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-2　表 4-1 を使った選択肢の判断。次の字句が FIRST に当たれば一つ目の選択肢を、FOLLOW に当たれば ε を選ぶ。
+      1 2 $ では、1 を読んだ直後の &lt;term'&gt; で、次の字句 2（数）がどちらの集合にも属さず、その場で構文エラーが確定する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>次の字句</th><th>判断する非終端記号</th><th>当たった集合</th><th>選んだ選択肢</th></tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4">字句列 <code>( 1 + 2 ) $</code>（受理される）</td></tr>
+        <tr><td><code>(</code></td><td><code>&lt;factor&gt;</code></td><td>FIRST(<code>"(" &lt;expr&gt; ")"</code>)</td><td><code>"(" &lt;expr&gt; ")"</code></td></tr>
+        <tr><td><code>1</code></td><td><code>&lt;factor&gt;</code></td><td>FIRST(<code>数</code>)</td><td><code>数</code></td></tr>
+        <tr><td><code>+</code></td><td><code>&lt;term'&gt;</code></td><td>FOLLOW(<code>&lt;term'&gt;</code>)</td><td>ε</td></tr>
+        <tr><td><code>+</code></td><td><code>&lt;expr'&gt;</code></td><td>FIRST(<code>"+" &lt;term&gt; &lt;expr'&gt;</code>)</td><td><code>"+" &lt;term&gt; &lt;expr'&gt;</code></td></tr>
+        <tr><td><code>2</code></td><td><code>&lt;factor&gt;</code></td><td>FIRST(<code>数</code>)</td><td><code>数</code></td></tr>
+        <tr><td><code>)</code></td><td><code>&lt;term'&gt;</code></td><td>FOLLOW(<code>&lt;term'&gt;</code>)</td><td>ε</td></tr>
+        <tr><td><code>)</code></td><td><code>&lt;expr'&gt;</code></td><td>FOLLOW(<code>&lt;expr'&gt;</code>)</td><td>ε。続けて <code>")"</code> を照合する</td></tr>
+        <tr><td><code>$</code></td><td><code>&lt;term'&gt;</code></td><td>FOLLOW(<code>&lt;term'&gt;</code>)</td><td>ε</td></tr>
+        <tr><td><code>$</code></td><td><code>&lt;expr'&gt;</code></td><td>FOLLOW(<code>&lt;expr'&gt;</code>)</td><td>ε。入力の終わりなので受理する</td></tr>
+        <tr><td colspan="4">字句列 <code>1 2 $</code>（受理されない）</td></tr>
+        <tr><td><code>1</code></td><td><code>&lt;factor&gt;</code></td><td>FIRST(<code>数</code>)</td><td><code>数</code></td></tr>
+        <tr><td><strong><code>2</code></strong></td><td><strong><code>&lt;term'&gt;</code></strong></td><td><strong>どちらにも属さない</strong>。FIRST は { <code>*</code> }、FOLLOW は { <code>+</code>, <code>)</code>, <code>$</code> }</td><td><strong>選べない。構文エラー</strong></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
 
   <p>
     左再帰を含む規則は、決して LL(1) にならない。
@@ -793,10 +1206,66 @@
     文法 G には <code>&lt;expr&gt;</code> の直後に <code>*</code> が来る規則がないため、この先どう操作しても開始記号にまとまらない。
     ここでシフトして <code>2 * 3</code> を先にまとめることが、乗算を加算より先に結び付けることにあたる。
     <strong>右辺に一致する並びが頂上にあっても、還元すべきとは限らない。</strong>
+    図 6-1 は、手順 9 で分かれる二つの道を最後までたどったものである。
   </p>
 
+  <figure>
+    <svg viewBox="0 0 580 320" role="img" aria-label="表 6-1 の手順 9 で、スタック $ expr + term、次の字句 * の状態から二つに分かれる道を示す図。左の還元する道では、スタックが $ expr になり、* と 3 をシフトして $ expr * 数、数を term まで還元して $ expr * term となり、一致する右辺がなく行き詰まる。右のシフトする道では、$ expr + term *、3 をシフトして $ expr + term * 数、還元 2 回で $ expr + term、還元 1 回で $ expr となり受理される。">
+      <path d="M 220 54 L 152 86" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 360 54 L 428 86" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 144 122 L 144 150" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 144 186 L 144 214" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 144 250 L 144 278" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 436 122 L 436 150" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 436 186 L 436 214" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 436 250 L 436 278" class="svg-arrow" marker-end="url(#ah6)"/>
+
+      <text x="290" y="14" class="svg-small">表 6-1 の手順 9</text>
+      <rect x="120" y="20" width="340" height="32" class="svg-cell"/>
+      <text x="250" y="41" class="svg-mono">$ &lt;expr&gt; + &lt;term&gt;</text>
+      <text x="372" y="41" class="svg-small" style="text-anchor:start">次の字句 *</text>
+
+      <text x="160" y="66" class="svg-small" style="text-anchor:end">還元する</text>
+      <text x="420" y="66" class="svg-small" style="text-anchor:start">シフトする</text>
+
+      <rect x="14" y="90" width="260" height="30" class="svg-cell"/>
+      <rect x="14" y="154" width="260" height="30" class="svg-cell"/>
+      <rect x="14" y="218" width="260" height="30" class="svg-cell"/>
+      <rect x="14" y="282" width="260" height="30" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <text x="144" y="110" class="svg-mono">$ &lt;expr&gt;</text>
+      <text x="144" y="174" class="svg-mono">$ &lt;expr&gt; * 数</text>
+      <text x="144" y="238" class="svg-mono">$ &lt;expr&gt; * &lt;term&gt;</text>
+      <text x="144" y="302" class="svg-text">行き詰まる</text>
+      <text x="154" y="142" class="svg-small" style="text-anchor:start">* と 3 をシフト</text>
+      <text x="154" y="206" class="svg-small" style="text-anchor:start">数 を &lt;term&gt; まで還元</text>
+      <text x="154" y="270" class="svg-small" style="text-anchor:start">一致する右辺がない</text>
+
+      <rect x="306" y="90" width="260" height="30" class="svg-cell"/>
+      <rect x="306" y="154" width="260" height="30" class="svg-cell"/>
+      <rect x="306" y="218" width="260" height="30" class="svg-cell"/>
+      <rect x="306" y="282" width="260" height="30" class="svg-hl"/>
+      <text x="436" y="110" class="svg-mono">$ &lt;expr&gt; + &lt;term&gt; *</text>
+      <text x="436" y="174" class="svg-mono">$ &lt;expr&gt; + &lt;term&gt; * 数</text>
+      <text x="436" y="238" class="svg-mono">$ &lt;expr&gt; + &lt;term&gt;</text>
+      <text x="436" y="302" class="svg-text">$ &lt;expr&gt;　受理</text>
+      <text x="446" y="142" class="svg-small" style="text-anchor:start">3 をシフト</text>
+      <text x="446" y="206" class="svg-small" style="text-anchor:start">還元 2 回</text>
+      <text x="446" y="270" class="svg-small" style="text-anchor:start">還元 1 回</text>
+
+      <defs>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 6-1　手順 9 での二つの道。還元すると &lt;expr&gt; の直後に * が積まれ、&lt;expr&gt; "*" を含む右辺が文法 G にないため、それ以上まとめられない。
+      シフトすると 2 * 3 が先に &lt;term&gt; にまとまり、その後で 1 と加算で結ばれて受理に至る。
+    </figcaption>
+  </figure>
+
   <p>
-    図 6-1 は、還元によって作られた節に、作られた順の番号を付けたものである。
+    図 6-2 は、還元によって作られた節に、作られた順の番号を付けたものである。
     番号は葉に近い節から始まり、根で終わる。
   </p>
 
@@ -853,7 +1322,7 @@
       <text x="486" y="224" class="svg-mono">⑥</text>
     </svg>
     <figcaption>
-      図 6-1　表 6-1 の還元によって作られる節と、その順番。字句を左から読みながら、葉に近い節から順に作られ、根が最後に作られる。
+      図 6-2　表 6-1 の還元によって作られる節と、その順番。字句を左から読みながら、葉に近い節から順に作られ、根が最後に作られる。
       図 5-1 の呼び出しを始めた順と比べると、番号の進む向きが上下で逆になっている。
     </figcaption>
   </figure>
@@ -861,6 +1330,35 @@
   <p>
     還元の順を逆からたどると、開始記号から出発して、毎回いちばん右の非終端記号を書き換える導出になる。
     このような導出を <span class="term">最右導出</span><span class="en">(rightmost derivation)</span> と呼ぶ。
+    表 6-2 は、<code>1 + 2 * 3</code> の最右導出の各段を、表 6-1 の還元と対応させたものである。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-2　1 + 2 * 3 の最右導出と表 6-1 の還元の対応。上から下へ読むと、毎回いちばん右の非終端記号を書き換えている。
+      右端の列を下から上へ読むと 2, 3, 4, 7, 8, 11, 12, 13 となり、表 6-1 で還元を行った手順と同じ順に並ぶ。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>段</th><th>文形式</th><th>次の段への書き換え</th><th>表 6-1 の手順</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">0</td><td><code>&lt;expr&gt;</code></td><td><code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt;</code></td><td class="num-cell">13</td></tr>
+        <tr><td class="num-cell">1</td><td><code>&lt;expr&gt; + &lt;term&gt;</code></td><td><code>&lt;term&gt; ::= &lt;term&gt; "*" &lt;factor&gt;</code></td><td class="num-cell">12</td></tr>
+        <tr><td class="num-cell">2</td><td><code>&lt;expr&gt; + &lt;term&gt; * &lt;factor&gt;</code></td><td><code>&lt;factor&gt; ::= 数</code></td><td class="num-cell">11</td></tr>
+        <tr><td class="num-cell">3</td><td><code>&lt;expr&gt; + &lt;term&gt; * 数</code></td><td><code>&lt;term&gt; ::= &lt;factor&gt;</code></td><td class="num-cell">8</td></tr>
+        <tr><td class="num-cell">4</td><td><code>&lt;expr&gt; + &lt;factor&gt; * 数</code></td><td><code>&lt;factor&gt; ::= 数</code></td><td class="num-cell">7</td></tr>
+        <tr><td class="num-cell">5</td><td><code>&lt;expr&gt; + 数 * 数</code></td><td><code>&lt;expr&gt; ::= &lt;term&gt;</code></td><td class="num-cell">4</td></tr>
+        <tr><td class="num-cell">6</td><td><code>&lt;term&gt; + 数 * 数</code></td><td><code>&lt;term&gt; ::= &lt;factor&gt;</code></td><td class="num-cell">3</td></tr>
+        <tr><td class="num-cell">7</td><td><code>&lt;factor&gt; + 数 * 数</code></td><td><code>&lt;factor&gt; ::= 数</code></td><td class="num-cell">2</td></tr>
+        <tr><td class="num-cell">8</td><td><code>数 + 数 * 数</code></td><td>—</td><td class="num-cell">—</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
     <strong>シフト還元構文解析は、最右導出を逆の順に再現する。</strong>
   </p>
 
@@ -986,6 +1484,138 @@
     </figcaption>
   </figure>
 
+  <h3>状態の移り変わりをたどる</h3>
+
+  <p>
+    状態がどう作られ、入力に沿ってどう移るかを、次の小さな文法で確かめる。
+    文法 G から括弧を除き、<code>&lt;factor&gt;</code> を <code>数</code> に置き換えて、非終端記号を一文字で書いたものである。
+    受理を判定するために、開始記号 E の上にもう一つ規則 <code>S' ::= E</code> を加える。
+  </p>
+
+  <pre><code>S' ::= E
+E  ::= E "+" T | T
+T  ::= T "*" 数 | 数</code></pre>
+
+  <p>
+    最初の状態 0 は、まだ何も読んでいない項 <code>S' ::= ・E</code> から作る。
+    <code>・</code> の直後に非終端記号があれば、その記号の規則を、<code>・</code> を先頭に置いた項として加える。
+    <code>E</code> の直前の <code>・</code> から <code>E ::= ・E "+" T</code> と <code>E ::= ・T</code> が、<code>T</code> の直前の <code>・</code> から <code>T ::= ・T "*" 数</code> と <code>T ::= ・数</code> が加わる。
+    ある状態で記号 X を積むと、<code>・</code> の直後が X である項について <code>・</code> を一つ進めた項の集まりが、移り先の状態になる。
+    こうして作った状態と遷移が図 7-2 である。
+    このように、先読みを使わずに項だけで作った状態遷移図を <span class="term">LR(0) オートマトン</span><span class="en">(LR(0) automaton)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 348" role="img" aria-label="小さな文法の LR(0) オートマトン。状態は 0 から 7 の 8 個である。状態 0 は E で状態 1、T で状態 2、数で状態 3 へ移る。状態 1 は + で状態 4 へ移り、$ なら受理する。状態 4 は T で状態 6、数で状態 3 へ移る。状態 2 と状態 6 は * で状態 5 へ移り、状態 5 は数で状態 7 へ移る。状態 6 には、項 E ::= E + T ・ と T ::= T ・ * 数 が同居しており、強調されている。">
+      <path d="M 148 55 L 211 55" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 355 55 L 428 55" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 148 132 L 211 140" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 60 142 L 60 235 L 211 235" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 502 105 L 502 132" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 440 105 L 359 132" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 502 196 L 502 222" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 355 240 L 428 240" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 502 266 L 502 296" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <text x="181" y="49" class="svg-mono">E</text>
+      <text x="391" y="49" class="svg-mono">+</text>
+      <text x="178" y="128" class="svg-mono">数</text>
+      <text x="70" y="190" class="svg-mono" style="text-anchor:start">T</text>
+      <text x="512" y="121" class="svg-mono" style="text-anchor:start">T</text>
+      <text x="388" y="143" class="svg-mono">数</text>
+      <text x="512" y="212" class="svg-mono" style="text-anchor:start">*</text>
+      <text x="391" y="234" class="svg-mono">*</text>
+      <text x="512" y="285" class="svg-mono" style="text-anchor:start">数</text>
+      <text x="285" y="104" class="svg-small">$ なら受理</text>
+
+      <rect x="8" y="26" width="140" height="116" class="svg-cell"/>
+      <text x="78" y="42" class="svg-small">状態 0</text>
+      <text x="78" y="61" class="svg-mono">S' ::= ・E</text>
+      <text x="78" y="80" class="svg-mono">E ::= ・E + T</text>
+      <text x="78" y="99" class="svg-mono">E ::= ・T</text>
+      <text x="78" y="118" class="svg-mono">T ::= ・T * 数</text>
+      <text x="78" y="137" class="svg-mono">T ::= ・数</text>
+
+      <rect x="215" y="26" width="140" height="60" class="svg-cell"/>
+      <text x="285" y="42" class="svg-small">状態 1</text>
+      <text x="285" y="61" class="svg-mono">S' ::= E ・</text>
+      <text x="285" y="80" class="svg-mono">E ::= E ・+ T</text>
+
+      <rect x="432" y="26" width="140" height="79" class="svg-cell"/>
+      <text x="502" y="42" class="svg-small">状態 4</text>
+      <text x="502" y="61" class="svg-mono">E ::= E + ・T</text>
+      <text x="502" y="80" class="svg-mono">T ::= ・T * 数</text>
+      <text x="502" y="99" class="svg-mono">T ::= ・数</text>
+
+      <rect x="215" y="120" width="140" height="40" class="svg-cell"/>
+      <text x="285" y="136" class="svg-small">状態 3</text>
+      <text x="285" y="154" class="svg-mono">T ::= 数 ・</text>
+
+      <rect x="432" y="136" width="140" height="60" class="svg-hl"/>
+      <text x="502" y="152" class="svg-small">状態 6</text>
+      <text x="502" y="171" class="svg-mono">E ::= E + T ・</text>
+      <text x="502" y="190" class="svg-mono">T ::= T ・* 数</text>
+
+      <rect x="215" y="206" width="140" height="60" class="svg-cell"/>
+      <text x="285" y="222" class="svg-small">状態 2</text>
+      <text x="285" y="241" class="svg-mono">E ::= T ・</text>
+      <text x="285" y="260" class="svg-mono">T ::= T ・* 数</text>
+
+      <rect x="432" y="226" width="140" height="40" class="svg-cell"/>
+      <text x="502" y="242" class="svg-small">状態 5</text>
+      <text x="502" y="260" class="svg-mono">T ::= T * ・数</text>
+
+      <rect x="432" y="300" width="140" height="40" class="svg-cell"/>
+      <text x="502" y="316" class="svg-small">状態 7</text>
+      <text x="502" y="334" class="svg-mono">T ::= T * 数 ・</text>
+
+      <defs>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 7-2　小さな文法の LR(0) オートマトン。枠内はその状態に含まれる項であり、項では終端記号の引用符を省いた。矢印の記号は、その記号を積んだときの移り先を表す。
+      強調した状態 6 には、右辺を読み終えた項と * を待つ項が同居し、図 7-1 と同じ形になる。状態 2 も同じ形をもつ。
+    </figcaption>
+  </figure>
+
+  <p>
+    LR 構文解析器は、記号のスタックと並べて、記号を積むたびに移った先の状態を <span class="term">状態スタック</span> に積む。
+    還元で記号を k 個取り除くときは状態も k 個取り除き、頂上に現れた状態から、積んだ左辺の記号で遷移する。
+    状態 2 と状態 6 では、次の字句が <code>*</code> ならシフトし、<code>+</code> か <code>$</code> なら還元する。<code>+</code> と <code>$</code> は E の直後に来うる字句、すなわち FOLLOW(E) である。
+    状態 1 では、<code>+</code> ならシフトし、<code>$</code> なら受理する。
+    表 7-1 は、<code>1 + 2 * 3</code> をこの規則で解析した記録である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　図 7-2 のオートマトンによる 1 + 2 * 3 の解析。手順 7 と手順 10 はどちらも状態 6 にいるが、次の字句が * か $ かで操作が分かれる。
+      状態スタックの頂上だけを見れば、記号スタックの中身を読み直さなくても操作が決まる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手順</th><th>状態スタック</th><th>記号スタック</th><th>次の字句</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td><code>0</code></td><td><code>$</code></td><td><code>1</code></td><td>シフトして状態 3 へ</td></tr>
+        <tr><td class="num-cell">2</td><td><code>0 3</code></td><td><code>$ 数</code></td><td><code>+</code></td><td>還元 <code>T ::= 数</code>。状態 0 に戻り、T で状態 2 へ</td></tr>
+        <tr><td class="num-cell">3</td><td><code>0 2</code></td><td><code>$ T</code></td><td><code>+</code></td><td>還元 <code>E ::= T</code>（<code>+</code> は FOLLOW(E) に属する）。状態 0 から E で状態 1 へ</td></tr>
+        <tr><td class="num-cell">4</td><td><code>0 1</code></td><td><code>$ E</code></td><td><code>+</code></td><td>シフトして状態 4 へ</td></tr>
+        <tr><td class="num-cell">5</td><td><code>0 1 4</code></td><td><code>$ E +</code></td><td><code>2</code></td><td>シフトして状態 3 へ</td></tr>
+        <tr><td class="num-cell">6</td><td><code>0 1 4 3</code></td><td><code>$ E + 数</code></td><td><code>*</code></td><td>還元 <code>T ::= 数</code>。状態 4 から T で状態 6 へ</td></tr>
+        <tr><td class="num-cell">7</td><td><code>0 1 4 6</code></td><td><code>$ E + T</code></td><td><code>*</code></td><td>状態 6 で次が <code>*</code> なので、シフトして状態 5 へ</td></tr>
+        <tr><td class="num-cell">8</td><td><code>0 1 4 6 5</code></td><td><code>$ E + T *</code></td><td><code>3</code></td><td>シフトして状態 7 へ</td></tr>
+        <tr><td class="num-cell">9</td><td><code>0 1 4 6 5 7</code></td><td><code>$ E + T * 数</code></td><td><code>$</code></td><td>還元 <code>T ::= T "*" 数</code>。3 個取り除いて状態 4 から T で状態 6 へ</td></tr>
+        <tr><td class="num-cell">10</td><td><code>0 1 4 6</code></td><td><code>$ E + T</code></td><td><code>$</code></td><td>状態 6 で次が <code>$</code> なので、還元 <code>E ::= E "+" T</code>。3 個取り除いて状態 0 から E で状態 1 へ</td></tr>
+        <tr><td class="num-cell">11</td><td><code>0 1</code></td><td><code>$ E</code></td><td><code>$</code></td><td>受理</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
   <h3>LR の種類 — 先読みの使い方の違い</h3>
 
   <p>
@@ -995,7 +1625,7 @@
 
   <div class="table-block">
     <p class="table-caption">
-      表 7-1　LR 構文解析の種類。上から順に、還元の判断に使う情報が精密になり、扱える文法が広がる。LALR(1) は扱える文法の広さと表の大きさの釣り合いがよく、パーサー生成系で広く用いられる。
+      表 7-2　LR 構文解析の種類。上から順に、還元の判断に使う情報が精密になり、扱える文法が広がる。LALR(1) は扱える文法の広さと表の大きさの釣り合いがよく、パーサー生成系で広く用いられる。
     </p>
     <div class="table-scroll">
     <table>
@@ -1014,7 +1644,8 @@
 
   <p>
     状態と遷移、表の中身は、文法から機械的に計算できる。
-    ただし、小さな文法でも状態は数十個、実用言語の文法では数百から数千個になり、手で作るのは現実的ではない。
+    ただし、LR(0) の状態は図 7-2 の小さな文法でも 8 個、括弧を含む文法 G では 12 個あり、実用言語の文法では数百個を超える。
+    表の欄は状態の数と記号の数の積だけあるため、手で作るのは現実的ではない。
     文法を入力として、この表と、表を引いて動く構文解析器を自動で作るプログラムを
     <span class="term">パーサー生成系</span><span class="en">(parser generator)</span> と呼ぶ。
   </p>
@@ -1026,7 +1657,82 @@
     前者を <span class="term">シフト還元競合</span><span class="en">(shift-reduce conflict)</span>、後者を
     <span class="term">還元還元競合</span><span class="en">(reduce-reduce conflict)</span> と呼ぶ。
     競合があれば、その文法は表の作り方に対応する種類の LR 文法ではない。
-    特に、あいまいな文法では、同じ字句列に二通りの構文木があるため、どの種類の表を作っても必ず競合が生じる。
+  </p>
+
+  <p>
+    あいまいな文法 <code>&lt;e&gt; ::= &lt;e&gt; "-" &lt;e&gt; | 数</code> で <code>8 - 3 - 2</code> を解析すると、<code>8 - 3</code> まで読んだところでスタックは <code>$ &lt;e&gt; - &lt;e&gt;</code>、次の字句は <code>-</code> になる。
+    ここで還元すれば <code>8 - 3</code> が先にまとまり、シフトすれば <code>3 - 2</code> が先にまとまる（図 7-3）。
+    どちらの道も開始記号に至るため、表のこの欄にはシフトと還元の両方が入り、シフト還元競合となる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 296" role="img" aria-label="あいまいな文法 e ::= e - e | 数 で 8 - 3 を読み終え、スタックが $ e - e、次の字句が - のときに二つに分かれる図。左の還元する道では、8 - 3 が先にまとまり、根の減算の左の子が 8 - 3、右の子が 2 の木になり、値は 3 になる。右のシフトする道では、3 - 2 が先にまとまり、根の減算の左の子が 8、右の子が 3 - 2 の木になり、値は 7 になる。">
+      <path d="M 160 70 L 150 104" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 440 70 L 436 104" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 145 140 L 100 166" class="svg-line"/>
+      <path d="M 145 140 L 190 166" class="svg-line"/>
+      <path d="M 100 196 L 70 222" class="svg-line"/>
+      <path d="M 100 196 L 130 222" class="svg-line"/>
+      <path d="M 435 140 L 390 166" class="svg-line"/>
+      <path d="M 435 140 L 480 166" class="svg-line"/>
+      <path d="M 480 196 L 450 222" class="svg-line"/>
+      <path d="M 480 196 L 510 222" class="svg-line"/>
+
+      <text x="60" y="22" class="svg-small" style="text-anchor:start">スタック（左が底）</text>
+      <text x="440" y="22" class="svg-small">次の字句</text>
+      <rect x="60" y="32" width="40" height="34" class="svg-cell"/>
+      <rect x="100" y="32" width="60" height="34" class="svg-cell"/>
+      <rect x="160" y="32" width="40" height="34" class="svg-cell"/>
+      <rect x="200" y="32" width="60" height="34" class="svg-cell"/>
+      <rect x="420" y="32" width="40" height="34" class="svg-hl"/>
+      <text x="80" y="54" class="svg-mono">$</text>
+      <text x="130" y="54" class="svg-mono">&lt;e&gt;</text>
+      <text x="180" y="54" class="svg-mono">-</text>
+      <text x="230" y="54" class="svg-mono">&lt;e&gt;</text>
+      <text x="440" y="54" class="svg-mono">-</text>
+
+      <text x="146" y="92" class="svg-small" style="text-anchor:end">還元する</text>
+      <text x="450" y="92" class="svg-small" style="text-anchor:start">シフトする</text>
+
+      <rect x="123" y="110" width="44" height="30" class="svg-cell"/>
+      <rect x="168" y="166" width="44" height="30" class="svg-cell"/>
+      <rect x="48" y="222" width="44" height="30" class="svg-cell"/>
+      <rect x="108" y="222" width="44" height="30" class="svg-cell"/>
+      <rect x="78" y="166" width="44" height="30" class="svg-hl"/>
+      <text x="145" y="130" class="svg-mono">-</text>
+      <text x="100" y="186" class="svg-mono">-</text>
+      <text x="190" y="186" class="svg-mono">2</text>
+      <text x="70" y="242" class="svg-mono">8</text>
+      <text x="130" y="242" class="svg-mono">3</text>
+
+      <rect x="413" y="110" width="44" height="30" class="svg-cell"/>
+      <rect x="368" y="166" width="44" height="30" class="svg-cell"/>
+      <rect x="428" y="222" width="44" height="30" class="svg-cell"/>
+      <rect x="488" y="222" width="44" height="30" class="svg-cell"/>
+      <rect x="458" y="166" width="44" height="30" class="svg-hl"/>
+      <text x="435" y="130" class="svg-mono">-</text>
+      <text x="390" y="186" class="svg-mono">8</text>
+      <text x="480" y="186" class="svg-mono">-</text>
+      <text x="450" y="242" class="svg-mono">3</text>
+      <text x="510" y="242" class="svg-mono">2</text>
+
+      <text x="145" y="282" class="svg-text">値は 5 - 2 = 3</text>
+      <text x="435" y="282" class="svg-text">値は 8 - 1 = 7</text>
+
+      <defs>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 7-3　あいまいな文法でのシフト還元競合。同じスタックと同じ次の字句から、還元すれば強調した 8 - 3 が、シフトすれば強調した 3 - 2 が先にまとまる。
+      どちらも受理に至るが、値は 3 と 7 に分かれる。表の欄を一つに決める根拠が文法の中にない。
+    </figcaption>
+  </figure>
+
+  <p>
+    このように、あいまいな文法では、同じ字句列に二通りの構文木があるため、どの種類の表を作っても必ず競合が生じる。
     パーサー生成系は競合を報告するので、文法のあいまいさを見つける道具にもなる。
   </p>
 
@@ -1126,6 +1832,39 @@
     文法を自分で設計できるなら、はじめから LL(1) になるよう決めればよく、この差は問題にならない。
     一方、誤りの報告のしやすさは、文法の形に関係なく、利用者が触れる構文解析器であれば常に効く。
   </p>
+
+  <p>
+    表 8-2 は、閉じ括弧を書き忘れた <code>( 1 + 2</code> に対して、二つの手法が誤りを見つけた時点で持っている手掛かりと、そこから出せる文面を並べたものである。
+    どちらも誤りを見つける位置は入力の終わりで同じであり、違うのは文面に使える情報である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 8-2　閉じ括弧が欠けた ( 1 + 2 に対する誤りの報告。再帰下降法では、誤りを見つけた関数が照合しようとしていた字句を、そのまま文面にできる。
+      LR では、状態の項から期待される字句を列挙する手当てを加えて、初めて同程度の文面になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手法</th><th>誤りを見つけた時点</th><th>手掛かり</th><th>文面の例</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>再帰下降法</td>
+          <td>括弧の内側を読んだ 式() から戻った 因子() が、<code>期待する(")")</code> で <code>$</code> に当たる</td>
+          <td>実行中の関数と、照合しようとしていた終端記号 <code>)</code></td>
+          <td><code>1:8: "(" に対応する ")" が必要だが、入力の終わりが現れた</code></td>
+        </tr>
+        <tr>
+          <td>LR 構文解析</td>
+          <td><code>$ ( &lt;expr&gt;</code> まで還元した状態で、次の字句 <code>$</code> の欄が空</td>
+          <td>状態番号と次の字句</td>
+          <td>手当てなし: <code>1:8: 構文エラー</code><br>手当てあり: <code>1:8: ")" または "+" が必要だが、入力の終わりが現れた</code></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
 
   <h3>実務での位置づけ</h3>
 
@@ -1267,7 +2006,7 @@
   <p>
     <code>式()</code> の 5 行目が、左結合の木を作る箇所である。
     ループを一周するたびに、それまでの木 <code>左</code> を左の子とする新しい節で <code>左</code> を置き換えるため、木は左へ伸びる。
-    <code>8 - 3 - 2</code> であれば、一周目で <code>-(8, 3)</code>、二周目で <code>-(-(8, 3), 2)</code> となる。
+    <code>8 - 3 - 2</code> であれば、一周目で <code>-(8, 3)</code>、二周目で <code>-(-(8, 3), 2)</code> となる（図 3-3 の右）。
   </p>
 
   <p>
@@ -1323,6 +2062,65 @@
   <pre><code>手続き 構文エラー(期待したもの)
 1. t ← 次の字句()
 2. 「t の行:t の列: 期待したもの が必要だが t が現れた」と出力する</code></pre>
+
+  <p>
+    図 9-2 は、閉じ括弧を書き忘れた <code>( 1 + 2</code> を解析して、誤りを報告するまでの呼び出しの段である。
+    <code>構文解析()</code> から <code>式()</code>, <code>項()</code>, <code>因子()</code> と進み、<code>因子()</code> は <code>(</code> を読んで括弧の内側のために再び <code>式()</code> を呼ぶ。
+    内側の <code>式()</code> は <code>1 + 2</code> を読み、次の字句 <code>$</code> が <code>"+"</code> でも <code>"-"</code> でもないので戻る。
+    戻った先の <code>因子()</code> が 7 行目の <code>期待する(")")</code> を実行し、<code>$</code> に当たって誤りを報告する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 286" role="img" aria-label="( 1 + 2 を解析して誤りを報告するまでの呼び出しの段を示す図。左に、下から構文解析()、式()、項()、因子() が積まれ、因子() が強調されて 7 行目の期待する(&quot;)&quot;) で止まっている。その上に破線で式()、項()、因子() が描かれ、2 を読み終えて戻ったことを示す。右上に字句列 (, 1, +, 2, $ が並び、次の字句 $ が強調されている。右下に報告の文面 1:8: &quot;)&quot; が必要だが 入力の終わり が現れた を示す。">
+      <path d="M 510 104 L 510 70" class="svg-arrow" marker-end="url(#ah9)"/>
+
+      <text x="330" y="22" class="svg-small" style="text-anchor:start">字句列</text>
+      <rect x="330" y="32" width="40" height="32" class="svg-cell"/>
+      <rect x="370" y="32" width="40" height="32" class="svg-cell"/>
+      <rect x="410" y="32" width="40" height="32" class="svg-cell"/>
+      <rect x="450" y="32" width="40" height="32" class="svg-cell"/>
+      <rect x="490" y="32" width="40" height="32" class="svg-hl"/>
+      <text x="350" y="53" class="svg-mono">(</text>
+      <text x="390" y="53" class="svg-mono">1</text>
+      <text x="430" y="53" class="svg-mono">+</text>
+      <text x="470" y="53" class="svg-mono">2</text>
+      <text x="510" y="53" class="svg-mono">$</text>
+      <text x="510" y="120" class="svg-small">次の字句</text>
+
+      <text x="24" y="84" class="svg-small" style="text-anchor:start">呼び出しの段（下が外側）</text>
+      <rect x="24" y="94" width="150" height="26" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="24" y="120" width="150" height="26" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="24" y="146" width="150" height="26" class="svg-cell-plain" stroke-dasharray="6 4"/>
+      <rect x="24" y="198" width="150" height="26" class="svg-cell"/>
+      <rect x="24" y="224" width="150" height="26" class="svg-cell"/>
+      <rect x="24" y="250" width="150" height="26" class="svg-cell"/>
+      <rect x="24" y="172" width="150" height="26" class="svg-hl"/>
+      <text x="99" y="112" class="svg-text">因子()</text>
+      <text x="99" y="138" class="svg-text">項()</text>
+      <text x="99" y="164" class="svg-text">式()</text>
+      <text x="99" y="190" class="svg-text">因子()</text>
+      <text x="99" y="216" class="svg-text">項()</text>
+      <text x="99" y="242" class="svg-text">式()</text>
+      <text x="99" y="268" class="svg-text">構文解析()</text>
+
+      <text x="186" y="137" class="svg-small" style="text-anchor:start">2 を読み終えて戻った</text>
+      <text x="186" y="189" class="svg-small" style="text-anchor:start">7 行目の 期待する(")") で止まる</text>
+
+      <text x="200" y="228" class="svg-small" style="text-anchor:start">報告</text>
+      <rect x="200" y="236" width="368" height="32" class="svg-cell"/>
+      <text x="384" y="257" class="svg-text">1:8: ")" が必要だが 入力の終わり が現れた</text>
+
+      <defs>
+        <marker id="ah9" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 9-2　( 1 + 2 の誤りを報告する時点の呼び出しの段。破線の 3 段は、括弧の内側を読み終えて既に戻った呼び出しである。
+      強調した因子() は、自分が読んだ ( に対応する ) を照合しようとしているため、「) が必要」という文面を出せる。
+    </figcaption>
+  </figure>
 
   <p>
     上の手続きは、最初の誤りを報告した時点で解析を終える。演習の規模であればこれで足りる。
