@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>計算量・アルゴリズム評価 | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>計算量・アルゴリズム評価</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">速さを何で測るか</a></li>
+    <li><a href="#s2">手順を数える — 基本操作と入力規模</a></li>
+    <li><a href="#s3">O記法 — 増え方だけを残す</a></li>
+    <li><a href="#s4">代表的な計算量のクラス</a></li>
+    <li><a href="#s5">計算量の求め方 — 組み合わせの規則</a></li>
+    <li><a href="#s6">最悪・平均・最良 — 入力によって変わる手数</a></li>
+    <li><a href="#s7">計算量で比較・評価する</a></li>
+    <li><a href="#s8">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 速さを何で測るか ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>速さを何で測るか</h2>
+
+  <p>
+    名簿に同じ学籍番号が二重に登録されていないかを調べたい。
+    ある手順は名簿を1回だけ見通して判定し、別の手順はあらゆる2人の組を突き合わせて判定する。
+    名簿が10人分であれば、どちらも一瞬で終わる。どちらを選んでも差は感じられない。
+  </p>
+
+  <p>
+    ところが名簿の件数が増えると事情が変わる。
+    番号ごとに印を付ける表を用意して1回見通す手順は、件数 <code>n</code> に比例する回数の操作で済む。これに対し、
+    組を突き合わせる手順はおよそ <code>n</code> × <code>n</code> 回の操作を要する。
+    1秒間に1億回の操作を行う計算機を仮定して、両者の所要時間を並べる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 1-1　1秒間に1億回の操作を行う計算機での所要時間。件数が少ないうちは差が見えないが、
+      100万件では一方が0.01秒、他方が約2.8時間となる。差を生むのは計算機ではなく手順である。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>件数 n</th><th>n 回の操作</th><th>n × n 回の操作</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">10</td><td class="num-cell">0.1 マイクロ秒</td><td class="num-cell">1 マイクロ秒</td></tr>
+        <tr><td class="num-cell">1,000</td><td class="num-cell">10 マイクロ秒</td><td class="num-cell">0.01 秒</td></tr>
+        <tr><td class="num-cell">1,000,000</td><td class="num-cell">0.01 秒</td><td class="num-cell">約 2.8 時間</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    手順の良し悪しを実行時間の秒数で比べようとすると、二つの困難に突き当たる。
+    第一に、秒数は計算機の性能・言語・処理系によって変わる。
+    同じ手順でも、速い計算機で動かせば短く測られる。
+    第二に、秒数は与えたデータの件数と並び方によって変わる。
+    10件で測った結果は、100万件での振る舞いを教えてくれない。
+  </p>
+
+  <p>
+    そこで、秒数の代わりに<strong>手順が行う操作の回数を、データの件数の式として表す</strong>。
+    この式は計算機に依存せず、件数が増えたときの振る舞いを直接示す。
+    このように、手順の実行に要する手間を見積もった量を
+    <span class="term">計算量</span><span class="en">(computational complexity)</span> と呼ぶ。
+    計算量を用いて手順の効率を論じることが、アルゴリズムの評価の基本となる。
+  </p>
+
+  <p>本講では次の事柄を扱う。</p>
+  <ul>
+    <li>基本操作の回数を、入力の規模の式として数える方法</li>
+    <li>式から増え方だけを取り出す O記法</li>
+    <li>代表的な計算量のクラスと、それぞれを生む手順の形</li>
+    <li>手順の組み合わせから計算量を求める規則</li>
+    <li>入力によって手数が変わる場合の、最悪・平均・最良の区別</li>
+    <li>計算量に基づく手順とデータ構造の比較、およびその限界</li>
+  </ul>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>手順の基本操作の回数を、入力規模 n の式として数えられる</li>
+      <li>O記法の意味を述べ、手数の式を O記法で表せる</li>
+      <li>代表的な計算量のクラスを増え方の順に並べ、それぞれを生む手順の形を説明できる</li>
+      <li>手順の組み合わせ方から計算量を求められる</li>
+      <li>最悪計算量・平均計算量・最良計算量を区別できる</li>
+      <li>計算量に基づいて手順やデータ構造を比較し、その比較が成り立つ条件を述べられる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      同じ問題を解く手順 P と手順 Q がある。P を自宅の計算機で、Q を学校の計算機で、
+      それぞれ手元にあったデータを与えて実行したところ、P は 0.8 秒、Q は 1.5 秒で終わった。
+      この結果から言えることとして、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>P は Q より効率の良い手順であり、どの計算機・どのデータでも P のほうが速い</li>
+      <li>計算機とデータが揃っていないため、この測定値だけでは手順の優劣を判断できない</li>
+      <li>Q は P のおよそ2倍の回数の操作を行っている</li>
+      <li>同じ計算機・同じデータで測り直して P が速ければ、件数をどれだけ増やしても P のほうが速いと確定する</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          実行時間は手順だけでなく、計算機の性能と与えたデータの件数・並び方にも左右される。
+          二つの条件が異なる測定値を比べても、差がどこから生じたのかを切り分けられない。
+        </p>
+        <p>
+          (A) は、条件の異なる一回の測定を手順の性質に帰している。
+          (C) は、時間と操作回数の比例を、性能の異なる計算機の間にまで当てはめている。
+          (D) は、ある件数で成り立った大小が、件数を増やしても保たれると考えている。
+          表 1-1 のように、件数が増えるほど開く差は小さな件数での測定には現れず、
+          件数によって大小が入れ替わることもある。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 手順を数える — 基本操作と入力規模 ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>手順を数える — 基本操作と入力規模</h2>
+
+  <h3>何を数えるか</h3>
+
+  <p>
+    計算量を求めるには、まず「1回」と数える単位を決める。
+    値の比較1回、代入1回、四則演算1回のように、
+    データの件数に関係なく一定の手間で終わる操作を
+    <span class="term">基本操作</span><span class="en">(basic operation)</span> とみなし、その回数を数える。
+    比較と代入のどちらに時間がかかるかといった差は、計算機によって異なるため区別しない。
+  </p>
+
+  <p>
+    数えた回数は、手順に与えるデータの量によって変わる。
+    この量を <span class="term">入力規模</span><span class="en">(input size)</span> と呼び、
+    多くの場合 <code>n</code> で表す。配列であれば要素数、名簿であれば件数が入力規模にあたる。
+    基本操作の回数を <code>n</code> の式 <code>T(n)</code> として表したものを
+    <span class="term">時間計算量</span><span class="en">(time complexity)</span> と呼ぶ。
+    単に計算量と言えば、通常は時間計算量を指す。
+  </p>
+
+  <h3>繰り返しの回数を数える</h3>
+
+  <p>
+    配列の最大値を求める手順で数え方を確かめる。
+    以下の擬似コードでは、添字を 1 から <code>n</code> までとする。
+  </p>
+
+  <pre><code>最大値(配列 A, 要素数 n):
+1. max ← A[1]
+2. i を 2 から n まで 1 ずつ増やしながら、次を繰り返す
+   2.1 A[i] &gt; max ならば max ← A[i]
+3. max を返す</code></pre>
+
+  <p>
+    比較が行われるのは 2.1 の行であり、繰り返しの中で1回ずつ実行される。
+    繰り返しは <code>i</code> が 2 から <code>n</code> までの値をとるので、回数は
+    <code>n − 2 + 1 = n − 1</code> 回である。
+    <strong>両端を含む区間「a から b まで」に含まれる値の個数は b − a + 1</strong> であり、
+    単に <code>n − 2</code> とすると1回足りない。
+    比較回数は <code>T(n) = n − 1</code> となり、要素数に比例して増える。
+  </p>
+
+  <h3>入れ子の繰り返しを数える</h3>
+
+  <p>
+    次に、配列の中に等しい値の組がいくつあるかを数える手順を考える。
+    冒頭の名簿の例で、あらゆる2人の組を突き合わせる手順にあたる。
+  </p>
+
+  <pre><code>等しい組を数える(配列 A, 要素数 n):
+1. count ← 0
+2. i を 1 から n − 1 まで 1 ずつ増やしながら、次を繰り返す
+   2.1 j を i + 1 から n まで 1 ずつ増やしながら、次を繰り返す
+       2.1.1 A[i] = A[j] ならば count ← count + 1
+3. count を返す</code></pre>
+
+  <p>
+    内側の繰り返しは <code>j</code> が <code>i + 1</code> から始まるため、
+    外側が進むほど回数が減る。<code>i = 1</code> のとき <code>n − 1</code> 回、
+    <code>i = 2</code> のとき <code>n − 2</code> 回と続き、最後の <code>i = n − 1</code> では1回になる。
+    比べる組を表のマス目として描くと、数え方が見える。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 240" role="img" aria-label="要素数5の配列について、行を添字i、列を添字jとする5行5列のマス目のうち、iがjより小さい右上の10マスが比較する組として塗られ、対角線と左下は比較しないことを示した図">
+      <text x="120" y="20" class="svg-small" style="text-anchor:start">行 i と列 j の組を比べる（添字は 1 から）</text>
+      <text x="144" y="42" class="svg-mono">j=1</text>
+      <text x="192" y="42" class="svg-mono">j=2</text>
+      <text x="240" y="42" class="svg-mono">j=3</text>
+      <text x="288" y="42" class="svg-mono">j=4</text>
+      <text x="336" y="42" class="svg-mono">j=5</text>
+      <text x="90" y="73" class="svg-mono">i=1</text>
+      <text x="90" y="109" class="svg-mono">i=2</text>
+      <text x="90" y="145" class="svg-mono">i=3</text>
+      <text x="90" y="181" class="svg-mono">i=4</text>
+      <text x="90" y="217" class="svg-mono">i=5</text>
+      <rect x="120" y="50" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="120" y="86" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="168" y="86" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="120" y="122" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="168" y="122" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="216" y="122" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="120" y="158" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="168" y="158" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="216" y="158" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="264" y="158" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="120" y="194" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="168" y="194" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="216" y="194" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="264" y="194" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="312" y="194" width="48" height="36" class="svg-cell-plain"/>
+      <rect x="168" y="50" width="48" height="36" class="svg-cell"/>
+      <rect x="216" y="50" width="48" height="36" class="svg-cell"/>
+      <rect x="264" y="50" width="48" height="36" class="svg-cell"/>
+      <rect x="312" y="50" width="48" height="36" class="svg-cell"/>
+      <rect x="216" y="86" width="48" height="36" class="svg-cell"/>
+      <rect x="264" y="86" width="48" height="36" class="svg-cell"/>
+      <rect x="312" y="86" width="48" height="36" class="svg-cell"/>
+      <rect x="264" y="122" width="48" height="36" class="svg-cell"/>
+      <rect x="312" y="122" width="48" height="36" class="svg-cell"/>
+      <rect x="312" y="158" width="48" height="36" class="svg-cell"/>
+      <text x="144" y="73" class="svg-small">—</text>
+      <text x="192" y="109" class="svg-small">—</text>
+      <text x="240" y="145" class="svg-small">—</text>
+      <text x="288" y="181" class="svg-small">—</text>
+      <text x="336" y="217" class="svg-small">—</text>
+      <text x="192" y="73" class="svg-small">比較</text>
+      <text x="240" y="73" class="svg-small">比較</text>
+      <text x="288" y="73" class="svg-small">比較</text>
+      <text x="336" y="73" class="svg-small">比較</text>
+      <text x="240" y="109" class="svg-small">比較</text>
+      <text x="288" y="109" class="svg-small">比較</text>
+      <text x="336" y="109" class="svg-small">比較</text>
+      <text x="288" y="145" class="svg-small">比較</text>
+      <text x="336" y="145" class="svg-small">比較</text>
+      <text x="336" y="181" class="svg-small">比較</text>
+      <text x="392" y="80" class="svg-small" style="text-anchor:start">塗りのマス: 比較する組</text>
+      <text x="392" y="100" class="svg-small" style="text-anchor:start">（i &lt; j の 10 組）</text>
+      <text x="392" y="140" class="svg-small" style="text-anchor:start">対角線: 自身とは比べない</text>
+      <text x="392" y="176" class="svg-small" style="text-anchor:start">左下: 同じ組を二度数えない</text>
+      <text x="392" y="216" class="svg-mono" style="text-anchor:start">5 × 4 ÷ 2 = 10</text>
+    </svg>
+    <figcaption>
+      図 2-1　要素数 5 のとき、比較する組はマス目の右上の三角形にあたる。
+      全 25 マスから対角線の 5 マスを除くと 20 マスが残り、そのうち左下の 10 マスは右上と同じ組の
+      繰り返しである。比較回数は <code>5 × 4 ÷ 2 = 10</code> 回となる。
+    </figcaption>
+  </figure>
+
+  <p>
+    一般の <code>n</code> では、全 <code>n × n</code> マスから対角線の <code>n</code> マスを除き、
+    残りの半分を数えることになる。比較回数は
+    <code>T(n) = n(n − 1) ÷ 2</code> である。
+    <code>n</code> が 2倍になると回数はおよそ4倍になり、
+    最大値を求める手順の <code>n − 1</code> 回とは増え方が根本的に異なる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      上の「等しい組を数える」手順に、要素数 <code>n = 6</code> の配列を与える。
+      2.1.1 の行で行われる比較 <code>A[i] = A[j]</code> の回数はいくつか。
+    </p>
+    <ol class="choices">
+      <li>36 回</li>
+      <li>30 回</li>
+      <li>21 回</li>
+      <li>15 回</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (D)</p>
+        <p>
+          外側の <code>i</code> が 1, 2, 3, 4, 5 のとき、内側の繰り返しはそれぞれ 5, 4, 3, 2, 1 回である。
+          合計は <code>5 + 4 + 3 + 2 + 1 = 15</code> 回で、<code>6 × 5 ÷ 2 = 15</code> と一致する。
+        </p>
+        <p>
+          (A) の 36 は <code>6 × 6</code> であり、自分自身との比較と、同じ組の二度目の比較を含めている。
+          (B) の 30 は <code>6 × 5</code> であり、対角線は除いたが、
+          <code>(i, j)</code> と <code>(j, i)</code> を別の組として二度数えている。
+          (C) の 21 は <code>6 × 7 ÷ 2</code> であり、対角線のマスを数えに入れている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. O記法 — 増え方だけを残す ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>O記法 — 増え方だけを残す</h2>
+
+  <h3>大きな n では最高次の項が支配する</h3>
+
+  <p>
+    手順を細かく数えると、<code>T(n) = 3n² + 5n + 2</code> のように複数の項を持つ式になることが多い。
+    この式の各項が全体に占める割合を、<code>n</code> を増やしながら調べる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-1　<code>T(n) = 3n² + 5n + 2</code> の各項の値と、全体に占める <code>3n²</code> の割合。
+      <code>n</code> が大きくなるほど、最高次の項だけで全体がほぼ決まる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>n</th><th>3n²</th><th>5n</th><th>2</th><th>T(n)</th><th>3n² の割合</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">10</td><td class="num-cell">300</td><td class="num-cell">50</td><td class="num-cell">2</td><td class="num-cell">352</td><td class="num-cell">85.2 %</td></tr>
+        <tr><td class="num-cell">100</td><td class="num-cell">30,000</td><td class="num-cell">500</td><td class="num-cell">2</td><td class="num-cell">30,502</td><td class="num-cell">98.4 %</td></tr>
+        <tr><td class="num-cell">1,000</td><td class="num-cell">3,000,000</td><td class="num-cell">5,000</td><td class="num-cell">2</td><td class="num-cell">3,005,002</td><td class="num-cell">99.8 %</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    計算量が問題になるのは、<code>n</code> が大きい場合である。
+    件数が少なければどの手順でもすぐに終わり、選択の根拠にならない。
+    そして <code>n</code> が大きいとき、低次の項 <code>5n</code> と定数 <code>2</code> は全体にほとんど影響しない。
+  </p>
+
+  <p>
+    残った <code>3n²</code> の係数 3 も、手順の性質を表すものではない。
+    何を基本操作として数えたか、どの計算機で動かすかによって、係数は容易に変わる。
+    一方、<strong><code>n</code> が 2倍になれば手数がおよそ4倍になるという増え方は、係数によらず変わらない</strong>。
+    手順を比べる際に知りたいのは、この増え方である。
+  </p>
+
+  <h3>O記法の定義</h3>
+
+  <p>
+    手数の式から増え方だけを取り出して表す記法を
+    <span class="term">O記法</span><span class="en">(big-O notation)</span> と呼ぶ。
+    「オーダー」と読み、<code>T(n) = O(n²)</code> のように書く。定義は次のとおりである。
+  </p>
+
+  <div class="note">
+    <span class="label">定義</span>
+    <p>
+      ある正の定数 <code>c</code> と <code>n₀</code> が存在して、
+      <code>n ≥ n₀</code> を満たすすべての <code>n</code> について <code>T(n) ≤ c · f(n)</code> が成り立つとき、
+      <code>T(n) = O(f(n))</code> と書く。
+    </p>
+  </div>
+
+  <p>
+    言い換えると、<strong>十分大きな <code>n</code> では、<code>T(n)</code> が <code>f(n)</code> の定数倍を超えない</strong>ということである。
+    <code>T(n) = 3n² + 5n + 2</code> であれば、<code>c = 4</code> とすると
+    <code>n ≥ 6</code> で <code>T(n) ≤ 4n²</code> が成り立つ。したがって <code>T(n) = O(n²)</code> である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 284" role="img" aria-label="横軸をn、縦軸を手数とするグラフに、T(n)=3n²+5n+2 の実線と 4n² の破線を描いた図。nが約5.4より小さい範囲ではT(n)が上にあり、それ以上ではつねに4n²がT(n)を上から抑えていることを示す">
+      <path d="M 296.4 30 L 296.4 230" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 60 230 L 500 230" class="svg-line"/>
+      <path d="M 60 230 L 60 30" class="svg-line"/>
+      <polyline points="60.0,230.0 82.0,229.5 104.0,228.0 126.0,225.5 148.0,222.0 170.0,217.5 192.0,212.0 214.0,205.5 236.0,198.0 258.0,189.5 280.0,180.0 302.0,169.5 324.0,158.0 346.0,145.5 368.0,132.0 390.0,117.5 412.0,102.0 434.0,85.5 456.0,68.0 478.0,49.5 500.0,30.0" class="svg-arrow" stroke-dasharray="8 5"/>
+      <polyline points="60.0,229.0 82.0,227.4 104.0,225.0 126.0,221.9 148.0,218.0 170.0,213.4 192.0,208.0 214.0,201.9 236.0,195.0 258.0,187.4 280.0,179.0 302.0,169.9 324.0,160.0 346.0,149.4 368.0,138.0 390.0,125.9 412.0,113.0 434.0,99.4 456.0,85.0 478.0,69.9 500.0,54.0" class="svg-arrow"/>
+      <text x="68" y="26" class="svg-small" style="text-anchor:start">手数</text>
+      <text x="52" y="234" class="svg-mono" style="text-anchor:end">0</text>
+      <text x="52" y="134" class="svg-mono" style="text-anchor:end">200</text>
+      <text x="52" y="34" class="svg-mono" style="text-anchor:end">400</text>
+      <text x="60" y="248" class="svg-mono">0</text>
+      <text x="500" y="248" class="svg-mono">10</text>
+      <text x="528" y="248" class="svg-small">n</text>
+      <text x="296" y="248" class="svg-mono">n₀ ≈ 5.4</text>
+      <text x="506" y="34" class="svg-mono" style="text-anchor:start">4n²</text>
+      <text x="506" y="58" class="svg-mono" style="text-anchor:start">T(n)</text>
+      <text x="76" y="274" class="svg-small" style="text-anchor:start">n &lt; n₀ では T(n) のほうが大きい</text>
+      <text x="312" y="274" class="svg-small" style="text-anchor:start">n ≥ n₀ では T(n) ≤ 4n²</text>
+    </svg>
+    <figcaption>
+      図 3-1　<code>T(n) = 3n² + 5n + 2</code>（実線）と <code>4n²</code>（破線）。
+      <code>n</code> が小さい範囲では <code>T(n)</code> のほうが大きいが、
+      <code>n₀ ≈ 5.4</code> を越えると <code>4n²</code> がつねに上から抑える。
+      O記法は、ある点から先でこのように抑えられることだけを主張し、小さな <code>n</code> での大小は問わない。
+    </figcaption>
+  </figure>
+
+  <h3>O記法で表す手順</h3>
+
+  <p>定義から、手数の式を O記法で表す際には次の操作を行えばよい。</p>
+  <ul>
+    <li>最も速く増える項だけを残し、それ以外の項を捨てる</li>
+    <li>残した項の係数を捨てる</li>
+  </ul>
+  <p>
+    <code>n − 1</code> は <code>O(n)</code>、<code>n(n − 1) ÷ 2 = n²/2 − n/2</code> は <code>O(n²)</code>、
+    <code>n</code> によらず一定の回数で終わる手順は <code>O(1)</code> となる。
+    O記法の中には、係数と低次の項を除いた最も簡潔な形を書くのが慣例である。
+  </p>
+
+  <p>
+    対数を含む計算量では、底を書かずに <code>O(log n)</code> と書く。
+    底の異なる対数は <code>log₂ n = log₁₀ n ÷ log₁₀ 2</code> のように定数倍の違いしかなく、
+    O記法では係数を区別しないためである。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      O記法が示すのは<strong>上からの抑え</strong>である。
+      <code>T(n) = O(n)</code> は「手数がちょうど <code>n</code> 回である」ことも、
+      「どんな入力でも <code>n</code> に比例して必ずかかる」ことも意味しない。
+      十分大きな <code>n</code> で、手数が <code>n</code> の定数倍を超えないことだけを述べている。
+      また、どの定数倍かを明示しないため、特定の <code>n</code> での回数の上限も O記法からは読み取れない。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      ある手順の基本操作の回数が <code>T(n) = 4n² + 100n + 7</code> と求まった。
+      これを O記法の慣例に従って最も簡潔に表したものはどれか。
+    </p>
+    <ol class="choices">
+      <li><code>O(n)</code></li>
+      <li><code>O(n²)</code></li>
+      <li><code>O(4n²)</code></li>
+      <li><code>O(n² + n)</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          最も速く増える項 <code>4n²</code> を残し、係数 4 を捨てると <code>O(n²)</code> になる。
+        </p>
+        <p>
+          (A) は、小さな <code>n</code> では <code>100n</code> が <code>4n²</code> より大きいことに引きずられている。
+          <code>n = 25</code> を越えると <code>4n²</code> のほうが大きくなり、以降その差は開く一方である。
+          <code>n</code> の定数倍で抑えることはできない。
+          (C) と (D) は誤りではないが、係数や低次の項を残しており、慣例に従った簡潔な形ではない。
+          O記法はこれらを区別しないため、書き残しても情報は増えない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-2</span>
+    <p class="q-body">
+      手順 R の計算量が <code>O(n)</code> であると分かっている。この事実から言えることとして、正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>R の基本操作の回数は、ちょうど <code>n</code> 回である</li>
+      <li><code>n = 100</code> のとき、R の基本操作の回数は 100 回以内である</li>
+      <li>十分大きな <code>n</code> では、R の基本操作の回数は <code>n</code> の定数倍を超えない</li>
+      <li>R に与える入力をどう選んでも、基本操作の回数は <code>n</code> に比例して増える</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          O記法の定義そのものである。ある定数 <code>c</code> と <code>n₀</code> があって、
+          <code>n ≥ n₀</code> では回数が <code>c · n</code> 以下に収まる。
+        </p>
+        <p>
+          (A) は、O記法が係数と低次の項を捨てた表記であることを見落としている。<code>3n + 5</code> 回の手順も <code>O(n)</code> である。
+          (B) は、定数 <code>c</code> が 1 であると決めつけている。O記法は定数倍を明示しないため、特定の <code>n</code> での回数は分からない。
+          (D) は、上からの抑えを、下からの抑えと取り違えている。
+          入力によっては1回で終わる手順であっても、計算量は <code>O(n)</code> と書ける。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 代表的な計算量のクラス ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>代表的な計算量のクラス</h2>
+
+  <p>
+    O記法で表した計算量は、実際に現れるものが限られている。
+    増え方の遅い順に並べると、次のようになる。
+  </p>
+
+  <p style="text-align:center"><code>O(1) &lt; O(log n) &lt; O(n) &lt; O(n log n) &lt; O(n²) &lt; O(2ⁿ)</code></p>
+
+  <p>
+    ここでの <code>&lt;</code> は、<code>n</code> が十分大きいとき左のほうが手数が少ないことを表す。
+    それぞれの計算量は、特定の形の手順から生じる。手順の形を見分けられれば、
+    細かく数えなくても計算量の見当がつく。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　代表的な計算量のクラスと、それを生む手順の形。手順の形は、繰り返しの回数が
+      <code>n</code> とどのように結び付いているかで決まる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>計算量</th><th>呼び方</th><th>手順の形</th><th>例</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>O(1)</code></td>
+          <td>定数時間</td>
+          <td><code>n</code> に関係なく一定の回数で終わる</td>
+          <td>配列の添字による読み出し、スタックへの push</td>
+        </tr>
+        <tr>
+          <td><code>O(log n)</code></td>
+          <td>対数時間</td>
+          <td>1回の操作ごとに候補を半分（一定の割合）に絞る</td>
+          <td>形の整った二分探索木での探索</td>
+        </tr>
+        <tr>
+          <td><code>O(n)</code></td>
+          <td>線形時間</td>
+          <td>すべての要素を一定回数ずつ扱う</td>
+          <td>配列の最大値、リストを先頭からたどる</td>
+        </tr>
+        <tr>
+          <td><code>O(n log n)</code></td>
+          <td>—</td>
+          <td>全体を半分に分けることを繰り返し、分けた各段で全要素を一定回数ずつ扱う</td>
+          <td>半分ずつに分けて処理し、結果をまとめ上げる手順</td>
+        </tr>
+        <tr>
+          <td><code>O(n²)</code></td>
+          <td>2乗時間</td>
+          <td>すべての要素の組を扱う（入れ子の繰り返し）</td>
+          <td>等しい組を数える手順（図 2-1）</td>
+        </tr>
+        <tr>
+          <td><code>O(2ⁿ)</code></td>
+          <td>指数時間</td>
+          <td>各要素を「選ぶ・選ばない」のすべての組合せを試す</td>
+          <td>要素の部分集合をすべて調べる</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>対数は「半分にできる回数」</h3>
+
+  <p>
+    <code>O(log n)</code> は、表の中で最も直観に結び付きにくい。
+    1 から 16 までの数のうち相手が思い浮かべた一つを、
+    「ある数以下か」という問いへの答えだけで当てる場合を考える。
+    候補の中央で区切って問うと、答えがどちらであっても候補の半分を捨てられる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 292" role="img" aria-label="1から16の候補から、8以下か、12以下か、10以下か、11以下かの4回の問いで候補が16個、8個、4個、2個と半減し、12に確定する様子を5段で示した図">
+      <text x="88" y="48" class="svg-small" style="text-anchor:end">残り 16 個</text>
+      <rect x="100" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="128" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="156" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="184" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="212" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="240" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="268" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="296" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="324" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="352" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="380" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="408" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="436" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="464" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="492" y="30" width="28" height="26" class="svg-cell"/>
+      <rect x="520" y="30" width="28" height="26" class="svg-cell"/>
+      <text x="114" y="48" class="svg-mono">1</text>
+      <text x="142" y="48" class="svg-mono">2</text>
+      <text x="170" y="48" class="svg-mono">3</text>
+      <text x="198" y="48" class="svg-mono">4</text>
+      <text x="226" y="48" class="svg-mono">5</text>
+      <text x="254" y="48" class="svg-mono">6</text>
+      <text x="282" y="48" class="svg-mono">7</text>
+      <text x="310" y="48" class="svg-mono">8</text>
+      <text x="338" y="48" class="svg-mono">9</text>
+      <text x="366" y="48" class="svg-mono">10</text>
+      <text x="394" y="48" class="svg-mono">11</text>
+      <text x="422" y="48" class="svg-mono">12</text>
+      <text x="450" y="48" class="svg-mono">13</text>
+      <text x="478" y="48" class="svg-mono">14</text>
+      <text x="506" y="48" class="svg-mono">15</text>
+      <text x="534" y="48" class="svg-mono">16</text>
+      <text x="88" y="98" class="svg-small" style="text-anchor:end">残り 8 個</text>
+      <rect x="100" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="128" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="156" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="184" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="212" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="240" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="268" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="296" y="80" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="324" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="352" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="380" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="408" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="436" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="464" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="492" y="80" width="28" height="26" class="svg-cell"/>
+      <rect x="520" y="80" width="28" height="26" class="svg-cell"/>
+      <text x="114" y="98" class="svg-small">1</text>
+      <text x="142" y="98" class="svg-small">2</text>
+      <text x="170" y="98" class="svg-small">3</text>
+      <text x="198" y="98" class="svg-small">4</text>
+      <text x="226" y="98" class="svg-small">5</text>
+      <text x="254" y="98" class="svg-small">6</text>
+      <text x="282" y="98" class="svg-small">7</text>
+      <text x="310" y="98" class="svg-small">8</text>
+      <text x="338" y="98" class="svg-mono">9</text>
+      <text x="366" y="98" class="svg-mono">10</text>
+      <text x="394" y="98" class="svg-mono">11</text>
+      <text x="422" y="98" class="svg-mono">12</text>
+      <text x="450" y="98" class="svg-mono">13</text>
+      <text x="478" y="98" class="svg-mono">14</text>
+      <text x="506" y="98" class="svg-mono">15</text>
+      <text x="534" y="98" class="svg-mono">16</text>
+      <text x="88" y="148" class="svg-small" style="text-anchor:end">残り 4 個</text>
+      <rect x="100" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="128" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="156" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="184" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="212" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="240" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="268" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="296" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="436" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="464" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="492" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="520" y="130" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="324" y="130" width="28" height="26" class="svg-cell"/>
+      <rect x="352" y="130" width="28" height="26" class="svg-cell"/>
+      <rect x="380" y="130" width="28" height="26" class="svg-cell"/>
+      <rect x="408" y="130" width="28" height="26" class="svg-cell"/>
+      <text x="114" y="148" class="svg-small">1</text>
+      <text x="142" y="148" class="svg-small">2</text>
+      <text x="170" y="148" class="svg-small">3</text>
+      <text x="198" y="148" class="svg-small">4</text>
+      <text x="226" y="148" class="svg-small">5</text>
+      <text x="254" y="148" class="svg-small">6</text>
+      <text x="282" y="148" class="svg-small">7</text>
+      <text x="310" y="148" class="svg-small">8</text>
+      <text x="338" y="148" class="svg-mono">9</text>
+      <text x="366" y="148" class="svg-mono">10</text>
+      <text x="394" y="148" class="svg-mono">11</text>
+      <text x="422" y="148" class="svg-mono">12</text>
+      <text x="450" y="148" class="svg-small">13</text>
+      <text x="478" y="148" class="svg-small">14</text>
+      <text x="506" y="148" class="svg-small">15</text>
+      <text x="534" y="148" class="svg-small">16</text>
+      <text x="88" y="198" class="svg-small" style="text-anchor:end">残り 2 個</text>
+      <rect x="100" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="128" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="156" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="184" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="212" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="240" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="268" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="296" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="324" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="352" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="436" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="464" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="492" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="520" y="180" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="180" width="28" height="26" class="svg-cell"/>
+      <rect x="408" y="180" width="28" height="26" class="svg-cell"/>
+      <text x="114" y="198" class="svg-small">1</text>
+      <text x="142" y="198" class="svg-small">2</text>
+      <text x="170" y="198" class="svg-small">3</text>
+      <text x="198" y="198" class="svg-small">4</text>
+      <text x="226" y="198" class="svg-small">5</text>
+      <text x="254" y="198" class="svg-small">6</text>
+      <text x="282" y="198" class="svg-small">7</text>
+      <text x="310" y="198" class="svg-small">8</text>
+      <text x="338" y="198" class="svg-small">9</text>
+      <text x="366" y="198" class="svg-small">10</text>
+      <text x="394" y="198" class="svg-mono">11</text>
+      <text x="422" y="198" class="svg-mono">12</text>
+      <text x="450" y="198" class="svg-small">13</text>
+      <text x="478" y="198" class="svg-small">14</text>
+      <text x="506" y="198" class="svg-small">15</text>
+      <text x="534" y="198" class="svg-small">16</text>
+      <text x="88" y="248" class="svg-small" style="text-anchor:end">残り 1 個</text>
+      <rect x="100" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="128" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="156" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="184" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="212" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="240" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="268" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="296" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="324" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="352" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="380" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="436" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="464" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="492" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="520" y="230" width="28" height="26" class="svg-cell-plain"/>
+      <rect x="408" y="230" width="28" height="26" class="svg-hl"/>
+      <text x="114" y="248" class="svg-small">1</text>
+      <text x="142" y="248" class="svg-small">2</text>
+      <text x="170" y="248" class="svg-small">3</text>
+      <text x="198" y="248" class="svg-small">4</text>
+      <text x="226" y="248" class="svg-small">5</text>
+      <text x="254" y="248" class="svg-small">6</text>
+      <text x="282" y="248" class="svg-small">7</text>
+      <text x="310" y="248" class="svg-small">8</text>
+      <text x="338" y="248" class="svg-small">9</text>
+      <text x="366" y="248" class="svg-small">10</text>
+      <text x="394" y="248" class="svg-small">11</text>
+      <text x="422" y="248" class="svg-mono">12</text>
+      <text x="450" y="248" class="svg-small">13</text>
+      <text x="478" y="248" class="svg-small">14</text>
+      <text x="506" y="248" class="svg-small">15</text>
+      <text x="534" y="248" class="svg-small">16</text>
+      <text x="100" y="72" class="svg-small" style="text-anchor:start">「8 以下か」→ いいえ。9〜16 を残す</text>
+      <text x="100" y="122" class="svg-small" style="text-anchor:start">「12 以下か」→ はい。9〜12 を残す</text>
+      <text x="100" y="172" class="svg-small" style="text-anchor:start">「10 以下か」→ いいえ。11〜12 を残す</text>
+      <text x="100" y="222" class="svg-small" style="text-anchor:start">「11 以下か」→ いいえ。12 に確定</text>
+      <text x="100" y="280" class="svg-mono" style="text-anchor:start">問いの回数 4 = log₂ 16（2⁴ = 16）</text>
+    </svg>
+    <figcaption>
+      図 4-1　1回の問いで候補が半分になるため、16個の候補は4回で1個に絞られる。
+      候補が32個なら5回、100万個でも20回で足りる。
+      <code>n</code> を 1 になるまで半分にできる回数が <code>log₂ n</code> であり、
+      候補を一定の割合で絞る手順の計算量はこれに比例する。
+    </figcaption>
+  </figure>
+
+  <p>
+    候補が 2倍に増えても、問いは1回増えるだけで済む。
+    <strong>対数時間の手順は、入力規模が何倍になっても手数がほとんど増えない</strong>。
+    ただしこの手が使えるのは、1回の操作で候補の一部をまとめて捨てられる場合に限られる。
+    候補が大小の順に並んでいる、木の形が整っているといった前提が崩れると、
+    半分に絞る根拠が失われる。
+  </p>
+
+  <h3>増え方の差</h3>
+
+  <p>各クラスの手数を、同じ <code>n</code> で並べる。</p>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="横軸をn、縦軸を手数とするグラフに、n²、n log n、n、log n の4本の曲線を描いた図。n²はnが10の時点で上端の100に達し、n log nはnが20で約86、nは20、log nは約4.3にとどまる">
+      <path d="M 60 230 L 500 230" class="svg-line"/>
+      <path d="M 60 230 L 60 30" class="svg-line"/>
+      <polyline points="82.0,230.0 93.0,228.8 104.0,228.0 115.0,227.4 126.0,226.8 137.0,226.4 148.0,226.0 159.0,225.7 170.0,225.4 181.0,225.1 192.0,224.8 203.0,224.6 214.0,224.4 225.0,224.2 236.0,224.0 247.0,223.8 258.0,223.7 269.0,223.5 280.0,223.4 291.0,223.2 302.0,223.1 313.0,223.0 324.0,222.8 335.0,222.7 346.0,222.6 357.0,222.5 368.0,222.4 379.0,222.3 390.0,222.2 401.0,222.1 412.0,222.0 423.0,221.9 434.0,221.8 445.0,221.7 456.0,221.7 467.0,221.6 478.0,221.5 489.0,221.4 500.0,221.4" class="svg-arrow" stroke-dasharray="2 4"/>
+      <polyline points="60.0,230.0 500.0,190.0" class="svg-line"/>
+      <polyline points="82.0,230.0 93.0,228.2 104.0,226.0 115.0,223.4 126.0,220.5 137.0,217.3 148.0,214.0 159.0,210.5 170.0,206.8 181.0,202.9 192.0,199.0 203.0,194.9 214.0,190.7 225.0,186.4 236.0,182.0 247.0,177.5 258.0,172.9 269.0,168.3 280.0,163.6 291.0,158.8 302.0,153.9 313.0,149.0 324.0,144.0 335.0,138.9 346.0,133.8 357.0,128.6 368.0,123.4 379.0,118.1 390.0,112.8 401.0,107.4 412.0,102.0 423.0,96.5 434.0,91.0 445.0,85.5 456.0,79.9 467.0,74.3 478.0,68.6 489.0,62.9 500.0,57.1" class="svg-arrow" stroke-dasharray="8 5"/>
+      <polyline points="60.0,230.0 71.0,229.5 82.0,228.0 93.0,225.5 104.0,222.0 115.0,217.5 126.0,212.0 137.0,205.5 148.0,198.0 159.0,189.5 170.0,180.0 181.0,169.5 192.0,158.0 203.0,145.5 214.0,132.0 225.0,117.5 236.0,102.0 247.0,85.5 258.0,68.0 269.0,49.5 280.0,30.0" class="svg-arrow"/>
+      <text x="68" y="26" class="svg-small" style="text-anchor:start">手数</text>
+      <text x="52" y="234" class="svg-mono" style="text-anchor:end">0</text>
+      <text x="52" y="134" class="svg-mono" style="text-anchor:end">50</text>
+      <text x="52" y="34" class="svg-mono" style="text-anchor:end">100</text>
+      <text x="60" y="248" class="svg-mono">0</text>
+      <text x="280" y="248" class="svg-mono">10</text>
+      <text x="500" y="248" class="svg-mono">20</text>
+      <text x="528" y="248" class="svg-small">n</text>
+      <text x="290" y="40" class="svg-mono" style="text-anchor:start">n²</text>
+      <text x="506" y="61" class="svg-mono" style="text-anchor:start">n log n</text>
+      <text x="506" y="194" class="svg-mono" style="text-anchor:start">n</text>
+      <text x="506" y="219" class="svg-mono" style="text-anchor:start">log n</text>
+    </svg>
+    <figcaption>
+      図 4-2　計算量のクラスごとの手数の増え方（対数の底は 2）。<code>n²</code> は <code>n = 10</code> で上端の 100 に達して枠の外へ出るが、
+      <code>log n</code> は <code>n = 20</code> でも 4.3 にとどまる。<code>O(1)</code> は横軸に沿った水平な線となるため省いた。
+      <code>n</code> が小さい範囲でも、クラスの違いはすでに曲線の傾きの差として現れている。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-2　入力規模ごとの手数（対数の底は 2、値は概数）。<code>n = 100万</code> では、
+      <code>O(n log n)</code> と <code>O(n²)</code> の間に5万倍の開きがある。
+      <code>O(2ⁿ)</code> は <code>n = 1000</code> の時点で、どの計算機でも終わらない規模に達する。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>計算量</th><th>n = 10</th><th>n = 1,000</th><th>n = 1,000,000</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>O(1)</code></td><td class="num-cell">1</td><td class="num-cell">1</td><td class="num-cell">1</td></tr>
+        <tr><td><code>O(log n)</code></td><td class="num-cell">3.3</td><td class="num-cell">10</td><td class="num-cell">20</td></tr>
+        <tr><td><code>O(n)</code></td><td class="num-cell">10</td><td class="num-cell">1,000</td><td class="num-cell">100 万</td></tr>
+        <tr><td><code>O(n log n)</code></td><td class="num-cell">33</td><td class="num-cell">1 万</td><td class="num-cell">2,000 万</td></tr>
+        <tr><td><code>O(n²)</code></td><td class="num-cell">100</td><td class="num-cell">100 万</td><td class="num-cell">1 兆</td></tr>
+        <tr><td><code>O(2ⁿ)</code></td><td class="num-cell">1,024</td><td class="num-cell">約 10<sup>301</sup></td><td class="num-cell">約 10<sup>301030</sup></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    <code>O(1)</code> から <code>O(n²)</code> までは、<code>n</code> のべき乗またはそれ以下で抑えられる。
+    このような計算量を <span class="term">多項式時間</span><span class="en">(polynomial time)</span> と呼ぶ。
+    <code>O(2ⁿ)</code> は <code>n</code> が1増えるたびに手数が2倍になり、多項式時間のどれよりも速く増える。
+    1秒間に1億回の操作を行う計算機でも、<code>n = 60</code> で約365年を要する。
+    <strong>指数時間の手順は、入力規模が数十を越えると計算機の性能向上では救えない</strong>。
+    すべての組合せを試す以外の方法が見つかるかどうかが、実用になるかどうかの分かれ目となる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      要素数 <code>n</code> の配列に対する次の手順のうち、計算量が <code>O(log n)</code> となるものはどれか。
+    </p>
+    <ol class="choices">
+      <li>配列の全要素の合計を求める</li>
+      <li>値 <code>n</code> を 2 で割る（小数点以下切り捨て）ことを、1 以下になるまで繰り返し、その回数を数える</li>
+      <li>配列のすべての要素の組について、2要素の差を求める</li>
+      <li>配列の添字 <code>n ÷ 2</code>（中央）の要素を読み出す</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          1回の割り算ごとに値が半分になるため、繰り返しの回数は <code>n</code> を半分にできる回数、
+          すなわち <code>log₂ n</code> 程度である。図 4-1 の候補の絞り込みと同じ形をしている。
+        </p>
+        <p>
+          (A) はすべての要素を1回ずつ足すため <code>O(n)</code> である。
+          (C) はすべての組を扱うため <code>O(n²)</code> である。
+          (D) は「半分」という語から対数を連想させるが、添字から位置を計算して1回読み出すだけであり、
+          <code>n</code> によらず一定の手数で終わる <code>O(1)</code> である。
+          対数が生じるのは、半分にする操作を<strong>繰り返す</strong>場合である。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-2</span>
+    <p class="q-body">
+      計算量が <code>O(n²)</code> の手順に <code>n = 1,000</code> の入力を与えたところ、2秒で終わった。
+      同じ計算機で <code>n = 10,000</code> の入力を与えたとき、所要時間はおよそどれだけと見込まれるか。
+    </p>
+    <ol class="choices">
+      <li>2秒（計算量のクラスが同じため変わらない）</li>
+      <li>20秒</li>
+      <li>200秒</li>
+      <li>2,000秒</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          手数が <code>n²</code> に比例するので、<code>n</code> が10倍になると手数は <code>10² = 100</code> 倍になる。
+          2秒の100倍で約200秒と見込まれる。
+        </p>
+        <p>
+          (A) は、計算量のクラスが入力規模によらず同じであることを、所要時間が同じであることと取り違えている。
+          クラスが表すのは増え方であって、時間そのものではない。
+          (B) は <code>O(n)</code> の手順の見積もりであり、手数が <code>n</code> に比例すると考えている。
+          (D) は 1,000倍、すなわち <code>n³</code> に比例するとした場合の見積もりである。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 計算量の求め方 — 組み合わせの規則 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>計算量の求め方 — 組み合わせの規則</h2>
+
+  <p>
+    手順は、繰り返しや条件分岐を組み合わせて作られる。
+    部分ごとの計算量が分かれば、組み合わせ方に応じた規則で全体の計算量が求まる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　手順の組み合わせ方と計算量の規則。逐次は和、入れ子は積をとり、
+      和は O記法の下で最も大きい項だけが残る。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>組み合わせ方</th><th>規則</th><th>例</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>逐次（順に実行する）</td>
+          <td>大きいほうが残る</td>
+          <td><code>O(n)</code> の後に <code>O(n²)</code> → <code>O(n²)</code></td>
+        </tr>
+        <tr>
+          <td>入れ子（繰り返しの中で実行する）</td>
+          <td>繰り返し回数と中身の計算量の積</td>
+          <td><code>n</code> 回の繰り返しの中で <code>O(n)</code> → <code>O(n²)</code></td>
+        </tr>
+        <tr>
+          <td>半分にしていく繰り返し</td>
+          <td>回数は <code>log n</code></td>
+          <td>変数を 2 で割り続ける → <code>O(log n)</code></td>
+        </tr>
+        <tr>
+          <td>条件分岐</td>
+          <td>重いほうの分岐で見積もる</td>
+          <td>一方が <code>O(1)</code>、他方が <code>O(n)</code> → <code>O(n)</code></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>逐次 — 大きいほうが残る</h3>
+
+  <p>
+    最大値を求めてから等しい組を数える手順の手数は、
+    <code>(n − 1) + n(n − 1) ÷ 2</code> である。
+    和をとっても、O記法では最も速く増える項だけが残るので、全体は <code>O(n²)</code> になる。
+    <strong>順に並んだ処理のうち、最も重い一つが全体の計算量を決める</strong>。
+    手順を速くしたいとき、軽い部分を改良しても計算量は変わらない。
+  </p>
+
+  <h3>入れ子 — 回数を掛け合わせる</h3>
+
+  <p>
+    繰り返しの中に処理があれば、繰り返しの回数と中身の計算量を掛ける。
+    次の手順は、外側が <code>n</code> 回、内側が <code>n</code> 回であり、<code>O(n × n) = O(n²)</code> である。
+  </p>
+
+  <pre><code>1. i を 1 から n まで 1 ずつ増やしながら、次を繰り返す
+   1.1 j を 1 から n まで 1 ずつ増やしながら、次を繰り返す
+       1.1.1 基本操作を 1 回行う</code></pre>
+
+  <p>
+    図 2-1 の手順のように内側の回数が外側に応じて減る場合も、合計は <code>n²/2</code> 程度であり、
+    計算量は同じく <code>O(n²)</code> となる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      入れ子の深さが、そのまま <code>n</code> の次数になるとは限らない。
+      決め手は<strong>各繰り返しの回数が <code>n</code> とどう結び付いているか</strong>である。
+      内側の繰り返しが <code>n</code> によらず3回で終わるなら全体は <code>O(n)</code> であり、
+      内側が値を半分にしていく繰り返しなら <code>O(n log n)</code> となる。
+    </p>
+  </div>
+
+  <h3>半分にしていく繰り返し</h3>
+
+  <pre><code>1. k ← n
+2. k &gt; 1 である間、次を繰り返す
+   2.1 k ← k ÷ 2（小数点以下切り捨て）</code></pre>
+
+  <p>
+    繰り返しのたびに <code>k</code> が半分になるため、回数は <code>log₂ n</code> 程度である。
+    図 4-1 で候補が半分ずつ減ったのと同じ構造である。
+    倍々に増やしていく繰り返し（<code>k ← k × 2</code> を <code>k</code> が <code>n</code> に達するまで）も、
+    同じく <code>O(log n)</code> となる。
+  </p>
+
+  <h3>条件分岐 — 重いほうで見積もる</h3>
+
+  <p>
+    条件によって実行される処理が異なる場合、どちらが実行されるかは入力によって変わる。
+    どの入力に対しても成り立つ見積もりとするには、重いほうの分岐の計算量を採る。
+    入力によって手数が変わる場合の見積もり方は、最悪・平均・最良の区別として整理される。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">次の手順の計算量はどれか。</p>
+    <pre><code>1. i を 1 から n まで 1 ずつ増やしながら、次を繰り返す
+   1.1 k ← n
+   1.2 k &gt; 1 である間、次を繰り返す
+       1.2.1 基本操作を 1 回行う
+       1.2.2 k ← k ÷ 2（小数点以下切り捨て）</code></pre>
+    <ol class="choices">
+      <li><code>O(n)</code></li>
+      <li><code>O(log n)</code></li>
+      <li><code>O(n log n)</code></li>
+      <li><code>O(n²)</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          内側の繰り返しは <code>k</code> を半分にしていくため、<code>log₂ n</code> 回程度で終わる。
+          これが外側の <code>n</code> 回の繰り返しの中にあるので、積をとって <code>O(n log n)</code> となる。
+        </p>
+        <p>
+          (A) は外側の繰り返しだけを数え、内側を一定回数とみなしている。
+          (B) は内側の繰り返しだけを数え、外側との積をとっていない。
+          (D) は、繰り返しが二重であることから次数を2と決めつけている。
+          内側の回数は <code>n</code> ではなく <code>log n</code> である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. 最悪・平均・最良 — 入力によって変わる手数 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>最悪・平均・最良 — 入力によって変わる手数</h2>
+
+  <p>
+    ここまでの例は、<code>n</code> が決まれば手数も決まる手順であった。
+    しかし多くの手順では、同じ <code>n</code> でもデータの中身や並び方によって手数が変わる。
+    配列の中から値 <code>x</code> を先頭から順に調べて探す手順で確かめる。
+  </p>
+
+  <pre><code>探す(配列 A, 要素数 n, 値 x):
+1. i を 1 から n まで 1 ずつ増やしながら、次を繰り返す
+   1.1 A[i] = x ならば、i を答えとして終了する
+2. 見つからなかったとして終了する</code></pre>
+
+  <p>
+    このように先頭から順に一つずつ調べる探し方を
+    <span class="term">線形探索</span><span class="en">(linear search)</span> と呼ぶ。
+    <code>x</code> が先頭にあれば比較は1回で済む。末尾にあるか、配列に含まれていなければ <code>n</code> 回を要する。
+    同じ要素数でも、手数は 1 回から <code>n</code> 回までの幅を持つ。
+  </p>
+
+  <h3>三つの見積もり方</h3>
+
+  <ul>
+    <li>
+      <span class="term">最悪計算量</span><span class="en">(worst-case complexity)</span> —
+      要素数 <code>n</code> の入力のうち、手数が最も多くなるものでの計算量。線形探索では <code>O(n)</code>
+    </li>
+    <li>
+      <span class="term">平均計算量</span><span class="en">(average-case complexity)</span> —
+      入力の現れ方を仮定し、手数の平均をとった計算量。<code>x</code> が必ず含まれ、どの位置にも等しい確率で
+      あるとすれば、比較回数の平均は <code>(1 + 2 + … + n) ÷ n = (n + 1) ÷ 2</code> 回であり、<code>O(n)</code>
+    </li>
+    <li>
+      <span class="term">最良計算量</span><span class="en">(best-case complexity)</span> —
+      手数が最も少なくなる入力での計算量。線形探索では <code>O(1)</code>
+    </li>
+  </ul>
+
+  <p>
+    アルゴリズムを評価する際は、一般に最悪計算量を用いる。
+    <strong>最悪計算量は、どの入力に対しても手数がそれを超えないという保証になる</strong>ためである。
+    応答時間に上限が求められる処理では、平均的に速いことよりも、最悪でも一定の時間に収まることが重要になる。
+    平均計算量は実際の振る舞いに近い見積もりを与えるが、入力がどのように現れるかの仮定を要する。
+    仮定が実際のデータと合わなければ、見積もりは外れる。
+    最良計算量は、たまたま都合の良い入力が来た場合の値にすぎず、手順を選ぶ根拠にはなりにくい。
+  </p>
+
+  <p>
+    平均と最悪の差が大きい例に、二分探索木がある。
+    形が整っていれば探索は <code>O(log n)</code> で済むが、
+    整列済みの値を順に挿入して一列に退化した木では <code>O(n)</code> を要する。
+    平均計算量は <code>O(log n)</code>、最悪計算量は <code>O(n)</code> である。
+    入力が整列済みに近い状況が実際に起こりうるなら、最悪計算量の側で評価しなければならない。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      アルゴリズムを評価する際、一般に最悪計算量が用いられる。その理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>実際の利用では、手数が最も多くなる入力が最も頻繁に現れるから</li>
+      <li>どの入力に対しても、手数がその値を超えないことを保証できるから</li>
+      <li>最悪計算量は、最良計算量よりも常に小さい値になるから</li>
+      <li>平均計算量は O記法で表すことができないから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          最悪計算量は、要素数 <code>n</code> のあらゆる入力の中で手数が最も多いものに基づく。
+          したがって、どの入力が来てもその計算量を超えないという上限の保証になる。
+          入力の現れ方について何の仮定も要しない点も利点である。
+        </p>
+        <p>
+          (A) は、最悪の入力が現れる頻度を問題にしている。最悪計算量を用いる理由は頻度ではなく保証であり、
+          最悪の入力がまれであっても、起こりうる限り上限として意味を持つ。
+          (C) は大小を取り違えている。最悪の場合の手数は、最良の場合の手数以上である。
+          (D) は誤りである。線形探索の平均が <code>O(n)</code> であるように、平均計算量も O記法で表せる。
+          平均計算量の難点は表記ではなく、入力の現れ方の仮定を要することにある。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. 計算量で比較・評価する ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>計算量で比較・評価する</h2>
+
+  <h3>データ構造の操作を計算量で整理する</h3>
+
+  <p>
+    データ構造の得意・不得意は、操作ごとの計算量として表せる。
+    配列・リスト・スタック・キュー・二分探索木はいずれも要素の集まりを保持する構造であり、
+    どの操作が速いかの違いを同じ尺度で並べられる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　データ構造の主な操作の計算量（要素数を <code>n</code> とする）。
+      計算量の違いは、要素の配置の仕方から直接説明できる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>構造</th><th>操作</th><th>計算量</th><th>根拠</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td rowspan="3">配列</td>
+          <td>添字を指定した読み出し</td>
+          <td><code>O(1)</code></td>
+          <td>先頭の位置と添字から、要素の位置を計算で求められる</td>
+        </tr>
+        <tr>
+          <td>先頭・途中への挿入</td>
+          <td><code>O(n)</code></td>
+          <td>挿入位置より後ろの要素を1つずつずらす</td>
+        </tr>
+        <tr>
+          <td>値の探索（並びに規則がない場合）</td>
+          <td><code>O(n)</code></td>
+          <td>先頭から順に調べるしかない</td>
+        </tr>
+        <tr>
+          <td rowspan="3">線形リスト<br>（先頭のみ保持）</td>
+          <td>位置が分かっているノードの直後への挿入</td>
+          <td><code>O(1)</code></td>
+          <td>ポインタの張り替えだけで済み、他のノードは動かない</td>
+        </tr>
+        <tr>
+          <td><code>k</code> 番目のノードへの到達</td>
+          <td><code>O(n)</code></td>
+          <td>先頭から順にたどるしかない</td>
+        </tr>
+        <tr>
+          <td><code>k</code> 番目の直後への挿入</td>
+          <td><code>O(n)</code></td>
+          <td>到達 <code>O(n)</code> と張り替え <code>O(1)</code> の逐次であり、大きいほうが残る</td>
+        </tr>
+        <tr>
+          <td>スタック</td>
+          <td>push・pop</td>
+          <td><code>O(1)</code></td>
+          <td>top の位置だけを操作し、既存の要素には触れない</td>
+        </tr>
+        <tr>
+          <td>キュー</td>
+          <td>enqueue・dequeue</td>
+          <td><code>O(1)</code></td>
+          <td>先頭と末尾の位置を保持しており、両端だけを操作する</td>
+        </tr>
+        <tr>
+          <td>二分探索木</td>
+          <td>値の探索・挿入・削除</td>
+          <td>平均 <code>O(log n)</code><br>最悪 <code>O(n)</code></td>
+          <td>手数は木の高さに比例する。高さは形が整っていれば <code>log n</code> 程度、退化すれば <code>n</code> 程度</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    リストの挿入は張り替えだけで済むので <code>O(1)</code> と言われることが多いが、
+    これは<strong>挿入する位置にすでに到達している場合</strong>の計算量である。
+    <code>k</code> 番目という指定で挿入するなら、そこまでたどる <code>O(n)</code> が加わる。
+    手順の計算量を見積もる際は、目的の位置へ届くまでの手数を含めて数える必要がある。
+  </p>
+
+  <h3>計算量で比較できる範囲</h3>
+
+  <p>
+    計算量は、<code>n</code> が大きいときの増え方を比べる尺度である。
+    したがって、<strong>計算量の小さい手順のほうが速いと言えるのは、<code>n</code> が十分大きい場合に限られる</strong>。
+    手数がそれぞれ <code>100n</code> 回と <code>n²</code> 回の手順を比べると、
+    計算量では前者の <code>O(n)</code> が優れている。しかし <code>n</code> が 100 未満では後者の手数のほうが少ない。
+  </p>
+
+  <p>
+    この逆転が選択を左右するのは、扱うデータが常に数十件程度に限られる場合や、
+    小さな入力に対する処理を非常に多くの回数繰り返す場合である。
+    このような場面では、計算量の大きい単純な手順のほうが実際には速いことがある。
+    一方、データの件数が増えていくことが見込まれる場面では、計算量の差がいずれ係数の差を上回るため、
+    計算量の小さい手順を選ぶ。
+  </p>
+
+  <h3>時間と記憶域</h3>
+
+  <p>
+    手順の評価には、時間のほかに、実行中に必要な記憶域の量という観点もある。
+    記憶域の量を入力規模の式として表したものを
+    <span class="term">空間計算量</span><span class="en">(space complexity)</span> と呼び、同じく O記法で表す。
+    入力のほかに一定個の変数しか使わない手順は <code>O(1)</code>、
+    入力と同じ大きさの作業用の配列を用意する手順は <code>O(n)</code> である。
+  </p>
+
+  <p>
+    時間と記憶域は、一方を得るために他方を手放す関係になることが多い。
+    たとえば、あらかじめ計算した結果を表に記録しておけば、同じ問いに <code>O(1)</code> で答えられるが、
+    表のぶんだけ記憶域を使う。このような関係を
+    <span class="term">トレードオフ</span><span class="en">(trade-off)</span> と呼ぶ。
+    記憶域の増加が選択を左右するのは、<code>n</code> が使える記憶域の総量に迫る規模である場合や、
+    記憶域の限られた機器で動かす場合である。それ以外の場面では、時間計算量を優先して評価することが多い。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      いずれも <code>n</code> 個の要素を保持している次の構造について、操作の計算量が <code>O(1)</code> であるものはどれか。
+    </p>
+    <ol class="choices">
+      <li>配列の先頭（最初の添字の位置）に新しい要素を挿入する</li>
+      <li>先頭のノードの位置だけを保持する線形リストで、末尾のノードの値を読み出す</li>
+      <li>キューから要素を1つ取り出す</li>
+      <li>形が整っていない場合もある二分探索木で、最大の値を探す（最悪の場合で評価する）</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          キューは先頭の位置を保持しており、取り出しは先頭の要素を返して位置を1つ進めるだけで済む。
+          他の要素には触れないため、<code>n</code> によらず一定の手数で終わる。
+        </p>
+        <p>
+          (A) は、先頭に場所を空けるために既存の <code>n</code> 個の要素をすべて後ろへずらすため <code>O(n)</code> である。
+          添字による読み出しが <code>O(1)</code> であることと、挿入の手数を混同しやすい。
+          (B) は、末尾に到達するまで先頭から <code>n</code> 個のノードをたどる必要があり <code>O(n)</code> である。
+          (D) は、最大の値を求めて右の子をたどり続けるため、手数は木の高さに比例する。
+          最悪の場合、木が一列に退化していれば <code>O(n)</code> となる。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-2</span>
+    <p class="q-body">
+      同じ問題を解く手順 A と手順 B がある。入力規模 <code>n</code> のとき、
+      A の基本操作の回数は <code>100n</code> 回、B は <code>n²</code> 回である。
+      B の回数が A の回数を上回る最小の <code>n</code> はどれか。
+    </p>
+    <ol class="choices">
+      <li>10</li>
+      <li>100</li>
+      <li>101</li>
+      <li>B の回数はどの <code>n</code> でも A を上回る</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          <code>n² &gt; 100n</code> を <code>n</code> で割ると <code>n &gt; 100</code> となる。
+          これを満たす最小の整数は 101 である。
+          <code>n = 100</code> では両者とも 10,000 回で等しく、それより小さい <code>n</code> では B のほうが少ない。
+        </p>
+        <p>
+          (A) は <code>n² = 100</code> を解いており、A の回数が <code>100n</code> であることを見落としている。
+          (B) は、両者が等しくなる境界の値を、上回り始める値と取り違えている。
+          (D) は、O記法での大小 <code>O(n) &lt; O(n²)</code> が、どの <code>n</code> でも成り立つと考えている。
+          O記法の比較は、<code>n</code> が十分大きい場合についてのみ述べている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 総括 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>総括</h2>
+
+  <ul>
+    <li>
+      手順の効率は実行時間の秒数ではなく、基本操作の回数を入力規模 <code>n</code> の式として表して比べる。
+      秒数は計算機とデータに左右されるが、回数の増え方は手順だけで決まる。
+    </li>
+    <li>
+      繰り返しの回数は、両端を含む区間「a から b まで」で <code>b − a + 1</code> 回と数える。
+      すべての組を比べる二重の繰り返しは <code>n(n − 1) ÷ 2</code> 回となる。
+    </li>
+    <li>
+      O記法は、十分大きな <code>n</code> で手数が <code>f(n)</code> の定数倍を超えないことを表す。
+      最も速く増える項を残して係数を捨てれば求まり、対数の底は区別しない。
+      O記法が示すのは上からの抑えである。
+    </li>
+    <li>
+      代表的な計算量は <code>O(1) &lt; O(log n) &lt; O(n) &lt; O(n log n) &lt; O(n²) &lt; O(2ⁿ)</code> の順に増える。
+      候補を半分ずつ絞る手順は対数時間、すべての組を扱う手順は2乗時間、
+      すべての組合せを試す手順は指数時間となる。
+    </li>
+    <li>
+      逐次に並んだ処理は最も重いものが残り、入れ子の処理は回数を掛け合わせる。
+      入れ子の深さではなく、各繰り返しの回数と <code>n</code> の結び付きが計算量を決める。
+    </li>
+    <li>
+      同じ <code>n</code> でも入力によって手数が変わる場合は、最悪・平均・最良を区別する。
+      評価には、どの入力でも超えない保証となる最悪計算量を用いることが多い。
+    </li>
+    <li>
+      データ構造の得意・不得意は、操作ごとの計算量として要素の配置から説明できる。
+      計算量の比較が成り立つのは <code>n</code> が十分大きい場合であり、
+      時間と記憶域の間にはトレードオフがある。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／計算量・アルゴリズム評価<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
