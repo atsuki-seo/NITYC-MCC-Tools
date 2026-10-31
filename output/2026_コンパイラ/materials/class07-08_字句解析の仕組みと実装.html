@@ -269,9 +269,190 @@
   </div>
 
   <p>
+    図 2-2 は、表 2-1 の二つの入力について、各時点の集合を状態ごとに並べたものである。
+    <strong>集合内の状態が、読んだ文字の遷移を持たなければ、その状態は次の集合に引き継がれない。</strong>
+    aab の二文字目の a では、q1 に a の遷移が無いため q1 からの経路は途切れる。しかし q0 から a で q1 へ移れるため、q1 は改めて加わり、集合は {q0, q1} のまま変わらない。
+    集合が空になった場合は、その後どの文字を読んでも受理されないことが確定する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 352" role="img" aria-label="図 2-1 の NFA に aab と aba を読ませ、一文字ごとにありうる状態の集合を示した図。各列が一つの時点で、q0, q1, q2 のうち集合に含まれる状態を塗りつぶして示す。集合内の各状態から、読んだ文字の遷移をたどった先を合わせたものが次の列の集合になる。aab では二文字目の a で q1 に a の遷移が無く消えるが、q0 から再び q1 が加わる。最後の b で q1 から q2 へ移り、{q0, q2} で読み終えて受理する。aba では最後の a で q2 に遷移が無く消え、{q0, q1} で読み終えて受理しない。">
+      <path d="M 186 50 L 263 50" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 185.1 55.2 L 263.9 82.4" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 296 50 L 373 50" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 295.1 55.2 L 373.9 82.4" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 406 50 L 483 50" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 405.1 93.2 L 483.9 120.4" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 186 228 L 263 228" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 185.1 233.2 L 263.9 260.4" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 296 228 L 373 228" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 295.1 271.2 L 373.9 298.4" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 406 228 L 483 228" class="svg-arrow" marker-end="url(#ah6)"/>
+      <path d="M 405.1 233.2 L 483.9 260.4" class="svg-arrow" marker-end="url(#ah6)"/>
+
+      <circle cx="170" cy="50" r="14" class="svg-cell"/>
+      <circle cx="170" cy="88" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="170" cy="126" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="280" cy="50" r="14" class="svg-cell"/>
+      <circle cx="280" cy="88" r="14" class="svg-cell"/>
+      <circle cx="280" cy="126" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="390" cy="50" r="14" class="svg-cell"/>
+      <circle cx="390" cy="88" r="14" class="svg-cell"/>
+      <circle cx="390" cy="126" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="500" cy="50" r="14" class="svg-cell"/>
+      <circle cx="500" cy="88" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="500" cy="126" r="14" class="svg-hl"/>
+      <circle cx="170" cy="228" r="14" class="svg-cell"/>
+      <circle cx="170" cy="266" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="170" cy="304" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="280" cy="228" r="14" class="svg-cell"/>
+      <circle cx="280" cy="266" r="14" class="svg-cell"/>
+      <circle cx="280" cy="304" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="390" cy="228" r="14" class="svg-cell"/>
+      <circle cx="390" cy="266" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+      <circle cx="390" cy="304" r="14" class="svg-cell"/>
+      <circle cx="500" cy="228" r="14" class="svg-cell"/>
+      <circle cx="500" cy="266" r="14" class="svg-cell"/>
+      <circle cx="500" cy="304" r="14" class="svg-cell-plain" stroke-dasharray="4 4"/>
+
+      <text x="16" y="93" class="svg-small" style="text-anchor:start">入力 aab</text>
+      <text x="170" y="26" class="svg-small">開始</text>
+      <text x="225" y="26" class="svg-mono">a</text>
+      <text x="335" y="26" class="svg-mono">a</text>
+      <text x="307" y="93" class="svg-text">×</text>
+      <text x="445" y="26" class="svg-mono">b</text>
+      <text x="170" y="55" class="svg-mono">q0</text>
+      <text x="170" y="92" class="svg-small">q1</text>
+      <text x="170" y="130" class="svg-small">q2</text>
+      <text x="280" y="55" class="svg-mono">q0</text>
+      <text x="280" y="93" class="svg-mono">q1</text>
+      <text x="280" y="130" class="svg-small">q2</text>
+      <text x="390" y="55" class="svg-mono">q0</text>
+      <text x="390" y="93" class="svg-mono">q1</text>
+      <text x="390" y="130" class="svg-small">q2</text>
+      <text x="500" y="55" class="svg-mono">q0</text>
+      <text x="500" y="92" class="svg-small">q1</text>
+      <text x="500" y="131" class="svg-mono">q2</text>
+      <text x="335" y="160" class="svg-small">読み終えた集合 {q0, q2} は受理状態 q2 を含む → 受理</text>
+      <text x="16" y="271" class="svg-small" style="text-anchor:start">入力 aba</text>
+      <text x="170" y="204" class="svg-small">開始</text>
+      <text x="225" y="204" class="svg-mono">a</text>
+      <text x="335" y="204" class="svg-mono">b</text>
+      <text x="445" y="204" class="svg-mono">a</text>
+      <text x="417" y="309" class="svg-text">×</text>
+      <text x="170" y="233" class="svg-mono">q0</text>
+      <text x="170" y="270" class="svg-small">q1</text>
+      <text x="170" y="308" class="svg-small">q2</text>
+      <text x="280" y="233" class="svg-mono">q0</text>
+      <text x="280" y="271" class="svg-mono">q1</text>
+      <text x="280" y="308" class="svg-small">q2</text>
+      <text x="390" y="233" class="svg-mono">q0</text>
+      <text x="390" y="270" class="svg-small">q1</text>
+      <text x="390" y="309" class="svg-mono">q2</text>
+      <text x="500" y="233" class="svg-mono">q0</text>
+      <text x="500" y="271" class="svg-mono">q1</text>
+      <text x="500" y="308" class="svg-small">q2</text>
+      <text x="335" y="338" class="svg-small">読み終えた集合 {q0, q1} は受理状態を含まない → 受理しない</text>
+
+      <defs>
+        <marker id="ah6" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-2　図 2-1 の NFA による aab と aba の判定。塗りつぶした状態が、その時点の集合に含まれる。集合内の各状態から出る矢印の行き先を合わせたものが、次の時点の集合となる。
+      × を付けた状態は読んだ文字の遷移を持たず、次の集合に引き継がれない。aba では最後の a で q2 が消え、受理状態を含まない集合で読み終える。
+    </figcaption>
+  </figure>
+
+  <p>
     NFA を用いる利点は、<strong>正規表現から機械的に組み立てられる</strong>ことにある。
     連接・選択・繰り返しのそれぞれについて小さな NFA の部品を定め、それらを ε 遷移でつなげば、どれほど長い正規表現からでも NFA が得られる。
     この組み立て方を <span class="term">トンプソンの構成法</span><span class="en">(Thompson's construction)</span> と呼ぶ。
+  </p>
+
+  <p>
+    図 2-3 は、<code>a|b</code> と <code>ab*</code> をこの方法で組み立てた NFA である。
+    選択 <code>a|b</code> は、ε 遷移で二つの部品に分かれ、それぞれの部品を読み終えた後に ε 遷移で一つの受理状態に合流する。
+    繰り返し <code>b*</code> は、b を読み終えた n3 から読み始めの n2 へ戻る ε 遷移で繰り返しを表し、n1 から n4 へ飛び越す ε 遷移で b を一度も読まない場合を表す。
+    <code>ab*</code> は、a の部品の後に <code>b*</code> の部品を連接したものである。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 326" role="img" aria-label="トンプソンの構成法で作った二つの NFA。上段の a|b では、初期状態 p0 から ε 遷移で二つの部品 p1 と p3 に分かれ、p1 から a で p2、p3 から b で p4 へ移り、p2 と p4 から ε 遷移で受理状態 p5 に合流する。下段の ab* では、n0 から a で n1 へ移り、n1 から ε で n2、n2 から b で n3、n3 から ε で受理状態 n4 へ移る。さらに n3 から n2 へ戻る ε 遷移が b の繰り返しを、n1 から n4 へ飛ぶ ε 遷移が b を 0 回読む場合を表す。">
+      <path d="M 40 82 L 79 82" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 118.8 75.2 L 190.3 49.2" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 118.8 88.8 L 190.3 114.8" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 230 42 L 309 42" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 230 122 L 309 122" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 348.8 48.8 L 416.5 73.5" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 348.8 115.2 L 416.5 90.5" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 40 240 L 79 240" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 120 240 L 189 240" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 230 240 L 299 240" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 340 240 L 409 240" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 450 240 L 505 240" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 419 225 C 400 176, 350 176, 331 223" class="svg-arrow" marker-end="url(#ah7)"/>
+      <path d="M 220 256 C 260 312, 480 312, 518 261" class="svg-arrow" marker-end="url(#ah7)"/>
+
+      <circle cx="100" cy="82" r="18" class="svg-cell"/>
+      <circle cx="210" cy="42" r="18" class="svg-cell"/>
+      <circle cx="330" cy="42" r="18" class="svg-cell"/>
+      <circle cx="210" cy="122" r="18" class="svg-cell"/>
+      <circle cx="330" cy="122" r="18" class="svg-cell"/>
+      <circle cx="440" cy="82" r="22" class="svg-cell"/>
+      <circle cx="440" cy="82" r="17" class="svg-cell"/>
+      <circle cx="100" cy="240" r="18" class="svg-cell"/>
+      <circle cx="210" cy="240" r="18" class="svg-cell"/>
+      <circle cx="320" cy="240" r="18" class="svg-cell"/>
+      <circle cx="430" cy="240" r="18" class="svg-cell"/>
+      <circle cx="530" cy="240" r="22" class="svg-cell"/>
+      <circle cx="530" cy="240" r="17" class="svg-cell"/>
+
+      <text x="16" y="20" class="svg-mono" style="text-anchor:start">a|b</text>
+      <text x="58" y="72" class="svg-small">開始</text>
+      <text x="147" y="54" class="svg-mono">ε</text>
+      <text x="147" y="118" class="svg-mono">ε</text>
+      <text x="270" y="32" class="svg-mono">a</text>
+      <text x="270" y="112" class="svg-mono">b</text>
+      <text x="393" y="54" class="svg-mono">ε</text>
+      <text x="393" y="118" class="svg-mono">ε</text>
+      <text x="100" y="87" class="svg-mono">p0</text>
+      <text x="210" y="47" class="svg-mono">p1</text>
+      <text x="330" y="47" class="svg-mono">p2</text>
+      <text x="210" y="127" class="svg-mono">p3</text>
+      <text x="330" y="127" class="svg-mono">p4</text>
+      <text x="440" y="87" class="svg-mono">p5</text>
+      <text x="480" y="87" class="svg-small" style="text-anchor:start">受理</text>
+      <text x="16" y="182" class="svg-mono" style="text-anchor:start">ab*</text>
+      <text x="58" y="230" class="svg-small">開始</text>
+      <text x="155" y="230" class="svg-mono">a</text>
+      <text x="265" y="230" class="svg-mono">ε</text>
+      <text x="375" y="230" class="svg-mono">b</text>
+      <text x="480" y="230" class="svg-mono">ε</text>
+      <text x="375" y="180" class="svg-mono">ε</text>
+      <text x="370" y="312" class="svg-mono">ε</text>
+      <text x="100" y="245" class="svg-mono">n0</text>
+      <text x="210" y="245" class="svg-mono">n1</text>
+      <text x="320" y="245" class="svg-mono">n2</text>
+      <text x="430" y="245" class="svg-mono">n3</text>
+      <text x="530" y="245" class="svg-mono">n4</text>
+      <text x="530" y="208" class="svg-small">受理</text>
+
+      <defs>
+        <marker id="ah7" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 2-3　トンプソンの構成法による a|b と ab* の NFA。選択は ε 遷移による分岐と合流で、繰り返しは戻る ε 遷移と飛び越す ε 遷移で表す。
+      部品の形が演算ごとに決まっているため、正規表現を読みながら機械的に組み立てられる。その代わり、状態と ε 遷移は手で作る場合より多くなる。
+    </figcaption>
+  </figure>
+
+  <p>
     同じ言語の DFA を正規表現から直接作ろうとすると、図 2-1 で先送りした「どの a が末尾の a か」の判断を、設計者が状態の配置として解決しなければならない。
   </p>
 
@@ -324,6 +505,12 @@ q2: 遷移なし</code></pre>
     これを <span class="term">ε 閉包</span><span class="en">(ε-closure)</span> と呼ぶ。ε 遷移の無い NFA では、ε 閉包は元の集合と同じである。
   </p>
 
+  <p>
+    図 2-3 の <code>a|b</code> の NFA では、初期状態 p0 から ε 遷移で p1 と p3 に到達できるため、{p0} の ε 閉包は {p0, p1, p3} となる。
+    ここで a を読むと、移れるのは p1 からの p2 だけである。{p2} の ε 閉包は、ε 遷移で到達できる p5 を加えた {p2, p5} となり、受理状態 p5 を含む。
+    <strong>ε 閉包は、読み始める前と、文字を読んで移った後の両方でとる。</strong>後者を怠ると、a を読み終えた時点で受理状態にあることを見落とす。
+  </p>
+
   <pre><code>1. NFA の初期状態の ε 閉包を、DFA の初期状態とし、未処理の一覧に入れる
 2. 未処理の状態集合が残っている間、次を繰り返す
 3.   未処理の一覧から状態集合 S を一つ取り出す
@@ -334,7 +521,72 @@ q2: 遷移なし</code></pre>
 8. NFA の受理状態を一つでも含む集合を、DFA の受理状態とする</code></pre>
 
   <p>
-    図 2-1 の NFA に適用した結果が表 3-1 である。初期状態 {q0} から始め、新しい集合が現れなくなるまで表を埋める。
+    図 2-1 の NFA に適用する過程を図 3-1 に示す。この NFA には ε 遷移が無いため、ε 閉包は元の集合のままである。
+    未処理の一覧から集合を一つ取り出すたびに a と b の移り先を求め、まだ現れていない集合だけを一覧に加える。
+    <strong>一覧が空になった時点で、現れうる集合が出尽くしたことになり、手順は止まる。</strong>
+    状態の集合は有限通りしかないため、手順は必ず止まる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 240" role="img" aria-label="図 2-1 の NFA に部分集合構成法を適用する過程を、一回の取り出しを一行として並べた図。準備で初期状態 A = {q0} を未処理一覧に入れる。1 回目は A を取り出し、a の移り先 {q0, q1} が新規のため B として一覧に入れ、b の移り先 {q0} は既出の A である。2 回目は B を取り出し、a の移り先は既出の B、b の移り先 {q0, q2} が新規のため C として一覧に入れる。3 回目は C を取り出し、移り先はどちらも既出であり、一覧が空になって終了する。">
+      <rect x="64" y="32" width="110" height="44" class="svg-cell"/>
+      <rect x="450" y="32" width="116" height="44" class="svg-cell"/>
+      <rect x="64" y="84" width="110" height="44" class="svg-cell"/>
+      <rect x="318" y="84" width="120" height="44" class="svg-cell-plain"/>
+      <rect x="450" y="84" width="116" height="44" class="svg-cell"/>
+      <rect x="64" y="136" width="110" height="44" class="svg-cell"/>
+      <rect x="186" y="136" width="120" height="44" class="svg-cell-plain"/>
+      <rect x="450" y="136" width="116" height="44" class="svg-cell"/>
+      <rect x="64" y="188" width="110" height="44" class="svg-cell"/>
+      <rect x="186" y="188" width="120" height="44" class="svg-cell-plain"/>
+      <rect x="318" y="188" width="120" height="44" class="svg-cell-plain"/>
+      <rect x="450" y="188" width="116" height="44" class="svg-cell"/>
+      <rect x="186" y="84" width="120" height="44" class="svg-hl"/>
+      <rect x="318" y="136" width="120" height="44" class="svg-hl"/>
+
+      <text x="30" y="20" class="svg-small">回</text>
+      <text x="119" y="20" class="svg-small">取り出した集合</text>
+      <text x="246" y="20" class="svg-small">a の移り先</text>
+      <text x="378" y="20" class="svg-small">b の移り先</text>
+      <text x="508" y="20" class="svg-small">処理後の未処理一覧</text>
+      <text x="30" y="59" class="svg-small">準備</text>
+      <text x="119" y="51" class="svg-mono">{q0} = A</text>
+      <text x="119" y="68" class="svg-small">初期状態を作る</text>
+      <text x="508" y="59" class="svg-mono">A</text>
+      <text x="30" y="111" class="svg-small">1</text>
+      <text x="119" y="103" class="svg-mono">A = {q0}</text>
+      <text x="119" y="120" class="svg-small">取り出す</text>
+      <text x="246" y="103" class="svg-mono">{q0, q1}</text>
+      <text x="246" y="120" class="svg-small">新規 → B</text>
+      <text x="378" y="103" class="svg-mono">{q0}</text>
+      <text x="378" y="120" class="svg-small">既出 A</text>
+      <text x="508" y="111" class="svg-mono">B</text>
+      <text x="30" y="163" class="svg-small">2</text>
+      <text x="119" y="155" class="svg-mono">B = {q0, q1}</text>
+      <text x="119" y="172" class="svg-small">取り出す</text>
+      <text x="246" y="155" class="svg-mono">{q0, q1}</text>
+      <text x="246" y="172" class="svg-small">既出 B</text>
+      <text x="378" y="155" class="svg-mono">{q0, q2}</text>
+      <text x="378" y="172" class="svg-small">新規 → C</text>
+      <text x="508" y="163" class="svg-mono">C</text>
+      <text x="30" y="215" class="svg-small">3</text>
+      <text x="119" y="207" class="svg-mono">C = {q0, q2}</text>
+      <text x="119" y="224" class="svg-small">取り出す</text>
+      <text x="246" y="207" class="svg-mono">{q0, q1}</text>
+      <text x="246" y="224" class="svg-small">既出 B</text>
+      <text x="378" y="207" class="svg-mono">{q0}</text>
+      <text x="378" y="224" class="svg-small">既出 A</text>
+      <text x="508" y="207" class="svg-mono">空</text>
+      <text x="508" y="224" class="svg-small">終了</text>
+    </svg>
+    <figcaption>
+      図 3-1　図 2-1 の NFA に部分集合構成法を適用する過程。一行が一回の取り出しに当たる。強調した欄は初めて現れた集合であり、DFA の新しい状態として未処理の一覧に入る。
+      3 回目の取り出しでは移り先が全て既出となり、一覧が空になって終了する。
+    </figcaption>
+  </figure>
+
+  <p>
+    得られた状態と遷移を一つの表にまとめたものが表 3-1 である。
   </p>
 
   <div class="table-block">
@@ -358,7 +610,7 @@ q2: 遷移なし</code></pre>
   <p>
     B の行の <code>b</code> の欄は、q0 から <code>b</code> で移れる {q0} と、q1 から <code>b</code> で移れる {q2} を合わせた {q0, q2} である。
     <strong>集合内の一部の状態だけでなく、全ての状態からの移り先を合わせる</strong>ことが、この手順の要点である。
-    表 3-1 を状態遷移図にしたものが図 3-1 である。
+    表 3-1 を状態遷移図にしたものが図 3-2 である。
   </p>
 
   <figure>
@@ -400,10 +652,16 @@ q2: 遷移なし</code></pre>
       </defs>
     </svg>
     <figcaption>
-      図 3-1　部分集合構成法で得た DFA。どの状態でも a と b の移り先がちょうど一つに定まる。
+      図 3-2　部分集合構成法で得た DFA。どの状態でも a と b の移り先がちょうど一つに定まる。
       各状態は「直前に読んだ文字が何であったか」を表しており、C は直前の二文字が ab であることに対応する。
     </figcaption>
   </figure>
+
+  <p>
+    図 3-2 の DFA に aab を読ませると、A →(<code>a</code>) B →(<code>a</code>) B →(<code>b</code>) C と移り、受理状態 C で読み終える。
+    この状態の並びは、表 2-1 で NFA の集合を追った {q0} → {q0, q1} → {q0, q1} → {q0, q2} と一つずつ対応する。
+    NFA では一文字ごとに行っていた集合の計算を、DFA ではあらかじめ済ませて遷移として持っている。
+  </p>
 
   <p>
     部分集合構成法で得た DFA は、元の NFA と同じ言語を受理する。逆に DFA はそのまま NFA でもあるため、
@@ -416,11 +674,32 @@ q2: 遷移なし</code></pre>
     このように変換で状態数が急増することを <span class="term">状態爆発</span><span class="en">(state explosion)</span> と呼ぶ。
     例えば「後ろから k 文字目が 1」の言語は、NFA なら k + 1 個の状態で済むが、DFA では 2<sup>k</sup> 個の状態を要する。
     直前の k 文字を全て覚えておかなければならないためである。
+    確認問題 2-1 の NFA は k = 2 の場合であり、部分集合構成法を適用すると、表 3-2 のとおり 2<sup>2</sup> = 4 個の状態が現れる。
   </p>
 
   <div class="table-block">
     <p class="table-caption">
-      表 3-2　NFA と DFA の比較と、それが判断を左右する条件。字句解析は全ての文字を読む工程であるため、一文字あたりの手間が効く DFA で判定する。
+      表 3-2　後ろから 2 文字目が 1 である文字列を受理する NFA（3 状態）を変換した DFA。四つの状態は、直前の二文字が 00, 01, 11, 10 のどれであるかに対応する。
+      k を 1 増やすと覚える文字が一つ増え、DFA の状態は 2 倍になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>NFA の状態の集合</th><th><code>0</code> を読む</th><th><code>1</code> を読む</th><th>直前の二文字</th><th>受理</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>{q0}（初期状態）</td><td>{q0}</td><td>{q0, q1}</td><td>00（読み始めを含む）</td><td>—</td></tr>
+        <tr><td>{q0, q1}</td><td>{q0, q2}</td><td>{q0, q1, q2}</td><td>01</td><td>—</td></tr>
+        <tr><td>{q0, q1, q2}</td><td>{q0, q2}</td><td>{q0, q1, q2}</td><td>11</td><td>受理</td></tr>
+        <tr><td>{q0, q2}</td><td>{q0}</td><td>{q0, q1}</td><td>10</td><td>受理</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 3-3　NFA と DFA の比較と、それが判断を左右する条件。字句解析は全ての文字を読む工程であるため、一文字あたりの手間が効く DFA で判定する。
     </p>
     <div class="table-scroll">
     <table>
@@ -454,30 +733,28 @@ q2: 遷移なし</code></pre>
   <div class="quiz">
     <span class="quiz-label">確認問題 3-1</span>
     <p class="q-body">
-      確認問題 2-1 の NFA（後ろから 2 文字目が 1）に部分集合構成法を適用する。
-      DFA の状態 {q0, q1} で <code>1</code> を読んだときの移り先として正しいものはどれか。
+      図 2-3 の <code>ab*</code> の NFA に部分集合構成法を適用する。DFA の初期状態 {n0} で a を読むと、{n1} の ε 閉包である {n1, n2, n4} に移る。
+      この状態 {n1, n2, n4} で b を読んだときの移り先として正しいものはどれか。
     </p>
-    <pre><code>q0: 0 を読むと q0 へ。1 を読むと q0 または q1 へ
-q1: 0 を読むと q2 へ。1 を読むと q2 へ
-q2: 遷移なし</code></pre>
     <ol class="choices">
-      <li>{q0, q1}</li>
-      <li>{q2}</li>
-      <li>{q1, q2}</li>
-      <li>{q0, q1, q2}</li>
+      <li>{n3}</li>
+      <li>{n3, n4}</li>
+      <li>{n2, n3, n4}</li>
+      <li>{n1, n2, n3, n4}</li>
     </ol>
     <details class="answer">
       <summary><span>解答</span></summary>
       <div class="answer-body">
-        <p class="verdict">正解: (D)</p>
+        <p class="verdict">正解: (C)</p>
         <p>
-          q0 から <code>1</code> で移れるのは q0 と q1、q1 から <code>1</code> で移れるのは q2 である。
-          集合内の全ての状態からの移り先を合わせると {q0, q1, q2} となる。
+          集合内で b の遷移を持つのは n2 だけであり、b を読むと n3 へ移る。n1 と n4 は b の遷移を持たないため引き継がれない。
+          次に {n3} の ε 閉包をとる。n3 からは ε 遷移で n2 と n4 に到達できるため、移り先は {n2, n3, n4} となる。
+          n2 を含むことで続く b も読め、n4 を含むことで ab で読み終えても受理できる。
         </p>
         <p>
-          (A) は、q0 からの移り先だけを集め、q1 からの遷移を見落としている。
-          (B) は、q1 からの移り先だけを集めている。集合の一部の状態だけを見ると、ありうる状態が失われる。
-          (C) は、q0 が <code>1</code> を読んで q0 に留まる遷移を見落としている。この遷移があるため、q0 はどの文字を読んでも集合に残る。
+          (A) は、文字を読んで移った後の ε 閉包をとっていない。この集合は受理状態 n4 を含まず、ab を受理しない DFA になってしまう。
+          (B) は、ε 閉包で前へ進む ε 遷移だけをたどり、n2 へ戻る ε 遷移を見落としている。n2 が欠けると、abb のように b が二つ以上続く入力を受理できない。
+          (D) は、b の遷移を持たない n1 が集合に残ると考えた誤りである。遷移を持たない状態は次の集合に引き継がれない。
         </p>
       </div>
     </details>
@@ -652,6 +929,76 @@ q2: 遷移なし</code></pre>
   </figure>
 
   <p>
+    図 4-3 は、この DFA に四つの入力を読ませたものである。<strong>読み終えた状態が受理する種別が、その文字列の種別となる。</strong>
+    if と ifx は C まで同じ経路をたどり、三文字目の有無で種別が分かれる。x9 は一文字目で D に入り、予約語の経路を一度も通らない。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 240" role="img" aria-label="図 4-2 の DFA に四つの入力を読ませた図。i は A, B と移り、B で読み終えて識別子となる。if は A, B, C と移り、C で読み終えて予約語 if となる。ifx は A, B, C, D と移り、D で読み終えて識別子となる。x9 は A, D, D と移り、D で読み終えて識別子となる。">
+      <path d="M 120 34 L 179 34" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 120 94 L 179 94" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 220 94 L 279 94" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 120 154 L 179 154" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 220 154 L 279 154" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 320 154 L 379 154" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 120 214 L 179 214" class="svg-arrow" marker-end="url(#ah8)"/>
+      <path d="M 220 214 L 279 214" class="svg-arrow" marker-end="url(#ah8)"/>
+
+      <circle cx="100" cy="34" r="18" class="svg-cell"/>
+      <circle cx="200" cy="34" r="18" class="svg-hl"/>
+      <circle cx="100" cy="94" r="18" class="svg-cell"/>
+      <circle cx="200" cy="94" r="18" class="svg-cell"/>
+      <circle cx="300" cy="94" r="18" class="svg-hl"/>
+      <circle cx="100" cy="154" r="18" class="svg-cell"/>
+      <circle cx="200" cy="154" r="18" class="svg-cell"/>
+      <circle cx="300" cy="154" r="18" class="svg-cell"/>
+      <circle cx="400" cy="154" r="18" class="svg-hl"/>
+      <circle cx="100" cy="214" r="18" class="svg-cell"/>
+      <circle cx="200" cy="214" r="18" class="svg-cell"/>
+      <circle cx="300" cy="214" r="18" class="svg-hl"/>
+
+      <text x="16" y="39" class="svg-small" style="text-anchor:start">入力 i</text>
+      <text x="146" y="20" class="svg-mono">i</text>
+      <text x="100" y="39" class="svg-mono">A</text>
+      <text x="200" y="39" class="svg-mono">B</text>
+      <text x="230" y="39" class="svg-small" style="text-anchor:start">B で終了 → 識別子</text>
+      <text x="16" y="99" class="svg-small" style="text-anchor:start">入力 if</text>
+      <text x="146" y="80" class="svg-mono">i</text>
+      <text x="246" y="80" class="svg-mono">f</text>
+      <text x="100" y="99" class="svg-mono">A</text>
+      <text x="200" y="99" class="svg-mono">B</text>
+      <text x="300" y="99" class="svg-mono">C</text>
+      <text x="330" y="99" class="svg-small" style="text-anchor:start">C で終了 → 予約語 if</text>
+      <text x="16" y="159" class="svg-small" style="text-anchor:start">入力 ifx</text>
+      <text x="146" y="140" class="svg-mono">i</text>
+      <text x="246" y="140" class="svg-mono">f</text>
+      <text x="346" y="140" class="svg-mono">x</text>
+      <text x="100" y="159" class="svg-mono">A</text>
+      <text x="200" y="159" class="svg-mono">B</text>
+      <text x="300" y="159" class="svg-mono">C</text>
+      <text x="400" y="159" class="svg-mono">D</text>
+      <text x="430" y="159" class="svg-small" style="text-anchor:start">D で終了 → 識別子</text>
+      <text x="16" y="219" class="svg-small" style="text-anchor:start">入力 x9</text>
+      <text x="146" y="200" class="svg-mono">x</text>
+      <text x="246" y="200" class="svg-mono">9</text>
+      <text x="100" y="219" class="svg-mono">A</text>
+      <text x="200" y="219" class="svg-mono">D</text>
+      <text x="300" y="219" class="svg-mono">D</text>
+      <text x="330" y="219" class="svg-small" style="text-anchor:start">D で終了 → 識別子</text>
+
+      <defs>
+        <marker id="ah8" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-3　図 4-2 の DFA による四つの入力の判定。強調した状態が、読み終えた状態である。どの入力も受理状態で読み終えるが、その状態によって種別が異なる。
+      if を読み終えた C だけが予約語を受理し、B と D は識別子を受理する。
+    </figcaption>
+  </figure>
+
+  <p>
     実用の字句解析器生成系は、この流れを自動で行う。種別ごとの正規表現をトンプソンの構成法で NFA にし、ε 遷移でまとめ、
     部分集合構成法で DFA に変換し、受理状態ごとに優先順位で種別を一つに決める。
     さらに、同じ振る舞いをする状態を併合して状態数を減らす <span class="term">最小化</span><span class="en">(minimization)</span> を行い、最終的に遷移表を出力する。
@@ -731,13 +1078,14 @@ q2: 遷移なし</code></pre>
   </p>
 
   <figure>
-    <svg viewBox="0 0 580 282" role="img" aria-label="入力 1..5 を一文字ずつ並べた図。最初の切り出しでは、1 を読んで整数の受理状態に入り、続くピリオドで小数の途中の受理でない状態に移り、二つ目のピリオドで移り先が無くなる。最後の受理位置は 1 の直後であるため、トークン 1 を確定し、二つのピリオドを読み戻す。結果は 1, .., 5 の三つのトークンで、種別は整数、範囲演算子、整数である。">
-      <path d="M 152 166 L 152 174 L 218 174 L 218 166" class="svg-line"/>
-      <path d="M 222 166 L 222 174 L 358 174 L 358 166" class="svg-line"/>
+    <svg viewBox="0 0 580 312" role="img" aria-label="入力 1..5 を一文字ずつ並べた図。最初の切り出しでは、1 を読んで整数の受理状態に入り、最後の受理位置 1 を記録する。続くピリオドで小数の途中の受理でない状態に移り、二つ目のピリオドで移り先が無くなる。その間、最後の受理位置は 1 のまま据え置かれる。最後の受理位置は 1 の直後であるため、トークン 1 を確定し、二つのピリオドを読み戻す。結果は 1, .., 5 の三つのトークンで、種別は整数、範囲演算子、整数である。">
+      <path d="M 152 196 L 152 204 L 218 204 L 218 196" class="svg-line"/>
+      <path d="M 222 196 L 222 204 L 358 204 L 358 196" class="svg-line"/>
 
       <text x="16" y="67" class="svg-small" style="text-anchor:start">入力</text>
       <text x="16" y="124" class="svg-small" style="text-anchor:start">読んだ後の状態</text>
-      <text x="16" y="237" class="svg-small" style="text-anchor:start">結果</text>
+      <text x="16" y="176" class="svg-small" style="text-anchor:start">最後の受理位置</text>
+      <text x="16" y="267" class="svg-small" style="text-anchor:start">結果</text>
 
       <rect x="220" y="40" width="70" height="44" class="svg-cell-plain"/>
       <rect x="290" y="40" width="70" height="44" class="svg-cell-plain"/>
@@ -757,30 +1105,100 @@ q2: 遷移なし</code></pre>
       <text x="325" y="124" class="svg-mono">なし</text>
       <text x="325" y="144" class="svg-small">行き詰まり</text>
 
-      <text x="185" y="194" class="svg-small">確定する</text>
-      <text x="290" y="194" class="svg-small">読み戻し、次はここから</text>
+      <text x="185" y="176" class="svg-mono">1</text>
+      <text x="255" y="176" class="svg-mono">1</text>
+      <text x="325" y="176" class="svg-mono">1</text>
 
-      <rect x="152" y="214" width="66" height="36" class="svg-cell"/>
-      <rect x="222" y="214" width="136" height="36" class="svg-cell"/>
-      <rect x="362" y="214" width="66" height="36" class="svg-cell"/>
+      <text x="185" y="224" class="svg-small">確定する</text>
+      <text x="290" y="224" class="svg-small">読み戻し、次はここから</text>
 
-      <text x="185" y="237" class="svg-mono">1</text>
-      <text x="290" y="237" class="svg-mono">..</text>
-      <text x="395" y="237" class="svg-mono">5</text>
-      <text x="185" y="272" class="svg-small">整数</text>
-      <text x="290" y="272" class="svg-small">範囲演算子</text>
-      <text x="395" y="272" class="svg-small">整数</text>
+      <rect x="152" y="244" width="66" height="36" class="svg-cell"/>
+      <rect x="222" y="244" width="136" height="36" class="svg-cell"/>
+      <rect x="362" y="244" width="66" height="36" class="svg-cell"/>
+
+      <text x="185" y="267" class="svg-mono">1</text>
+      <text x="290" y="267" class="svg-mono">..</text>
+      <text x="395" y="267" class="svg-mono">5</text>
+      <text x="185" y="302" class="svg-small">整数</text>
+      <text x="290" y="302" class="svg-small">範囲演算子</text>
+      <text x="395" y="302" class="svg-small">整数</text>
     </svg>
     <figcaption>
       図 5-1　入力 1..5 の切り出し。1 の後のピリオドは小数の一部でありうるため読み進めるが、二つ目のピリオドで行き詰まる。
-      このとき最後に受理状態にあったのは 1 の直後であるため、トークン 1 を確定し、読みすぎた二つのピリオドを読み戻す。行き詰まった位置で切ると、受理されない 1. を切り出してしまう。
+      最後の受理位置は受理状態に入ったときだけ更新されるため、ピリオドを読む間は 1 のまま据え置かれる。この位置までのトークン 1 を確定し、読みすぎた二つのピリオドを読み戻す。
+      行き詰まった位置で切ると、受理されない 1. を切り出してしまう。
     </figcaption>
   </figure>
+
+  <h3>長さと優先順位の適用順</h3>
+
+  <p>
+    図 5-2 は、擬似コードの 4 行目で記録する最後の受理位置と種別が、一文字ごとにどう変わるかを示したものである。
+    <code>if</code> の後に空白が続く入力では、i で位置 1・識別子が記録され、f で位置 2・予約語 if に上書きされる。
+    C は予約語と識別子の両方を受理するが、同じ長さであるため優先順位で予約語 if が記録される。
+    <code>ifx=</code> では、x を読んだ時点で記録がさらに位置 3・識別子に上書きされる。
+    <strong>受理状態に入るたびに記録が上書きされるため、長さが先に決まり、優先順位はその長さで受理した規則の中から種別を選ぶときにだけ働く。</strong>
+  </p>
 
   <p>
     一文字も受理できないまま行き詰まった場合、すなわち最後の受理位置が一度も記録されなかった場合は、その位置にどの規則にも当てはまらない文字の並びがある。
     これを <span class="term">字句エラー</span><span class="en">(lexical error)</span> として報告する。
+    演算子 <code>!=</code> をもち、<code>!</code> だけではトークンとしない言語での <code>!x</code> がその例である。
+    <code>!</code> を読むと <code>!=</code> の途中の状態に移るが、そこは受理状態ではなく、続く <code>x</code> で行き詰まる。戻る先となる記録が無いため、切り出せるトークンが無い。
   </p>
+
+  <figure>
+    <svg viewBox="0 0 580 302" role="img" aria-label="三つの入力について、一文字読むごとに最後の受理位置と種別の記録がどう変わるかを示した図。if の後に空白が続く入力では、i で位置 1 と識別子、f で位置 2 と予約語 if が記録され、空白で移り先が無くなるため if を予約語として切り出す。ifx= では x を読んだ時点で記録が位置 3 と識別子に上書きされ、= で停止して ifx を識別子として切り出す。!x では ! が受理状態に入らないため記録が一度も作られず、x で停止して字句エラーとなる。">
+      <rect x="278" y="30" width="64" height="36" class="svg-cell-plain"/>
+      <rect x="342" y="126" width="64" height="36" class="svg-cell-plain"/>
+      <rect x="150" y="222" width="64" height="36" class="svg-cell-plain"/>
+      <rect x="214" y="222" width="64" height="36" class="svg-cell-plain"/>
+      <rect x="150" y="30" width="64" height="36" class="svg-hl"/>
+      <rect x="214" y="30" width="64" height="36" class="svg-hl"/>
+      <rect x="150" y="126" width="64" height="36" class="svg-hl"/>
+      <rect x="214" y="126" width="64" height="36" class="svg-hl"/>
+      <rect x="278" y="126" width="64" height="36" class="svg-hl"/>
+
+      <text x="290" y="16" class="svg-small">各文字を読んだ後の記録（最後の受理位置と、その種別）</text>
+      <text x="16" y="53" class="svg-small" style="text-anchor:start">入力 if␣</text>
+      <text x="182" y="53" class="svg-mono">i</text>
+      <text x="182" y="84" class="svg-small">位置 1</text>
+      <text x="182" y="100" class="svg-small">識別子</text>
+      <text x="246" y="53" class="svg-mono">f</text>
+      <text x="246" y="84" class="svg-small">位置 2</text>
+      <text x="246" y="100" class="svg-small">予約語 if</text>
+      <text x="310" y="53" class="svg-mono">␣</text>
+      <text x="310" y="84" class="svg-small">停止</text>
+      <text x="310" y="100" class="svg-small">移り先なし</text>
+      <text x="360" y="53" class="svg-small" style="text-anchor:start">→ if（予約語）</text>
+      <text x="16" y="149" class="svg-small" style="text-anchor:start">入力 ifx=</text>
+      <text x="182" y="149" class="svg-mono">i</text>
+      <text x="182" y="180" class="svg-small">位置 1</text>
+      <text x="182" y="196" class="svg-small">識別子</text>
+      <text x="246" y="149" class="svg-mono">f</text>
+      <text x="246" y="180" class="svg-small">位置 2</text>
+      <text x="246" y="196" class="svg-small">予約語 if</text>
+      <text x="310" y="149" class="svg-mono">x</text>
+      <text x="310" y="180" class="svg-small">位置 3</text>
+      <text x="310" y="196" class="svg-small">識別子</text>
+      <text x="374" y="149" class="svg-mono">=</text>
+      <text x="374" y="180" class="svg-small">停止</text>
+      <text x="374" y="196" class="svg-small">移り先なし</text>
+      <text x="424" y="149" class="svg-small" style="text-anchor:start">→ ifx（識別子）</text>
+      <text x="16" y="245" class="svg-small" style="text-anchor:start">入力 !x</text>
+      <text x="182" y="245" class="svg-mono">!</text>
+      <text x="182" y="276" class="svg-small">記録なし</text>
+      <text x="182" y="292" class="svg-small">受理でない</text>
+      <text x="246" y="245" class="svg-mono">x</text>
+      <text x="246" y="276" class="svg-small">停止</text>
+      <text x="246" y="292" class="svg-small">移り先なし</text>
+      <text x="296" y="245" class="svg-small" style="text-anchor:start">→ 字句エラー</text>
+    </svg>
+    <figcaption>
+      図 5-2　最後の受理位置と種別の記録の移り変わり。強調したセルが切り出されるトークンである。受理状態に入るたびに記録が上書きされ、停止した時点の記録がトークンと種別を決める。
+      !x では記録が一度も作られないため、戻る位置が無く字句エラーとなる。
+    </figcaption>
+  </figure>
 
   <div class="quiz">
     <span class="quiz-label">確認問題 5-1</span>
@@ -887,6 +1305,7 @@ q2: 遷移なし</code></pre>
 
   <p>
     整数を <code>[0-9]+</code> としたため、この言語では <code>007</code> も整数である。先頭の 0 を認めるかは言語の設計者が決める事柄であり、仕様に明記しておく。
+    一方、<code>.5</code> は小数として扱われない。表 6-1 には <code>.</code> を含む規則が無いため、<code>.</code> の位置で字句エラーとなり、続く <code>5</code> が整数として切り出される。
     また、<code>-</code> は演算子とし、整数の規則には含めない。<code>a-1</code> を <code>a</code> と <code>-1</code> に分けてしまわないためであり、負の数は構文解析で単項の <code>-</code> として扱う。
   </p>
 
@@ -1131,15 +1550,148 @@ q2: 遷移なし</code></pre>
     </figcaption>
   </figure>
 
+  <h3>2 行の入力で処理を追う</h3>
+
+  <p>
+    図 7-2 と表 7-1 は、1 行目が <code>if x&lt;=10 # c</code>、2 行目が <code>y=x&lt;</code> である入力を、擬似コードで処理する過程である。
+    入力は改行を含めて 17 文字であり、添字は 0 から 16 となる。表 7-1 の「通る行」は、そのトークンを出力するまでに通る擬似コードの行番号である。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 244" role="img" aria-label="2 行の入力を一文字ずつセルに並べ、添字を付けた図。1 行目は i f 空白 x 小なり イコール 1 0 空白 シャープ 空白 c 改行 の 13 文字で、添字は 0 から 12。2 行目は y イコール x 小なり の 4 文字で、添字は 13 から 16。トークンとなる文字をまとめて丸数字 1 から 8 を付け、空白・コメント・改行は読み捨てた文字として枠線だけで示す。2 行目の末尾の小なりの後に、添字 17 の位置に入力の終わりを表す破線の枠があり、丸数字 9 の終わりのトークンに対応する。">
+      <path d="M 103 96 L 103 102 L 165 102 L 165 96" class="svg-line"/>
+      <path d="M 205 96 L 205 102 L 233 102 L 233 96" class="svg-line"/>
+      <path d="M 239 96 L 239 102 L 301 102 L 301 96" class="svg-line"/>
+      <path d="M 307 96 L 307 102 L 369 102 L 369 96" class="svg-line"/>
+      <path d="M 171 96 L 171 102 L 199 102 L 199 96" class="svg-line"/>
+      <path d="M 375 96 L 375 102 L 403 102 L 403 96" class="svg-line"/>
+      <path d="M 409 96 L 409 102 L 505 102 L 505 96" class="svg-line"/>
+      <path d="M 511 96 L 511 102 L 539 102 L 539 96" class="svg-line"/>
+      <path d="M 103 206 L 103 212 L 131 212 L 131 206" class="svg-line"/>
+      <path d="M 137 206 L 137 212 L 165 212 L 165 206" class="svg-line"/>
+      <path d="M 171 206 L 171 212 L 199 212 L 199 206" class="svg-line"/>
+      <path d="M 205 206 L 205 212 L 233 212 L 233 206" class="svg-line"/>
+      <path d="M 239 206 L 239 212 L 303 212 L 303 206" class="svg-line"/>
+
+      <rect x="168" y="36" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="372" y="36" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="406" y="36" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="440" y="36" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="474" y="36" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="508" y="36" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="236" y="146" width="70" height="34" class="svg-cell-plain" stroke-dasharray="5 4"/>
+      <rect x="100" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="134" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="202" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="236" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="270" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="304" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="338" y="36" width="34" height="34" class="svg-cell"/>
+      <rect x="100" y="146" width="34" height="34" class="svg-cell"/>
+      <rect x="134" y="146" width="34" height="34" class="svg-cell"/>
+      <rect x="168" y="146" width="34" height="34" class="svg-cell"/>
+      <rect x="202" y="146" width="34" height="34" class="svg-cell"/>
+
+      <text x="290" y="18" class="svg-small">枠線だけのセルは読み捨てた文字。セルの下の数は添字</text>
+      <text x="16" y="58" class="svg-small" style="text-anchor:start">1 行目</text>
+      <text x="117" y="58" class="svg-mono">i</text>
+      <text x="117" y="88" class="svg-small">0</text>
+      <text x="151" y="58" class="svg-mono">f</text>
+      <text x="151" y="88" class="svg-small">1</text>
+      <text x="185" y="58" class="svg-mono">␣</text>
+      <text x="185" y="88" class="svg-small">2</text>
+      <text x="219" y="58" class="svg-mono">x</text>
+      <text x="219" y="88" class="svg-small">3</text>
+      <text x="253" y="58" class="svg-mono">&lt;</text>
+      <text x="253" y="88" class="svg-small">4</text>
+      <text x="287" y="58" class="svg-mono">=</text>
+      <text x="287" y="88" class="svg-small">5</text>
+      <text x="321" y="58" class="svg-mono">1</text>
+      <text x="321" y="88" class="svg-small">6</text>
+      <text x="355" y="58" class="svg-mono">0</text>
+      <text x="355" y="88" class="svg-small">7</text>
+      <text x="389" y="58" class="svg-mono">␣</text>
+      <text x="389" y="88" class="svg-small">8</text>
+      <text x="423" y="58" class="svg-mono">#</text>
+      <text x="423" y="88" class="svg-small">9</text>
+      <text x="457" y="58" class="svg-mono">␣</text>
+      <text x="457" y="88" class="svg-small">10</text>
+      <text x="491" y="58" class="svg-mono">c</text>
+      <text x="491" y="88" class="svg-small">11</text>
+      <text x="525" y="58" class="svg-mono">↵</text>
+      <text x="525" y="88" class="svg-small">12</text>
+      <text x="134" y="120" class="svg-mono">①</text>
+      <text x="219" y="120" class="svg-mono">②</text>
+      <text x="270" y="120" class="svg-mono">③</text>
+      <text x="338" y="120" class="svg-mono">④</text>
+      <text x="185" y="120" class="svg-small">空白</text>
+      <text x="389" y="120" class="svg-small">空白</text>
+      <text x="457" y="120" class="svg-small">コメント</text>
+      <text x="525" y="120" class="svg-small">改行</text>
+      <text x="16" y="168" class="svg-small" style="text-anchor:start">2 行目</text>
+      <text x="117" y="168" class="svg-mono">y</text>
+      <text x="117" y="198" class="svg-small">13</text>
+      <text x="151" y="168" class="svg-mono">=</text>
+      <text x="151" y="198" class="svg-small">14</text>
+      <text x="185" y="168" class="svg-mono">x</text>
+      <text x="185" y="198" class="svg-small">15</text>
+      <text x="219" y="168" class="svg-mono">&lt;</text>
+      <text x="219" y="198" class="svg-small">16</text>
+      <text x="117" y="230" class="svg-mono">⑤</text>
+      <text x="151" y="230" class="svg-mono">⑥</text>
+      <text x="185" y="230" class="svg-mono">⑦</text>
+      <text x="219" y="230" class="svg-mono">⑧</text>
+      <text x="271" y="167" class="svg-small">終わり</text>
+      <text x="271" y="198" class="svg-small">17</text>
+      <text x="271" y="230" class="svg-mono">⑨</text>
+      <text x="322" y="160" class="svg-small" style="text-anchor:start">⑧ の &lt; で先読み(1) が添字 17 を指す</text>
+      <text x="322" y="178" class="svg-small" style="text-anchor:start">17 は入力の長さ → 「終わり」を返す</text>
+      <text x="322" y="196" class="svg-small" style="text-anchor:start">⑨ 入力の終わりのトークン</text>
+    </svg>
+    <figcaption>
+      図 7-2　2 行の入力のトークンへの切り分け。①〜⑨ が出力されるトークンであり、枠線だけのセルは空白・コメント・改行として読み捨てられる。
+      コメントは改行の直前で止まるため、添字 12 の改行は 4 行目の分岐で数えられ、2 行目のトークンには行 2 が付く。
+    </figcaption>
+  </figure>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　図 7-2 の入力を処理する過程。start はトークンの先頭、pos は処理を終えた後の位置である。
+      同じ文字で始まっても、先読みの結果によって ③ は二文字の演算子に、⑥ と ⑧ は一文字の演算子になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>番号</th><th>通る行</th><th>start</th><th>処理後の pos</th><th>出力と備考</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>①</td><td>8–10, 21–23</td><td class="num-cell">0</td><td class="num-cell">2</td><td>(予約語 if, <code>if</code>, 1)。22 行目の照合で、識別子から予約語に変わる</td></tr>
+        <tr><td>空白</td><td>5</td><td class="num-cell">—</td><td class="num-cell">3</td><td>出力なし</td></tr>
+        <tr><td>②</td><td>8–10, 21–23</td><td class="num-cell">3</td><td class="num-cell">4</td><td>(識別子, <code>x</code>, 1)。&lt; は英字でないため一文字で止まる</td></tr>
+        <tr><td>③</td><td>14–15, 21–23</td><td class="num-cell">4</td><td class="num-cell">6</td><td>(<code>&lt;=</code>, <code>&lt;=</code>, 1)。先読み(1) が = であり、&lt;= が二文字の演算子に当たる</td></tr>
+        <tr><td>④</td><td>11–13, 21–23</td><td class="num-cell">6</td><td class="num-cell">8</td><td>(整数, <code>10</code>, 1)</td></tr>
+        <tr><td>空白</td><td>5</td><td class="num-cell">—</td><td class="num-cell">9</td><td>出力なし</td></tr>
+        <tr><td>コメント</td><td>6</td><td class="num-cell">—</td><td class="num-cell">12</td><td>出力なし。改行の直前で止まる</td></tr>
+        <tr><td>改行</td><td>4</td><td class="num-cell">—</td><td class="num-cell">13</td><td>出力なし。行 ← 2</td></tr>
+        <tr><td>⑤</td><td>8–10, 21–23</td><td class="num-cell">13</td><td class="num-cell">14</td><td>(識別子, <code>y</code>, 2)</td></tr>
+        <tr><td>⑥</td><td>14（不成立）, 16–17, 21–23</td><td class="num-cell">14</td><td class="num-cell">15</td><td>(<code>=</code>, <code>=</code>, 2)。先読み(1) が x であり、=x は二文字の演算子でない</td></tr>
+        <tr><td>⑦</td><td>8–10, 21–23</td><td class="num-cell">15</td><td class="num-cell">16</td><td>(識別子, <code>x</code>, 2)</td></tr>
+        <tr><td>⑧</td><td>14（不成立）, 16–17, 21–23</td><td class="num-cell">16</td><td class="num-cell">17</td><td>(<code>&lt;</code>, <code>&lt;</code>, 2)。先読み(1) が「終わり」を返すため、二文字の演算子に当たらない</td></tr>
+        <tr><td>⑨</td><td>2（条件が偽）, 24</td><td class="num-cell">—</td><td class="num-cell">17</td><td>(入力の終わり, 空, 2)。pos が入力の長さ 17 に達して繰り返しを抜ける</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
   <h3>つまずきやすい点</h3>
 
   <p>
-    表 7-1 は、字句解析プログラムの作成で生じやすい誤りを、現れる症状から引けるようにまとめたものである。
+    表 7-2 は、字句解析プログラムの作成で生じやすい誤りを、現れる症状から引けるようにまとめたものである。
   </p>
 
   <div class="table-block">
     <p class="table-caption">
-      表 7-1　字句解析プログラムで生じやすい誤りの症状・原因・対処。多くは、位置の進め方と分岐の順序の誤りに帰着する。
+      表 7-2　字句解析プログラムで生じやすい誤りの症状・原因・対処。多くは、位置の進め方と分岐の順序の誤りに帰着する。
     </p>
     <div class="table-scroll">
     <table>
@@ -1191,12 +1743,12 @@ q2: 遷移なし</code></pre>
 
   <p>
     結果のトークン列を一行に一つずつ、行・種別・字句の形で表示すれば、期待した切り出しと比べられる。
-    確かめる入力には、通常の例だけでなく、規則の境界に当たる例を含める。表 7-2 はその例である。
+    確かめる入力には、通常の例だけでなく、規則の境界に当たる例を含める。表 7-3 はその例である。
   </p>
 
   <div class="table-block">
     <p class="table-caption">
-      表 7-2　表 6-1 の仕様に対する確認用の入力と、期待するトークン列。各入力は、表 7-1 のいずれかの誤りを検出するように選んでいる。
+      表 7-3　表 6-1 の仕様に対する確認用の入力と、期待するトークン列。各入力は、表 7-2 のいずれかの誤りを検出するように選んでいる。
     </p>
     <div class="table-scroll">
     <table>
@@ -1220,7 +1772,7 @@ q2: 遷移なし</code></pre>
     <span class="label">注意</span>
     <p>
       多くの言語には、正規表現を扱う標準の機能がある。それを用いて字句解析器を書くこともできるが、その機能が最長一致と優先順位をどう扱うかは処理系によって異なる。
-      例えば選択 <code>&lt;|&lt;=</code> に対して、先に書いた <code>&lt;</code> で一致を確定させる処理系がある。用いる場合は、表 7-2 のような境界の例で切り出し結果を確かめる。
+      例えば選択 <code>&lt;|&lt;=</code> に対して、先に書いた <code>&lt;</code> で一致を確定させる処理系がある。用いる場合は、表 7-3 のような境界の例で切り出し結果を確かめる。
     </p>
   </div>
 
@@ -1265,10 +1817,11 @@ q2: 遷移なし</code></pre>
     </li>
     <li>
       <strong>非決定性有限オートマトン</strong> — 移り先が複数ありうる遷移と ε 遷移を許し、受理状態に至る経路が一つでもあれば受理する。
-      ありうる状態の集合を追えば判定でき、正規表現から機械的に組み立てられる。
+      ありうる状態の集合を追えば判定でき、読んだ文字の遷移を持たない状態は集合から消える。トンプソンの構成法により、正規表現から機械的に組み立てられる。
     </li>
     <li>
-      <strong>部分集合構成法</strong> — NFA の状態の集合を DFA の一つの状態とし、集合内の全状態からの移り先を合わせて遷移を定める。
+      <strong>部分集合構成法</strong> — NFA の状態の集合を DFA の一つの状態とし、集合内の全状態からの移り先を合わせ、その ε 閉包をとって遷移を定める。
+      未処理の一覧が空になるまで繰り返す。
       NFA と DFA が受理できる言語は一致するが、DFA の状態数は最悪で 2<sup>n</sup> 個になる。
     </li>
     <li>
@@ -1277,7 +1830,7 @@ q2: 遷移なし</code></pre>
     </li>
     <li>
       <strong>最長一致による切り出し</strong> — 受理できる限り読み進め、最後に受理状態にあった位置で切る。長さが同じときに限り優先順位で種別を決める。
-      行き詰まったら最後の受理位置まで読み戻す。
+      行き詰まったら最後の受理位置まで読み戻し、受理位置が一度も記録されなければ字句エラーとする。
     </li>
     <li>
       <strong>字句解析器の設計</strong> — トークンの種別と正規表現、予約語の扱い、読み捨てるもの、構文解析器への渡し方、誤りの扱いを順に決める。
