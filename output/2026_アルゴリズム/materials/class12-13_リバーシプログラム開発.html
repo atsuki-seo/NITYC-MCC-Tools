@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>リバーシプログラム開発（盤面管理・合法手生成・探索・評価関数） | アルゴリズム</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期<br>
+  アルゴリズム</p>
+  <h1>リバーシプログラム開発（盤面管理・合法手生成・探索・評価関数）</h1>
+  <p class="doc-meta">担当: 瀬尾 敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">CPU が一手を選ぶまでの部品</a></li>
+    <li><a href="#s2">盤面を配列で表す</a></li>
+    <li><a href="#s3">合法手の判定 — 8方向に挟めるかを調べる</a></li>
+    <li><a href="#s4">着手と取り消し</a></li>
+    <li><a href="#s5">盤面処理の検証</a></li>
+    <li><a href="#s6">ミニマックス法を再帰で実装する</a></li>
+    <li><a href="#s7">αβ枝刈りと手の並べ替え</a></li>
+    <li><a href="#s8">評価関数の設計</a></li>
+    <li><a href="#s9">開発の進め方と提出物</a></li>
+    <li><a href="#s10">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. CPU が一手を選ぶまでの部品 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>CPU が一手を選ぶまでの部品</h2>
+
+  <p>
+    ゲーム木を先読みして最善の手を選ぶ、という方針は明快である。
+    しかし「先読みする CPU」をいきなり書き始めると、対局中に CPU が奇妙な手を打ったとき、
+    原因がどこにあるのかを突き止められない。石の返し方が誤っているのか、
+    置けないマスを合法手として数えているのか、探索の符号が逆なのか、評価関数の重みが悪いのか。
+    <strong>完成した CPU の振る舞いだけを見ていては、これらの誤りを区別できない</strong>。
+  </p>
+
+  <p>
+    そこで CPU を、役割の異なる部品に分けて作る。
+    リバーシの CPU は、次の部品から組み立てられる。
+  </p>
+
+  <ul>
+    <li><span class="term">盤面表現</span><span class="en">(board representation)</span> — 64 マスの状態をデータ構造として持つ</li>
+    <li><span class="term">合法手生成</span><span class="en">(move generation)</span> — その局面で置けるマスを列挙する</li>
+    <li>着手・取り消し — 石を置いて返し、必要に応じて元の局面へ戻す</li>
+    <li>探索 — 手を仮に進めては戻し、先の局面を調べて最善の手を決める</li>
+    <li><span class="term">評価関数</span><span class="en">(evaluation function)</span> — 探索の末端の局面がどちらにどれだけ有利かを数値にする</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 580 204" role="img" aria-label="盤面表現、合法手生成、着手と取り消し、探索の4つの部品が左から右へ矢印で並び、評価関数が下から探索へ矢印で接続する図。左の3つは盤面処理、右の2つは思考ロジックとしてまとめられている">
+      <text x="217" y="34" class="svg-small">盤面処理</text>
+      <path d="M 12 44 L 422 44" class="svg-line"/>
+      <text x="517" y="34" class="svg-small">思考ロジック</text>
+      <path d="M 462 44 L 572 44" class="svg-line"/>
+      <path d="M 124 82 L 156 82" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 274 82 L 306 82" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 424 82 L 456 82" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 517 148 L 517 112" class="svg-arrow" marker-end="url(#ah1)"/>
+      <rect x="12" y="60" width="110" height="44" class="svg-cell"/>
+      <text x="67" y="87" class="svg-text">盤面表現</text>
+      <rect x="162" y="60" width="110" height="44" class="svg-cell"/>
+      <text x="217" y="87" class="svg-text">合法手生成</text>
+      <rect x="312" y="60" width="110" height="44" class="svg-cell"/>
+      <text x="367" y="87" class="svg-text">着手・取消し</text>
+      <rect x="462" y="60" width="110" height="44" class="svg-cell"/>
+      <text x="517" y="87" class="svg-text">探索</text>
+      <rect x="462" y="150" width="110" height="44" class="svg-cell"/>
+      <text x="517" y="177" class="svg-text">評価関数</text>
+      <text x="217" y="130" class="svg-small">人対人の対局で動作を確かめられる</text>
+      <text x="217" y="150" class="svg-small">下の部品から順に作り、部品ごとに検証する</text>
+      <text x="450" y="177" class="svg-small" style="text-anchor:end">末端の局面の良さを数値にする</text>
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　リバーシ CPU を構成する部品と依存関係。矢印の元の部品が正しく動かなければ、
+      先の部品は正しく動かない。盤面処理の 3 部品は CPU が無くても人対人の対局で検証できるため、
+      ここを先に完成させると、探索や評価関数で生じた誤りを盤面処理の誤りと切り分けられる。
+    </figcaption>
+  </figure>
+
+  <p>
+    部品は依存される側から順に作る。盤面処理が完成していれば、人対人で最後まで対局できる。
+    この段階で誤りを潰しておけば、以降に CPU がおかしな手を打ったとき、
+    疑う範囲を探索と評価関数に絞れる。各部品について、
+    <strong>単体で正しさを確かめる検証用のコードを書きながら進める</strong>ことが、
+    遠回りに見えて最も早く完成へ近づく方法である。
+  </p>
+
+  <p>
+    本ページでは、ゲーム木とミニマックス法の考え方は要点の振り返りにとどめ、
+    それらを動くプログラムにするための具体的な手順を扱う。
+    手順はすべて特定の言語に依存しない擬似コードで示す。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>盤面を配列で表し、番兵と方向のオフセットを用いて8方向を走査できる</li>
+      <li>合法手の判定と着手・取り消しを実装し、検証ケースによって正しさを確かめられる</li>
+      <li>ミニマックス法を再帰で実装し、パスと終局を正しく扱える</li>
+      <li>αβ枝刈りと手の並べ替えによって読む局面を減らし、結果が変わらないことを確かめられる</li>
+      <li>評価関数の要素を組み合わせ、対戦によって改良の効果を比べられる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      リバーシ CPU の開発で、評価関数や探索に取りかかる前に、合法手生成と着手の処理を
+      単体で検証しておくべき理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>CPU が不自然な手を打ったとき、盤面処理が正しいと確かめてあれば、原因を探索と評価関数に絞り込めるから</li>
+      <li>合法手生成は評価関数より計算量が大きいため、先に高速化しておく必要があるから</li>
+      <li>評価関数は盤面処理の誤りを打ち消すように重みを調整できるため、盤面処理を先に固めないと調整がやり直しになるから</li>
+      <li>合法手生成は対局中に1回しか呼ばれないため、後から修正するのが難しいから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          探索と評価関数は盤面処理の上に成り立つ。下の部品が誤っていれば、
+          上の部品が正しくても CPU は誤った振る舞いをする。下の部品の正しさを先に確かめておくことで、
+          誤りが現れたときに疑う範囲を限定できる。
+        </p>
+        <p>
+          (B) は部品の順序を計算量の大小で説明しているが、先に作る理由は依存関係であって速度ではない。
+          (C) は評価関数で盤面処理の誤りを補えると考えているが、置けないマスに置く・返せない石を返すといった
+          規則違反は、重みをどう変えても解消しない。
+          (D) の合法手生成は探索の各局面で呼ばれ、1回の思考で数千〜数百万回呼ばれることもある。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 盤面を配列で表す ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>盤面を配列で表す</h2>
+
+  <p>
+    盤面は 8×8 のマスからなり、各マスは「空き」「黒」「白」のいずれかの状態をとる。
+    最も素直な表現は、8 行 8 列の2次元配列に各マスの状態を格納するものである。
+    列を a〜h、行を 1〜8 で呼ぶ慣例に合わせ、本ページでは列 a〜h を 1〜8 の番号に対応させる。
+  </p>
+
+  <h3>状態を数値で持つ</h3>
+
+  <p>
+    状態の表し方は、<strong>空き = 0、黒 = 1、白 = −1</strong> とすると後の処理が単純になる。
+    手番の色を c とすれば、相手の色は −c で求まる。「自分の石か」「相手の石か」の判定が
+    手番によらず同じ式で書け、評価関数で石を数える際も、値を合計するだけで
+    黒から見た石数の差が得られる。
+  </p>
+
+  <h3>周囲に壁を置く — 番兵</h3>
+
+  <p>
+    合法手の判定では、あるマスから8方向へ1マスずつ進みながら石を調べる。
+    8×8 の配列のままでは、1歩進むたびに行と列が盤の範囲内に収まっているかを確かめなければならない。
+    この確認を1か所でも書き忘れると、配列の範囲外を参照する誤りが生じる。
+  </p>
+
+  <p>
+    そこで盤の周囲を1マスずつ広げた 10×10 の配列を用意し、外周のマスに
+    「壁」を表す値（空き・黒・白のいずれとも異なる値。例えば 2）を入れておく。
+    走査は壁に当たった時点で「相手の石でも自分の石でもない」と判定されて自然に止まるため、
+    範囲の確認そのものが不要になる。このように、探索の終端に置いて範囲判定を省くための
+    特別な値を<span class="term">番兵</span><span class="en">(sentinel)</span> と呼ぶ。
+  </p>
+
+  <h3>1次元に並べて方向を数で表す</h3>
+
+  <p>
+    10×10 の盤面を1次元の配列に並べ、マスの添字を <code>行 × 10 + 列</code> とする。
+    例えば d3 は 3 行 4 列であるから、添字は 34 となる。
+    このとき、隣のマスへの移動は添字への加算で表せる。右へ1マスは +1、
+    下へ1マスは +10、右下へ1マスは +11 である。
+    8方向それぞれの加算量を<span class="term">オフセット</span><span class="en">(offset)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 400" role="img" aria-label="10行10列の配列の各マスに添字0から99を記した図。外周の36マスは破線で壁を表し、内側の8行8列が盤面となる。添字55のマスを強調し、右側に、あるマスpから見た8方向のオフセット、マイナス11、マイナス10、マイナス9、マイナス1、プラス1、プラス9、プラス10、プラス11を3行3列で示している">
+      <text x="82" y="20" class="svg-small">a</text>
+      <text x="118" y="20" class="svg-small">b</text>
+      <text x="154" y="20" class="svg-small">c</text>
+      <text x="190" y="20" class="svg-small">d</text>
+      <text x="226" y="20" class="svg-small">e</text>
+      <text x="262" y="20" class="svg-small">f</text>
+      <text x="298" y="20" class="svg-small">g</text>
+      <text x="334" y="20" class="svg-small">h</text>
+      <text x="14" y="86" class="svg-small">1</text>
+      <text x="14" y="122" class="svg-small">2</text>
+      <text x="14" y="158" class="svg-small">3</text>
+      <text x="14" y="194" class="svg-small">4</text>
+      <text x="14" y="230" class="svg-small">5</text>
+      <text x="14" y="266" class="svg-small">6</text>
+      <text x="14" y="302" class="svg-small">7</text>
+      <text x="14" y="338" class="svg-small">8</text>
+      <rect x="28" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="64" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="100" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="136" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="172" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="208" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="244" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="280" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="316" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="28" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="64" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="64" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="100" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="100" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="136" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="136" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="172" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="172" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="208" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="208" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="244" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="244" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="280" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="280" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="316" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="316" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="28" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="64" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="100" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="136" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="172" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="208" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="244" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="280" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="316" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="352" y="352" width="36" height="36" class="svg-cell-plain" stroke-dasharray="4 3"/>
+      <rect x="64" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="64" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="100" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="136" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="172" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="208" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="244" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="280" width="36" height="36" class="svg-cell"/>
+      <rect x="64" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="100" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="136" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="172" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="244" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="280" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="316" y="316" width="36" height="36" class="svg-cell"/>
+      <rect x="208" y="208" width="36" height="36" class="svg-hl"/>
+      <text x="46" y="51" class="svg-small">0</text>
+      <text x="82" y="51" class="svg-small">1</text>
+      <text x="118" y="51" class="svg-small">2</text>
+      <text x="154" y="51" class="svg-small">3</text>
+      <text x="190" y="51" class="svg-small">4</text>
+      <text x="226" y="51" class="svg-small">5</text>
+      <text x="262" y="51" class="svg-small">6</text>
+      <text x="298" y="51" class="svg-small">7</text>
+      <text x="334" y="51" class="svg-small">8</text>
+      <text x="370" y="51" class="svg-small">9</text>
+      <text x="46" y="87" class="svg-small">10</text>
+      <text x="82" y="87" class="svg-mono">11</text>
+      <text x="118" y="87" class="svg-mono">12</text>
+      <text x="154" y="87" class="svg-mono">13</text>
+      <text x="190" y="87" class="svg-mono">14</text>
+      <text x="226" y="87" class="svg-mono">15</text>
+      <text x="262" y="87" class="svg-mono">16</text>
+      <text x="298" y="87" class="svg-mono">17</text>
+      <text x="334" y="87" class="svg-mono">18</text>
+      <text x="370" y="87" class="svg-small">19</text>
+      <text x="46" y="123" class="svg-small">20</text>
+      <text x="82" y="123" class="svg-mono">21</text>
+      <text x="118" y="123" class="svg-mono">22</text>
+      <text x="154" y="123" class="svg-mono">23</text>
+      <text x="190" y="123" class="svg-mono">24</text>
+      <text x="226" y="123" class="svg-mono">25</text>
+      <text x="262" y="123" class="svg-mono">26</text>
+      <text x="298" y="123" class="svg-mono">27</text>
+      <text x="334" y="123" class="svg-mono">28</text>
+      <text x="370" y="123" class="svg-small">29</text>
+      <text x="46" y="159" class="svg-small">30</text>
+      <text x="82" y="159" class="svg-mono">31</text>
+      <text x="118" y="159" class="svg-mono">32</text>
+      <text x="154" y="159" class="svg-mono">33</text>
+      <text x="190" y="159" class="svg-mono">34</text>
+      <text x="226" y="159" class="svg-mono">35</text>
+      <text x="262" y="159" class="svg-mono">36</text>
+      <text x="298" y="159" class="svg-mono">37</text>
+      <text x="334" y="159" class="svg-mono">38</text>
+      <text x="370" y="159" class="svg-small">39</text>
+      <text x="46" y="195" class="svg-small">40</text>
+      <text x="82" y="195" class="svg-mono">41</text>
+      <text x="118" y="195" class="svg-mono">42</text>
+      <text x="154" y="195" class="svg-mono">43</text>
+      <text x="190" y="195" class="svg-mono">44</text>
+      <text x="226" y="195" class="svg-mono">45</text>
+      <text x="262" y="195" class="svg-mono">46</text>
+      <text x="298" y="195" class="svg-mono">47</text>
+      <text x="334" y="195" class="svg-mono">48</text>
+      <text x="370" y="195" class="svg-small">49</text>
+      <text x="46" y="231" class="svg-small">50</text>
+      <text x="82" y="231" class="svg-mono">51</text>
+      <text x="118" y="231" class="svg-mono">52</text>
+      <text x="154" y="231" class="svg-mono">53</text>
+      <text x="190" y="231" class="svg-mono">54</text>
+      <text x="226" y="231" class="svg-mono">55</text>
+      <text x="262" y="231" class="svg-mono">56</text>
+      <text x="298" y="231" class="svg-mono">57</text>
+      <text x="334" y="231" class="svg-mono">58</text>
+      <text x="370" y="231" class="svg-small">59</text>
+      <text x="46" y="267" class="svg-small">60</text>
+      <text x="82" y="267" class="svg-mono">61</text>
+      <text x="118" y="267" class="svg-mono">62</text>
+      <text x="154" y="267" class="svg-mono">63</text>
+      <text x="190" y="267" class="svg-mono">64</text>
+      <text x="226" y="267" class="svg-mono">65</text>
+      <text x="262" y="267" class="svg-mono">66</text>
+      <text x="298" y="267" class="svg-mono">67</text>
+      <text x="334" y="267" class="svg-mono">68</text>
+      <text x="370" y="267" class="svg-small">69</text>
+      <text x="46" y="303" class="svg-small">70</text>
+      <text x="82" y="303" class="svg-mono">71</text>
+      <text x="118" y="303" class="svg-mono">72</text>
+      <text x="154" y="303" class="svg-mono">73</text>
+      <text x="190" y="303" class="svg-mono">74</text>
+      <text x="226" y="303" class="svg-mono">75</text>
+      <text x="262" y="303" class="svg-mono">76</text>
+      <text x="298" y="303" class="svg-mono">77</text>
+      <text x="334" y="303" class="svg-mono">78</text>
+      <text x="370" y="303" class="svg-small">79</text>
+      <text x="46" y="339" class="svg-small">80</text>
+      <text x="82" y="339" class="svg-mono">81</text>
+      <text x="118" y="339" class="svg-mono">82</text>
+      <text x="154" y="339" class="svg-mono">83</text>
+      <text x="190" y="339" class="svg-mono">84</text>
+      <text x="226" y="339" class="svg-mono">85</text>
+      <text x="262" y="339" class="svg-mono">86</text>
+      <text x="298" y="339" class="svg-mono">87</text>
+      <text x="334" y="339" class="svg-mono">88</text>
+      <text x="370" y="339" class="svg-small">89</text>
+      <text x="46" y="375" class="svg-small">90</text>
+      <text x="82" y="375" class="svg-small">91</text>
+      <text x="118" y="375" class="svg-small">92</text>
+      <text x="154" y="375" class="svg-small">93</text>
+      <text x="190" y="375" class="svg-small">94</text>
+      <text x="226" y="375" class="svg-small">95</text>
+      <text x="262" y="375" class="svg-small">96</text>
+      <text x="298" y="375" class="svg-small">97</text>
+      <text x="334" y="375" class="svg-small">98</text>
+      <text x="370" y="375" class="svg-small">99</text>
+      <text x="495" y="96" class="svg-small">8 方向のオフセット</text>
+      <rect x="420" y="110" width="50" height="50" class="svg-cell"/>
+      <rect x="470" y="110" width="50" height="50" class="svg-cell"/>
+      <rect x="520" y="110" width="50" height="50" class="svg-cell"/>
+      <rect x="420" y="160" width="50" height="50" class="svg-cell"/>
+      <rect x="520" y="160" width="50" height="50" class="svg-cell"/>
+      <rect x="420" y="210" width="50" height="50" class="svg-cell"/>
+      <rect x="470" y="210" width="50" height="50" class="svg-cell"/>
+      <rect x="520" y="210" width="50" height="50" class="svg-cell"/>
+      <rect x="470" y="160" width="50" height="50" class="svg-hl"/>
+      <text x="445" y="140" class="svg-mono">−11</text>
+      <text x="495" y="140" class="svg-mono">−10</text>
+      <text x="545" y="140" class="svg-mono">−9</text>
+      <text x="445" y="190" class="svg-mono">−1</text>
+      <text x="495" y="190" class="svg-mono">p</text>
+      <text x="545" y="190" class="svg-mono">+1</text>
+      <text x="445" y="240" class="svg-mono">+9</text>
+      <text x="495" y="240" class="svg-mono">+10</text>
+      <text x="545" y="240" class="svg-mono">+11</text>
+      <text x="495" y="286" class="svg-small">例: 55 の右下は</text>
+      <text x="495" y="304" class="svg-small">55 + 11 = 66</text>
+      <text x="495" y="334" class="svg-small">添字 = 行 × 10 + 列</text>
+    </svg>
+    <figcaption>
+      図 2-1　番兵付きの 10×10 盤面と、各マスの添字。破線の外周が壁であり、内側の 8×8 が実際の盤面となる。
+      添字を 行 × 10 + 列 と定めると、8方向への移動はすべて一定のオフセットの加算で表せる。
+      55（e5）の右下は 55 + 11 = 66（f6）である。
+    </figcaption>
+  </figure>
+
+  <p>
+    オフセットが一定になるのは、1行の幅を 10 としたためである。
+    壁の列を設けずに幅 8 のまま1次元に並べると、h 列から右へ1マス進んだ先が次の行の a 列になり、
+    盤の端で反対側へ回り込んでしまう。壁の列は、この回り込みを防ぐ役割も担う。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　盤面表現の比較。いずれも正しく実装すれば同じ対局ができ、違いは盤外の扱いと速度にある。
+      速度の差が効いてくるのは探索を深くしたい場合に限られ、それ以外では誤りにくさを優先して選ぶ。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>表現</th><th>位置の表し方</th><th>盤外の扱い</th><th>選ぶ条件</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>8×8 の2次元配列</td>
+          <td>(行, 列) の組</td>
+          <td>1歩ごとに行・列の範囲を確認する</td>
+          <td>位置と配列の対応が直観的で、表示処理も書きやすい。範囲確認の書き忘れに注意を要する</td>
+        </tr>
+        <tr>
+          <td>番兵付き 10×10（1次元に並べる）</td>
+          <td>行 × 10 + 列</td>
+          <td>壁に当たると走査が止まる</td>
+          <td>走査の記述が短く、範囲確認の書き忘れが原理的に起こらない。本ページの擬似コードはこの表現による</td>
+        </tr>
+        <tr>
+          <td><span class="term">ビットボード</span><span class="en">(bitboard)</span></td>
+          <td>64 ビット整数のビット位置</td>
+          <td>シフト演算と論理積で端を切り落とす</td>
+          <td>1局面あたりの処理が大幅に速く、深い探索に向く。実装と誤りの発見が難しいため、配列版を完成させた後の改良とする</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      配布されたソースコードを土台にする場合は、最初にその盤面表現を確認する。
+      空き・黒・白にどの値を割り当てているか、座標の (行, 列) と (x, y) のどちらで書かれているかを
+      取り違えると、以降の部品がすべて食い違う。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      図 2-1 の番兵付き盤面（添字 = 行 × 10 + 列）で、添字 66 のマスから左上方向へ2マス進んだマスの添字はどれか。
+    </p>
+    <ol class="choices">
+      <li>44</li>
+      <li>48</li>
+      <li>55</li>
+      <li>64</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          左上は1行上（−10）かつ1列左（−1）であり、オフセットは −11 となる。
+          2マス進むので 66 − 11 − 11 = 44 である。66 は f6、44 は d4 にあたる。
+        </p>
+        <p>
+          (B) は 66 − 9 − 9 であり、右上方向へ進んだ結果である。−9 は「1行上・1列右」を表す。
+          幅 8 の盤面で左上のオフセットが −9 になることと混同した場合にもこの値になる。
+          (C) は 1マスだけ進んだ位置であり、進んだ回数を数え誤っている。
+          (D) は左へ2マス（−1 を2回）進んだ位置であり、行の移動を落としている。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 合法手の判定 ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>合法手の判定 — 8方向に挟めるかを調べる</h2>
+
+  <p>
+    リバーシで石を置けるのは、置いたときに相手の石を1個以上返せるマスに限られる。
+    このようなマスへの着手を<span class="term">合法手</span><span class="en">(legal move)</span> と呼ぶ。
+    「返せる」とは、置いたマスからある方向へ見て、<strong>相手の石が1個以上連続し、
+    その直後に自分の石がある</strong>状態をいう。間に挟まれた相手の石が返る。
+  </p>
+
+  <p>
+    この条件を1方向ずつ確かめる。ある方向について見るべき状況は次の4通りである。
+  </p>
+
+  <ul>
+    <li>隣が空きまたは壁 — その方向には返せない</li>
+    <li>隣が自分の石 — 挟む相手の石が0個であり、返せない</li>
+    <li>相手の石が続いた後、空きまたは壁に当たる — 挟めていないため、返せない</li>
+    <li>相手の石が続いた後、自分の石に当たる — 間の相手の石をすべて返せる</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 580 312" role="img" aria-label="8行8列の盤面で、c5に黒を置く場合を調べた図。右方向は白2個の先に黒があり2個返る。右下方向も白2個の先に黒があり2個返る。上方向は白2個の先が空き、下方向は白3個の先が壁で、いずれも返らない。右上方向は隣が黒で返らない。返る石はd5、e5、d6、e7の4個">
+      <text x="45" y="20" class="svg-small">a</text>
+      <text x="79" y="20" class="svg-small">b</text>
+      <text x="113" y="20" class="svg-small">c</text>
+      <text x="147" y="20" class="svg-small">d</text>
+      <text x="181" y="20" class="svg-small">e</text>
+      <text x="215" y="20" class="svg-small">f</text>
+      <text x="249" y="20" class="svg-small">g</text>
+      <text x="283" y="20" class="svg-small">h</text>
+      <text x="14" y="49" class="svg-small">1</text>
+      <text x="14" y="83" class="svg-small">2</text>
+      <text x="14" y="117" class="svg-small">3</text>
+      <text x="14" y="151" class="svg-small">4</text>
+      <text x="14" y="185" class="svg-small">5</text>
+      <text x="14" y="219" class="svg-small">6</text>
+      <text x="14" y="253" class="svg-small">7</text>
+      <text x="14" y="287" class="svg-small">8</text>
+      <rect x="28" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="164" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="28" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="164" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="62" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="164" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="96" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="164" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="130" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="164" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="164" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="164" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="164" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="164" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="164" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="198" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="232" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="28" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="62" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="96" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="164" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="198" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="232" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="266" y="266" width="34" height="34" class="svg-cell-plain"/>
+      <rect x="130" y="164" width="34" height="34" class="svg-cell"/>
+      <rect x="164" y="164" width="34" height="34" class="svg-cell"/>
+      <rect x="130" y="198" width="34" height="34" class="svg-cell"/>
+      <rect x="164" y="232" width="34" height="34" class="svg-cell"/>
+      <rect x="96" y="164" width="34" height="34" class="svg-hl"/>
+      <text x="113" y="185" class="svg-small">置く</text>
+      <circle cx="215" cy="181" r="11" class="svg-text"/>
+      <circle cx="147" cy="147" r="11" class="svg-text"/>
+      <circle cx="215" cy="283" r="11" class="svg-text"/>
+      <circle cx="147" cy="181" r="11" class="svg-bg"/><circle cx="147" cy="181" r="11" class="svg-line"/>
+      <circle cx="181" cy="181" r="11" class="svg-bg"/><circle cx="181" cy="181" r="11" class="svg-line"/>
+      <circle cx="113" cy="147" r="11" class="svg-bg"/><circle cx="113" cy="147" r="11" class="svg-line"/>
+      <circle cx="113" cy="113" r="11" class="svg-bg"/><circle cx="113" cy="113" r="11" class="svg-line"/>
+      <circle cx="147" cy="215" r="11" class="svg-bg"/><circle cx="147" cy="215" r="11" class="svg-line"/>
+      <circle cx="181" cy="249" r="11" class="svg-bg"/><circle cx="181" cy="249" r="11" class="svg-line"/>
+      <circle cx="113" cy="215" r="11" class="svg-bg"/><circle cx="113" cy="215" r="11" class="svg-line"/>
+      <circle cx="113" cy="249" r="11" class="svg-bg"/><circle cx="113" cy="249" r="11" class="svg-line"/>
+      <circle cx="113" cy="283" r="11" class="svg-bg"/><circle cx="113" cy="283" r="11" class="svg-line"/>
+      <text x="318" y="46" class="svg-text" style="text-anchor:start">c5 に黒を置く場合</text>
+      <text x="318" y="80" class="svg-small" style="text-anchor:start">右　　白 白 黒 → 2 個返る</text>
+      <text x="318" y="108" class="svg-small" style="text-anchor:start">右下　白 白 黒 → 2 個返る</text>
+      <text x="318" y="136" class="svg-small" style="text-anchor:start">上　　白 白 空き → 返らない</text>
+      <text x="318" y="164" class="svg-small" style="text-anchor:start">下　　白 白 白 壁 → 返らない</text>
+      <text x="318" y="192" class="svg-small" style="text-anchor:start">右上　黒（隣が自分）→ 返らない</text>
+      <text x="318" y="220" class="svg-small" style="text-anchor:start">左・左上・左下　空き → 返らない</text>
+      <text x="318" y="252" class="svg-small" style="text-anchor:start">返る石: d5・e5・d6・e7 の 4 個</text>
+      <circle cx="325" cy="279" r="7" class="svg-text"/>
+      <text x="338" y="283" class="svg-small" style="text-anchor:start">黒</text>
+      <circle cx="371" cy="279" r="7" class="svg-bg"/><circle cx="371" cy="279" r="7" class="svg-line"/>
+      <text x="384" y="283" class="svg-small" style="text-anchor:start">白</text>
+      <rect x="414" y="272" width="14" height="14" class="svg-cell"/>
+      <text x="434" y="283" class="svg-small" style="text-anchor:start">返る石のマス</text>
+    </svg>
+    <figcaption>
+      図 3-1　c5 に黒を置く場合の8方向の判定。表示の配色によらず、塗りつぶした円が黒、輪郭のみの円が白を表す。
+      相手の石が続く方向が4つあっても、その先に自分の石があるのは右と右下の2方向だけである。
+      返る石の数は方向ごとに数え、挟めた方向の分だけを合計する。
+    </figcaption>
+  </figure>
+
+  <p>
+    1方向の確認は、隣から順に1マスずつ見て、相手の石でなくなった時点で打ち切る
+    線形探索である。番兵付き盤面であれば、壁も「相手の石でない値」として扱われ、
+    特別な処理を書かずに走査が止まる。これを8方向について繰り返し、
+    挟めた方向の石を集めたものが、そのマスに置いたときに返る石の一覧になる。
+  </p>
+
+  <pre><code>返せる石(盤面 B, 位置 p, 手番 c):
+1. 結果 ← 空の一覧
+2. B[p] ≠ 空き ならば、結果を返して終了する
+3. 8方向の各オフセット d について、以下を繰り返す
+   3.1 候補 ← 空の一覧、q ← p + d
+   3.2 B[q] = −c である間、q を候補に加えて q ← q + d とする
+   3.3 B[q] = c かつ 候補が空でない ならば、候補をすべて結果に加える
+4. 結果を返す</code></pre>
+
+  <p>
+    手順 3.3 の二つの条件がこの判定の要である。<code>B[q] = c</code> は
+    「相手の石の列が自分の石で終わっている」こと、<code>候補が空でない</code> は
+    「挟まれた相手の石が1個以上ある」ことを確かめている。前者を欠くと空きや壁で終わる列まで返し、
+    後者を欠くと隣が自分の石であるだけのマスを合法手と誤る。
+  </p>
+
+  <p>
+    合法手の一覧は、盤内の64マスすべてについて返せる石を調べ、1個以上あるマスを集めれば得られる。
+  </p>
+
+  <pre><code>合法手の一覧(盤面 B, 手番 c):
+1. 一覧 ← 空の一覧
+2. 盤内の各位置 p について、返せる石(B, p, c) が空でなければ p を一覧に加える
+3. 一覧を返す</code></pre>
+
+  <h3>パスと終局</h3>
+
+  <p>
+    合法手の一覧が空であれば、その手番の側は石を置けず、
+    盤面を変えないまま相手に手番を渡す。これを<span class="term">パス</span><span class="en">(pass)</span> と呼ぶ。
+    パスした直後の相手にも合法手が無ければ、どちらも打てないため対局は終わる。
+    盤が埋まった場合もこの条件に含まれる。
+    <strong>終局の判定は「盤が埋まったか」ではなく「両者とも合法手が無いか」で行う</strong>。
+    盤が埋まる前に両者が打てなくなる局面や、一方の石が全滅する局面も存在するためである。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      黒の手番で、空きマス X に黒を置くことを考える。X から右方向に並ぶマスの状態が次のいずれかであるとき、
+      右方向の石が返るものはどれか。並びは X の隣から順に書いてあり、「壁」は盤外を表す。
+    </p>
+    <ol class="choices">
+      <li>白、白、空き</li>
+      <li>黒、白、黒</li>
+      <li>白、白、黒</li>
+      <li>白、白、白、壁</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          白が2個続いた直後に黒があり、2個の白が挟まれる。返せる石の手順で、
+          候補に2個が入った状態で <code>B[q] = c</code> が成り立つ場合にあたる。
+        </p>
+        <p>
+          (A) は白の列の先が空きであり、挟めていない。
+          (B) は隣が黒であり、挟む白が0個である。その先に白と黒が並んでいても、
+          走査は隣の黒の時点で止まるため関係しない。
+          (D) は白の列の先が壁であり、盤の端まで白が続いていても挟めていない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 着手と取り消し ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>着手と取り消し</h2>
+
+  <p>
+    合法手が決まれば、着手の処理は返せる石の一覧を使って書ける。
+    置いたマスを自分の色にし、一覧にある石をすべて自分の色に変える。
+  </p>
+
+  <pre><code>着手(盤面 B, 位置 p, 手番 c):
+1. 返す石 ← 返せる石(B, p, c)
+2. B[p] ← c
+3. 返す石 の各位置 q について、B[q] ← c
+4. 返す石 を返す</code></pre>
+
+  <p>
+    着手の誤りで最も多いのは、<strong>相手の石が続く方向をすべて返してしまう</strong>ものである。
+    図 3-1 では相手の石が続く方向が4つあるが、返してよいのは2方向だけである。
+    返せる石の判定と着手で別々に走査を書くと、着手の側だけ手順 3.3 の条件を落としやすい。
+    判定で得た一覧をそのまま着手に使えば、両者が食い違うことはない。
+  </p>
+
+  <h3>探索のために局面を元へ戻す</h3>
+
+  <p>
+    探索では、手を仮に打って先の局面を調べ、調べ終えたら打つ前の局面へ戻す、という操作を
+    何度も繰り返す。局面を戻す方法には二つある。
+  </p>
+
+  <ul>
+    <li><strong>盤面の複製</strong> — 着手の前に盤面全体を別の配列へ写し、調べ終えたら写しを捨てる</li>
+    <li><strong>差分の記録</strong> — 置いた位置と返した石の位置を記録しておき、調べ終えたら記録をもとに元へ戻す</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 580 238" role="img" aria-label="c5からf5までの4マスについて、着手前は空き、白、白、黒であり、c5に黒を置いた後はすべて黒になる様子を上下に示した図。右側には取り消し用の記録として、下から置いた位置c5、返した石d5、e5、d6、e7を積んだスタックを示している">
+      <text x="24" y="24" class="svg-small" style="text-anchor:start">着手前（c5 から右方向）</text>
+      <path d="M 112 104 L 112 130" class="svg-arrow" marker-end="url(#ah4)"/>
+      <path d="M 258 166 L 346 166" class="svg-arrow" marker-end="url(#ah4)"/>
+      <text x="130" y="122" class="svg-small" style="text-anchor:start">c5 に黒を置く</text>
+      <text x="302" y="156" class="svg-small">記録する</text>
+      <rect x="24" y="36" width="44" height="44" class="svg-cell-plain"/>
+      <rect x="68" y="36" width="44" height="44" class="svg-cell-plain"/>
+      <rect x="112" y="36" width="44" height="44" class="svg-cell-plain"/>
+      <rect x="156" y="36" width="44" height="44" class="svg-cell-plain"/>
+      <circle cx="90" cy="58" r="13" class="svg-bg"/><circle cx="90" cy="58" r="13" class="svg-line"/>
+      <circle cx="134" cy="58" r="13" class="svg-bg"/><circle cx="134" cy="58" r="13" class="svg-line"/>
+      <circle cx="178" cy="58" r="13" class="svg-text"/>
+      <text x="46" y="98" class="svg-mono">c5</text>
+      <text x="90" y="98" class="svg-mono">d5</text>
+      <text x="134" y="98" class="svg-mono">e5</text>
+      <text x="178" y="98" class="svg-mono">f5</text>
+      <rect x="156" y="144" width="44" height="44" class="svg-cell-plain"/>
+      <rect x="24" y="144" width="44" height="44" class="svg-cell"/>
+      <rect x="68" y="144" width="44" height="44" class="svg-hl"/>
+      <rect x="112" y="144" width="44" height="44" class="svg-hl"/>
+      <circle cx="46" cy="166" r="13" class="svg-text"/>
+      <circle cx="90" cy="166" r="13" class="svg-text"/>
+      <circle cx="134" cy="166" r="13" class="svg-text"/>
+      <circle cx="178" cy="166" r="13" class="svg-text"/>
+      <text x="212" y="170" class="svg-small" style="text-anchor:start">着手後</text>
+      <text x="46" y="206" class="svg-mono">c5</text>
+      <text x="90" y="206" class="svg-mono">d5</text>
+      <text x="134" y="206" class="svg-mono">e5</text>
+      <text x="178" y="206" class="svg-mono">f5</text>
+      <text x="440" y="24" class="svg-small">取り消し用の記録（スタック）</text>
+      <rect x="360" y="40" width="160" height="30" class="svg-cell"/>
+      <rect x="360" y="70" width="160" height="30" class="svg-cell"/>
+      <rect x="360" y="100" width="160" height="30" class="svg-cell"/>
+      <rect x="360" y="130" width="160" height="30" class="svg-cell"/>
+      <rect x="360" y="160" width="160" height="30" class="svg-cell"/>
+      <text x="440" y="60" class="svg-mono">返した石 e7</text>
+      <text x="440" y="90" class="svg-mono">返した石 d6</text>
+      <text x="440" y="120" class="svg-mono">返した石 e5</text>
+      <text x="440" y="150" class="svg-mono">返した石 d5</text>
+      <text x="440" y="180" class="svg-mono">置いた位置 c5</text>
+      <text x="440" y="212" class="svg-small">上から順に取り出して白へ戻し、</text>
+      <text x="440" y="228" class="svg-small">最後に c5 を空きへ戻す</text>
+      <defs>
+        <marker id="ah4" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 4-1　図 3-1 の局面で c5 に黒を置いたときの変化と、取り消し用の記録。石の表し方は図 3-1 と同じである。
+      左は右方向の4マスだけを示しているが、右下方向の d6・e7 も同時に返る。
+      置いた位置と返した石をすべて記録しておけば、盤面全体を複製しなくても打つ前の局面へ戻せる。
+    </figcaption>
+  </figure>
+
+  <p>
+    二つの方法は、<span class="term">トレードオフ</span><span class="en">(trade-off)</span> の関係にある。
+    複製は着手の処理に手を加えずに済み、戻し忘れや戻し誤りが原理的に起こらない。
+    差分の記録は1手あたりに書き換えるマスが数個で済むため速いが、
+    記録と復元の処理を自分で書く必要があり、返した石の記録漏れがあると局面が少しずつ壊れていく。
+    この種の誤りは、数十手後に「置けるはずのマスに置けない」といった形で現れるため、原因の特定が難しい。
+  </p>
+
+  <p>
+    速度の差が効いてくるのは、1回の思考で数十万以上の局面を調べる場合に限られる。
+    10×10 の盤面の複製は100個の値を写すだけであり、浅い探索では差は体感できない。
+    <strong>まず複製で正しく動く版を作り、探索を深くして速度が足りなくなってから差分の記録へ切り替える</strong>のが安全である。
+    切り替えた後は、両方の版で同じ局面数・同じ評価値が得られることを確かめる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      盤面を複製せず、差分の記録によって着手を取り消したい。着手のたびに記録しておく必要がある情報として、
+      過不足のないものはどれか。
+    </p>
+    <ol class="choices">
+      <li>置いた位置と、返したすべての石の位置</li>
+      <li>置いた位置だけ</li>
+      <li>置いた位置と、返した石の個数</li>
+      <li>着手の直前の局面に対する評価関数の値</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          取り消しでは、置いた位置を空きへ戻し、返した石を相手の色へ戻す。
+          そのためには、どのマスを書き換えたかがすべて分かっていればよい。
+          返した石の元の色は、着手した側の相手の色に決まっているため、記録しなくてよい。
+        </p>
+        <p>
+          (B) は、置いた位置から返した石を求め直せると考えている。しかし着手後の盤面では
+          返した石も自分の色になっており、もともと自分の石だったものと区別できない。
+          (C) の個数だけでは、どの方向の何個目までが返した石なのかが定まらない。
+          (D) の評価値は局面の良さを表す数値であり、局面そのものを復元する情報を含まない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 盤面処理の検証 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>盤面処理の検証</h2>
+
+  <p>
+    盤面処理の誤りは、対局を数回試した程度では見つからないことが多い。
+    誤りが現れるのは、盤の端・複数方向の同時返し・パスなど、特定の配置に限られるためである。
+    そこで、<strong>誤りの種類ごとに、それを確実に露見させる局面を用意し、
+    期待する結果と照合するコードを書く</strong>。これが動作を検証するためのコードであり、
+    盤面処理を変更するたびに実行し直す。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　盤面処理の検証ケース。各ケースは特定の誤りを露見させるために選んでいる。
+      初期局面のケースだけでは、盤の端やパスに関する誤りは見つからない。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>局面</th><th>期待する結果</th><th>検出できる誤り</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>初期局面（黒番）</td>
+          <td>合法手は d3・c4・f5・e6 の4つ</td>
+          <td>判定条件の誤り、行と列の取り違え、初期配置の誤り</td>
+        </tr>
+        <tr>
+          <td>初期局面から黒が d3 に着手</td>
+          <td>d4 の1個だけが黒になる</td>
+          <td>着手処理の基本動作の誤り</td>
+        </tr>
+        <tr>
+          <td>図 3-1 のように、挟める方向と、相手の石の先が空き・壁の方向が混在する局面</td>
+          <td>挟めた方向の石だけが返る</td>
+          <td>挟めない方向まで返す誤り</td>
+        </tr>
+        <tr>
+          <td>盤の端・隅に石が並ぶ局面</td>
+          <td>盤外を参照せずに判定でき、反対側の端の石が影響しない</td>
+          <td>範囲確認の漏れ、端での回り込み</td>
+        </tr>
+        <tr>
+          <td>一方の手番だけ合法手が無い局面</td>
+          <td>パスとなり、盤面を変えずに相手の手番になる</td>
+          <td>パスの扱い漏れ（停止・無限の繰り返し）</td>
+        </tr>
+        <tr>
+          <td>両者とも合法手が無い局面（盤が埋まる前のものを含む）</td>
+          <td>終局と判定され、石数が数えられる</td>
+          <td>終局判定を盤の埋まり具合で行う誤り</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <h3>局面数による総合検証</h3>
+
+  <p>
+    個別のケースに加えて、初期局面から合法手をすべて試しながら n 手先まで進め、
+    到達する局面の数（手順の数）を数える方法がある。この数は盤面処理が正しければ一意に定まり、
+    既知の値と照合できる。チェスなどのプログラム開発で用いられる手法で、
+    <span class="term">perft</span><span class="en">(performance test)</span> と呼ばれる。
+  </p>
+
+  <pre><code>局面数(盤面 B, 手番 c, 深さ n):
+1. n = 0 ならば、1 を返す
+2. 手の一覧 ← 合法手の一覧(B, c)
+3. 手の一覧が空ならば、局面数(B, −c, n − 1) を返す（パスも1手と数える）
+4. 合計 ← 0
+5. 手の一覧の各手 p について、以下を繰り返す
+   5.1 着手(B, p, c) を行う
+   5.2 合計 ← 合計 + 局面数(B, −c, n − 1)
+   5.3 着手を取り消す
+6. 合計を返す</code></pre>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-2　初期局面（黒番）から n 手先までに到達する局面の数。
+      一致しなければ盤面処理のどこかに誤りがある。浅い深さから順に照合すると、誤りが現れ始める深さが分かる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>深さ n</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>局面数</td>
+          <td class="num-cell">4</td>
+          <td class="num-cell">12</td>
+          <td class="num-cell">56</td>
+          <td class="num-cell">244</td>
+          <td class="num-cell">1,396</td>
+          <td class="num-cell">8,200</td>
+          <td class="num-cell">55,092</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    局面数の検証は、取り消し処理の検証も兼ねる。取り消しで局面が正しく戻らなければ、
+    次に試す手の局面が狂い、数がずれる。ただし、数がずれたことは分かっても、
+    どの処理が誤っているかまでは分からない。原因の特定には表 5-1 の個別ケースを用いる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      ある実装で、着手の処理が「相手の石が続く方向は、その先に自分の石が無くても返す」という誤りを含んでいる。
+      合法手の判定は正しく実装されているとする。この誤りを直接検出できる検証ケースはどれか。
+    </p>
+    <ol class="choices">
+      <li>初期局面で、黒の合法手が d3・c4・f5・e6 の4つであることを確かめる</li>
+      <li>初期局面から黒が d3 に打ち、返る石が d4 の1個であることを確かめる</li>
+      <li>挟める方向と、相手の石の先が空きである方向が混在する局面で着手し、挟めた方向の石だけが返ることを確かめる</li>
+      <li>両者とも合法手が無い局面で、終局と判定されることを確かめる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          この誤りが結果に現れるのは、相手の石が続くのに挟めていない方向が、着手したマスから見て存在する場合に限られる。
+          (C) はまさにその配置を用意し、着手後の盤面を照合している。
+        </p>
+        <p>
+          (A) は合法手の判定を確かめるケースであり、着手の処理を通らない。
+          (B) は着手を伴うが、d3 から見て相手の石が続く方向は、d4 の先に黒がある下方向だけである。
+          挟めない方向が存在しないため、誤った実装でも正しい結果になり、誤りは露見しない。
+          (D) は終局判定のケースであり、着手の処理とは独立である。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. ミニマックス法を再帰で実装する ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>ミニマックス法を再帰で実装する</h2>
+
+  <p>
+    盤面処理が完成すれば、CPU の思考部分に進める。考え方の要点を振り返っておく。
+    現在の局面から合法手ごとに枝分かれし、その先でさらに相手の合法手ごとに枝分かれする木を、
+    決めた深さまで展開する。末端の局面を評価関数で数値にし、
+    <strong>自分の手番の局面では子の最大値を、相手の手番の局面では子の最小値を</strong>親へ伝える。
+    相手も自分にとって最も不利な手を選ぶと仮定して、最悪の場合の中で最善の手を選ぶ方法である。
+    これを<span class="term">ミニマックス法</span><span class="en">(minimax)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 220" role="img" aria-label="深さ2のゲーム木。根から手A、手B、手Cの3つに分かれ、それぞれの先に2つずつ末端の局面がある。末端の評価値は手Aの先が3と5、手Bの先が2と6、手Cの先が4と7。相手の手番では最小を選ぶため手Aは3、手Bは2、手Cは4となり、自分の手番の根では最大の4を選んで手Cを打つ">
+      <path d="M 360 60 L 220 100" class="svg-line"/>
+      <path d="M 360 60 L 360 100" class="svg-line"/>
+      <path d="M 220 130 L 185 180" class="svg-line"/>
+      <path d="M 220 130 L 255 180" class="svg-line"/>
+      <path d="M 360 130 L 325 180" class="svg-line"/>
+      <path d="M 360 130 L 395 180" class="svg-line"/>
+      <path d="M 500 130 L 535 180" class="svg-line"/>
+      <path d="M 360 60 L 500 100" class="svg-arrow"/>
+      <path d="M 500 130 L 465 180" class="svg-arrow"/>
+      <text x="8" y="42" class="svg-small" style="text-anchor:start">自分の手番</text>
+      <text x="8" y="58" class="svg-small" style="text-anchor:start">最大を選ぶ</text>
+      <text x="8" y="112" class="svg-small" style="text-anchor:start">相手の手番</text>
+      <text x="8" y="128" class="svg-small" style="text-anchor:start">最小を選ぶ</text>
+      <text x="8" y="192" class="svg-small" style="text-anchor:start">末端の局面</text>
+      <text x="8" y="208" class="svg-small" style="text-anchor:start">評価関数で評価</text>
+      <text x="284" y="78" class="svg-small" style="text-anchor:end">手A</text>
+      <text x="368" y="84" class="svg-small" style="text-anchor:start">手B</text>
+      <text x="436" y="78" class="svg-small" style="text-anchor:start">手C</text>
+      <text x="404" y="50" class="svg-small" style="text-anchor:start">→ 手C を選ぶ</text>
+      <rect x="192" y="100" width="56" height="30" class="svg-cell"/>
+      <text x="220" y="120" class="svg-text">3</text>
+      <rect x="332" y="100" width="56" height="30" class="svg-cell"/>
+      <text x="360" y="120" class="svg-text">2</text>
+      <rect x="159" y="180" width="52" height="30" class="svg-cell"/>
+      <text x="185" y="200" class="svg-text">3</text>
+      <rect x="229" y="180" width="52" height="30" class="svg-cell"/>
+      <text x="255" y="200" class="svg-text">5</text>
+      <rect x="299" y="180" width="52" height="30" class="svg-cell"/>
+      <text x="325" y="200" class="svg-text">2</text>
+      <rect x="369" y="180" width="52" height="30" class="svg-cell"/>
+      <text x="395" y="200" class="svg-text">6</text>
+      <rect x="509" y="180" width="52" height="30" class="svg-cell"/>
+      <text x="535" y="200" class="svg-text">7</text>
+      <rect x="325" y="30" width="70" height="30" class="svg-hl"/>
+      <text x="360" y="50" class="svg-text">4</text>
+      <rect x="472" y="100" width="56" height="30" class="svg-hl"/>
+      <text x="500" y="120" class="svg-text">4</text>
+      <rect x="439" y="180" width="52" height="30" class="svg-hl"/>
+      <text x="465" y="200" class="svg-text">4</text>
+    </svg>
+    <figcaption>
+      図 6-1　深さ2のミニマックス法。数値はすべて自分から見た評価値である。
+      手B の先には評価値 6 の局面があるが、相手は 2 の局面へ進む手を選ぶため、手B の値は 2 にとどまる。
+      最悪の場合でも 4 を確保できる手C が選ばれる。
+    </figcaption>
+  </figure>
+
+  <h3>符号の反転で1つの関数にまとめる</h3>
+
+  <p>
+    最大を選ぶ処理と最小を選ぶ処理を別々に書くと、ほぼ同じ手順が2つできる。
+    ここで、相手から見た評価値は自分から見た評価値の符号を反転したものだと考える。
+    すると「相手が自分にとっての最小を選ぶ」ことは、「相手が相手にとっての最大を選ぶ」ことと同じになる。
+    各局面で<strong>手番の側から見た評価値の最大を求め、親へ返すときに符号を反転する</strong>と決めれば、
+    手番によらず1つの関数で書ける。この書き方を<span class="term">ネガマックス法</span><span class="en">(negamax)</span> と呼ぶ。
+    空き・黒・白を 0・1・−1 で表しておくと、評価関数も <code>手番 c × 黒から見た評価値</code> で
+    手番の側から見た値に変換できる。
+  </p>
+
+  <pre><code>探索(盤面 B, 手番 c, 深さ n):     ※ 手番 c の側から見た評価値を返す
+1. n = 0 ならば、評価(B, c) を返す
+2. 手の一覧 ← 合法手の一覧(B, c)
+3. 手の一覧が空ならば
+   3.1 合法手の一覧(B, −c) も空ならば、終局として 最終評価(B, c) を返す
+   3.2 そうでなければ、−探索(B, −c, n − 1) を返す（パス）
+4. 最良 ← −∞
+5. 手の一覧の各手 p について、以下を繰り返す
+   5.1 返した石 ← 着手(B, p, c)
+   5.2 値 ← −探索(B, −c, n − 1)
+   5.3 取り消し(B, p, c, 返した石)
+   5.4 値 &gt; 最良 ならば、最良 ← 値
+6. 最良を返す</code></pre>
+
+  <p>
+    実際に打つ手を決めるのは、根の局面だけである。根では手順 5 の繰り返しの中で、
+    最良を更新したときの手 p を覚えておき、それを CPU の着手とする。
+    根以外の局面では手そのものは不要で、値だけを返せばよい。
+  </p>
+
+  <h3>実装で誤りやすい点</h3>
+
+  <ul>
+    <li>
+      <strong>符号の反転</strong> — 手順 5.2 と 3.2 の <code>−</code> を落とすと、相手の手番でも自分に有利な手を選ぶことになり、
+      CPU は相手に有利な手を好んで打つ。評価関数が手番の側から見た値を返していることも併せて確かめる。
+    </li>
+    <li>
+      <strong>パス</strong> — 合法手が無いときに評価値を返して終えると、パスの先の展開が読まれない。
+      パスでは盤面を変えずに手番だけを渡して探索を続ける。
+      両者とも打てない場合に終局とする判定を欠くと、パスが交互に続いて深さを使い切るまで読み進めてしまう。
+    </li>
+    <li>
+      <strong>終局の評価</strong> — 終局では勝敗が確定しているため、石数の差に大きな定数を掛けるなどして、
+      途中局面の評価値のどれよりも大きな値（負けなら小さな値）にする。
+      そうしないと、勝ちの確定した手より、評価値の高い途中局面へ進む手を選ぶことがある。
+    </li>
+  </ul>
+
+  <p>
+    探索の手間は深さに対して急激に増える。中盤では合法手が10個前後あることが多く、
+    深さを1増やすたびに調べる局面はおよそ合法手の個数倍になる。
+    合法手が11個ある中盤の局面で実際に数えると、深さ4で約1.8万、深さ6で約230万の局面を訪れる（表 7-1）。
+    この増え方を指数関数的と呼ぶ。深さは、1手にかけられる時間から逆算して決める。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      ミニマックス法による深さ2の探索で、根（自分の手番）の合法手が A・B・C の3つあり、
+      それぞれの先の相手の合法手に対する末端の評価値（自分から見た値）が次のとおりであった。
+      CPU が選ぶ手と、根の評価値の組合せとして正しいものはどれか。
+    </p>
+    <pre><code>手A の先: 2, 8
+手B の先: 5, 6
+手C の先: 9, 1</code></pre>
+    <ol class="choices">
+      <li>手A、評価値 2</li>
+      <li>手B、評価値 5</li>
+      <li>手C、評価値 9</li>
+      <li>手C、評価値 1</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          相手の手番では最小を選ぶため、手A の値は 2、手B は 5、手C は 1 となる。
+          自分の手番の根ではその最大を選ぶため、手B を選び、根の評価値は 5 となる。
+        </p>
+        <p>
+          (A) は手A の値を正しく求めているが、根でも最小を選んでいる。
+          (C) は相手も自分に有利な手を選ぶと仮定し、末端の最大値へ向かう手を選んでいる。相手が 1 の局面へ進めば、手C は最悪の結果になる。
+          (D) は各段で最小を選んでおり、自分の手番で最大を選ぶ規則を落としている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-2</span>
+    <p class="q-body">
+      探索の中で、手番の側に合法手が1つも無い局面に到達した。この局面の扱いとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>盤面を変えずに手番を相手に渡して探索を続け、相手にも合法手が無ければ終局として石数で評価する</li>
+      <li>その局面を評価関数で評価し、その値を返して探索を終える</li>
+      <li>石を置けないので負けとみなし、最小の評価値を返す</li>
+      <li>盤面を変えずに手番を相手に渡して探索を続け、相手にも合法手が無ければ、さらに手番を戻して探索を続ける</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          合法手が無い側はパスとなり、盤面はそのままで相手が打つ。
+          相手にも合法手が無ければ、それ以上局面は変化しないため終局であり、石数で勝敗を評価する。
+        </p>
+        <p>
+          (B) はパスの先を読まずに打ち切っている。パスの直後に相手が隅を取るなど、局面が大きく動く場合を見落とす。
+          (C) はパスと負けを混同している。パスは手番が移るだけであり、石数で勝っている側がパスすることもある。
+          (D) は両者とも打てない状態を終局と判定しておらず、パスの応酬が続いて無駄に深さを消費する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. αβ枝刈りと手の並べ替え ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>αβ枝刈りと手の並べ替え</h2>
+
+  <p>
+    図 6-1 で手A の値が 3 と分かった後に手B を調べるとき、手B の最初の子で評価値 2 の局面が見つかった時点で、
+    手B の値は 2 以下に決まる。手A で 3 を確保できる以上、手B が選ばれることはなく、
+    手B の残りの子（評価値 6 の局面）を調べる必要はない。このように、結果に影響しないと確定した枝の探索を打ち切る方法を
+    <span class="term">αβ枝刈り</span><span class="en">(alpha-beta pruning)</span> と呼ぶ。
+    <strong>枝刈りは選ばれる手と評価値を変えずに、調べる局面の数だけを減らす</strong>。
+  </p>
+
+  <p>
+    実装では、各局面に二つの値を渡す。α は手番の側がすでに確保できると分かっている値の下限、
+    β は相手がそれ以上は許さない値の上限である。子の値が β 以上になれば、
+    相手はこの局面へ進む手を選ばないため、残りの子を調べずに戻ってよい。
+    ネガマックス法の形では、子へ渡すときに α と β を入れ替えて符号を反転する。
+  </p>
+
+  <pre><code>探索(盤面 B, 手番 c, 深さ n, α, β):
+1. n = 0 ならば、評価(B, c) を返す
+2. 手の一覧 ← 合法手の一覧(B, c)
+3. 手の一覧が空ならば
+   3.1 合法手の一覧(B, −c) も空ならば、最終評価(B, c) を返す
+   3.2 そうでなければ、−探索(B, −c, n − 1, −β, −α) を返す（パス）
+4. 手の一覧の各手 p について、以下を繰り返す
+   4.1 返した石 ← 着手(B, p, c)
+   4.2 値 ← −探索(B, −c, n − 1, −β, −α)
+   4.3 取り消し(B, p, c, 返した石)
+   4.4 値 &gt; α ならば、α ← 値
+   4.5 α ≥ β ならば、繰り返しを打ち切る
+5. α を返す</code></pre>
+
+  <p>
+    根では α = −∞、β = +∞ として呼び出す。ミニマックス法の擬似コードとの違いは、
+    引数の α・β、手順 4.2 の受け渡し、手順 4.5 の打ち切りの3か所だけである。
+    ミニマックス法の版を残しておけば、両者の結果を比べて枝刈りの実装を検証できる。
+  </p>
+
+  <h3>有望な手から調べる</h3>
+
+  <p>
+    枝刈りがどれだけ効くかは、手を調べる順序で決まる。最善の手を最初に調べれば α が早く大きくなり、
+    以降の手はすぐに打ち切られる。逆に、悪い手から順に調べると、ほとんど刈れない。
+    そこで、各局面で合法手を調べる前に、1手だけ進めた局面の評価値などの軽い見積もりで
+    有望な順に並べ替える。これを<span class="term">手の並べ替え</span><span class="en">(move ordering)</span> と呼ぶ。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　合法手が 11 個ある中盤の局面で、探索中に訪れた局面の数。3つの方法はどの深さでも同じ評価値を返した。
+      枝刈りは深いほど効き、並べ替えを加えると深さ6で約370分の1になる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>深さ</th><th>ミニマックス法</th><th>αβ枝刈り</th><th>αβ枝刈り＋手の並べ替え</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">2</td><td class="num-cell">145</td><td class="num-cell">76</td><td class="num-cell">34</td></tr>
+        <tr><td class="num-cell">3</td><td class="num-cell">1,609</td><td class="num-cell">924</td><td class="num-cell">203</td></tr>
+        <tr><td class="num-cell">4</td><td class="num-cell">18,443</td><td class="num-cell">3,235</td><td class="num-cell">530</td></tr>
+        <tr><td class="num-cell">5</td><td class="num-cell">204,774</td><td class="num-cell">26,547</td><td class="num-cell">2,679</td></tr>
+        <tr><td class="num-cell">6</td><td class="num-cell">2,336,168</td><td class="num-cell">89,907</td><td class="num-cell">6,329</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    並べ替えるのは各局面の合法手であり、その個数は多くても十数個である。
+    この規模では、比較回数が要素数の2乗に比例する挿入ソートや選択ソートでも、
+    並べ替えの手間は見積もりの計算や子の探索に比べて無視できる。
+    要素数が大きいときに効く計算量の差は、ここでは選択の決め手にならない。
+    <strong>書きやすく誤りにくい手法を選べばよい</strong>。
+  </p>
+
+  <div class="note">
+    <span class="label">補足 — 置換表</span>
+    <p>
+      リバーシでは、異なる手順から同じ局面に到達することがある。例えば黒が a・b、白が x と打つ場合、
+      a → x → b の順でも b → x → a の順でも、結果の局面が同じになりうる。
+      調べ終えた局面の評価値をハッシュ表に記録しておけば、同じ局面を再び調べずに済む。
+      この表を<span class="term">置換表</span><span class="en">(transposition table)</span> と呼ぶ。
+      局面からハッシュ値を計算してキーとするが、異なる局面が同じハッシュ値になる衝突は避けられないため、
+      局面そのもの（または十分に長い別のハッシュ値）も記録して一致を確かめる。
+      記録には読んだ深さも含め、浅く読んだ値を深い探索で使わないようにする。
+      置換表が効いてくるのは探索を深くした場合であり、ここまでの部品が揃ってからの改良となる。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      αβ枝刈りを実装した探索に手の並べ替えを加えた。並べ替えの前後で同じ局面・同じ深さを探索したとき、
+      変化するものとして最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>訪れる局面の数は変わるが、根で得られる評価値は変わらない</li>
+      <li>評価値の高い手から調べるため、根で得られる評価値がより正確になる</li>
+      <li>枝刈りが増えた分だけ、探索の深さが自動的に深くなる</li>
+      <li>評価値の低い手が調べられなくなるため、選ばれる手が変わることがある</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          αβ枝刈りは、結果に影響しないと確定した枝だけを打ち切るため、根の評価値はミニマックス法と一致する。
+          並べ替えは調べる順序を変えるだけであり、変わるのは打ち切りの起こる早さ、すなわち訪れる局面の数である。
+        </p>
+        <p>
+          (B) は順序が評価の正確さを左右すると考えているが、評価値は深さと評価関数で決まる。
+          (C) の深さは呼び出し側が与える値であり、局面数が減っても自動的には変わらない。
+          浮いた時間でより深く読むように作ることはできるが、それは別の仕組みである。
+          (D) は刈られた枝が選ばれうると考えているが、刈られるのは選ばれないと確定した枝に限られる。
+          同じ評価値の手が複数ある場合に、どれを選ぶかが順序で変わることはあっても、評価値は変わらない。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-2</span>
+    <p class="q-body">
+      探索の各局面で、合法手を見積もりの評価値の順に並べ替える。合法手は多くても十数個である。
+      並べ替えの手法の選び方として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>要素数が少ないため、計算量の差は全体の手間にほとんど影響せず、実装の簡単な手法を選んでよい</li>
+      <li>平均計算量が O(n log n) の手法でなければ、探索全体の計算量が O(n²) になってしまう</li>
+      <li>交換回数の多い手法を使うと、並べ替えの結果が変わり、枝刈りの効果が下がる</li>
+      <li>並べ替えは毎回ほぼ逆順の入力になるため、挿入ソートは避けるべきである</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          計算量の差が効くのは要素数が大きい場合である。十数個の並べ替えでは、
+          O(n²) の手法でも比較は百回程度にとどまり、各手の見積もりや子の探索の手間に比べて小さい。
+        </p>
+        <p>
+          (B) は並べ替えの計算量と探索全体の計算量を混同している。探索の手間は分岐の数と深さで決まり、
+          各局面の並べ替えの手法によって全体の増え方が変わるわけではない。
+          (C) の交換回数は手間の違いであり、どの手法でも並べ替えた結果の順序は同じになる。
+          (D) は入力の並びについて根拠のない仮定を置いている。合法手は盤面の走査順に得られるため、
+          評価値について逆順に並ぶ理由はない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. 評価関数の設計 ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>評価関数の設計</h2>
+
+  <p>
+    探索が正しく動いても、末端の局面を評価する関数が局面の良し悪しを捉えていなければ、CPU は強くならない。
+    最も単純な評価関数は、自分の石の数から相手の石の数を引いたものである。
+    しかしこの評価で打つ CPU は、序盤・中盤に多くの石を返す手を好み、結果として弱い。
+    リバーシでは途中の石数は終局の石数と結びつきにくく、むしろ自分の石が多いほど、
+    相手が挟める石が増えて相手の打てる場所が広がりやすいためである。
+  </p>
+
+  <h3>位置の重み</h3>
+
+  <p>
+    マスにはそれぞれ価値の違いがある。隅の石は、挟まれる方向が無いため二度と返されない。
+    一方、隅に隣接するマスに自分の石を置くと、隅が空いている間は相手が隅に置く足がかりを与えやすい。
+    隅の斜め隣のマスに打つことを<span class="term">X 打ち</span><span class="en">(X-square)</span>、
+    隅の縦横の隣に打つことを<span class="term">C 打ち</span><span class="en">(C-square)</span> と呼び、
+    いずれも序盤・中盤では避けるべき手とされる。
+    各マスに重みを定め、自分の石があるマスの重みの合計から相手の分を引いたものを評価値とする。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 382" role="img" aria-label="8行8列の盤面の各マスに位置の重みを記した図。隅は100で強調されている。隅の縦横の隣はマイナス40、隅の斜め隣はマイナス80、辺の中ほどは20や5、中央付近は0から5の小さな値である">
+      <text x="150" y="20" class="svg-small">a</text>
+      <text x="190" y="20" class="svg-small">b</text>
+      <text x="230" y="20" class="svg-small">c</text>
+      <text x="270" y="20" class="svg-small">d</text>
+      <text x="310" y="20" class="svg-small">e</text>
+      <text x="350" y="20" class="svg-small">f</text>
+      <text x="390" y="20" class="svg-small">g</text>
+      <text x="430" y="20" class="svg-small">h</text>
+      <text x="116" y="52" class="svg-small">1</text>
+      <text x="116" y="92" class="svg-small">2</text>
+      <text x="116" y="132" class="svg-small">3</text>
+      <text x="116" y="172" class="svg-small">4</text>
+      <text x="116" y="212" class="svg-small">5</text>
+      <text x="116" y="252" class="svg-small">6</text>
+      <text x="116" y="292" class="svg-small">7</text>
+      <text x="116" y="332" class="svg-small">8</text>
+      <rect x="170" y="28" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="28" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="28" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="28" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="28" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="28" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="410" y="68" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="410" y="108" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="410" y="148" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="410" y="188" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="410" y="228" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="410" y="268" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="170" y="308" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="210" y="308" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="250" y="308" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="290" y="308" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="330" y="308" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="370" y="308" width="40" height="40" class="svg-cell-plain"/>
+      <rect x="130" y="28" width="40" height="40" class="svg-hl"/>
+      <rect x="410" y="28" width="40" height="40" class="svg-hl"/>
+      <rect x="130" y="308" width="40" height="40" class="svg-hl"/>
+      <rect x="410" y="308" width="40" height="40" class="svg-hl"/>
+      <text x="150" y="53" class="svg-mono">100</text>
+      <text x="190" y="53" class="svg-mono">−40</text>
+      <text x="230" y="53" class="svg-mono">20</text>
+      <text x="270" y="53" class="svg-mono">5</text>
+      <text x="310" y="53" class="svg-mono">5</text>
+      <text x="350" y="53" class="svg-mono">20</text>
+      <text x="390" y="53" class="svg-mono">−40</text>
+      <text x="430" y="53" class="svg-mono">100</text>
+      <text x="150" y="93" class="svg-mono">−40</text>
+      <text x="190" y="93" class="svg-mono">−80</text>
+      <text x="230" y="93" class="svg-mono">−1</text>
+      <text x="270" y="93" class="svg-mono">−1</text>
+      <text x="310" y="93" class="svg-mono">−1</text>
+      <text x="350" y="93" class="svg-mono">−1</text>
+      <text x="390" y="93" class="svg-mono">−80</text>
+      <text x="430" y="93" class="svg-mono">−40</text>
+      <text x="150" y="133" class="svg-mono">20</text>
+      <text x="190" y="133" class="svg-mono">−1</text>
+      <text x="230" y="133" class="svg-mono">5</text>
+      <text x="270" y="133" class="svg-mono">1</text>
+      <text x="310" y="133" class="svg-mono">1</text>
+      <text x="350" y="133" class="svg-mono">5</text>
+      <text x="390" y="133" class="svg-mono">−1</text>
+      <text x="430" y="133" class="svg-mono">20</text>
+      <text x="150" y="173" class="svg-mono">5</text>
+      <text x="190" y="173" class="svg-mono">−1</text>
+      <text x="230" y="173" class="svg-mono">1</text>
+      <text x="270" y="173" class="svg-mono">0</text>
+      <text x="310" y="173" class="svg-mono">0</text>
+      <text x="350" y="173" class="svg-mono">1</text>
+      <text x="390" y="173" class="svg-mono">−1</text>
+      <text x="430" y="173" class="svg-mono">5</text>
+      <text x="150" y="213" class="svg-mono">5</text>
+      <text x="190" y="213" class="svg-mono">−1</text>
+      <text x="230" y="213" class="svg-mono">1</text>
+      <text x="270" y="213" class="svg-mono">0</text>
+      <text x="310" y="213" class="svg-mono">0</text>
+      <text x="350" y="213" class="svg-mono">1</text>
+      <text x="390" y="213" class="svg-mono">−1</text>
+      <text x="430" y="213" class="svg-mono">5</text>
+      <text x="150" y="253" class="svg-mono">20</text>
+      <text x="190" y="253" class="svg-mono">−1</text>
+      <text x="230" y="253" class="svg-mono">5</text>
+      <text x="270" y="253" class="svg-mono">1</text>
+      <text x="310" y="253" class="svg-mono">1</text>
+      <text x="350" y="253" class="svg-mono">5</text>
+      <text x="390" y="253" class="svg-mono">−1</text>
+      <text x="430" y="253" class="svg-mono">20</text>
+      <text x="150" y="293" class="svg-mono">−40</text>
+      <text x="190" y="293" class="svg-mono">−80</text>
+      <text x="230" y="293" class="svg-mono">−1</text>
+      <text x="270" y="293" class="svg-mono">−1</text>
+      <text x="310" y="293" class="svg-mono">−1</text>
+      <text x="350" y="293" class="svg-mono">−1</text>
+      <text x="390" y="293" class="svg-mono">−80</text>
+      <text x="430" y="293" class="svg-mono">−40</text>
+      <text x="150" y="333" class="svg-mono">100</text>
+      <text x="190" y="333" class="svg-mono">−40</text>
+      <text x="230" y="333" class="svg-mono">20</text>
+      <text x="270" y="333" class="svg-mono">5</text>
+      <text x="310" y="333" class="svg-mono">5</text>
+      <text x="350" y="333" class="svg-mono">20</text>
+      <text x="390" y="333" class="svg-mono">−40</text>
+      <text x="430" y="333" class="svg-mono">100</text>
+      <text x="290" y="374" class="svg-small">隅 100 ／ C 打ちのマス −40 ／ X 打ちのマス −80</text>
+    </svg>
+    <figcaption>
+      図 8-1　位置の重みの一例。隅を大きな正の値、隅に隣接するマスを負の値とし、他のマスには小さな値を与えている。
+      盤の対称性から、重みは上下・左右・対角線について対称に定める。
+      値そのものに正解は無く、対戦の結果を見ながら調整する。
+    </figcaption>
+  </figure>
+
+  <p>
+    重みの表は1次元の盤面と同じ添字で持てば、評価は「盤内の各マスについて 重み × 石の値 を合計する」だけで書ける。
+    石の値が 黒 = 1・白 = −1 であるから、この合計は黒から見た評価値となり、手番 c を掛ければ手番の側から見た値になる。
+  </p>
+
+  <h3>評価の要素を組み合わせる</h3>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 8-1　評価関数の要素。どの要素も局面の段階によって効き方が変わり、単独ではそれぞれの弱点が現れる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>要素</th><th>求め方</th><th>効く局面</th><th>弱点</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>石数</td>
+          <td>自分の石 − 相手の石</td>
+          <td>終盤</td>
+          <td>序盤・中盤では、石を多く取る手ほど相手の打てる場所を増やしやすい</td>
+        </tr>
+        <tr>
+          <td>位置の重み</td>
+          <td>石のあるマスの重みの合計</td>
+          <td>序盤〜中盤</td>
+          <td>重みが固定であり、隅を取った後は C 打ちが安全になる、といった局面による変化を表せない</td>
+        </tr>
+        <tr>
+          <td><span class="term">着手可能数</span><span class="en">(mobility)</span></td>
+          <td>自分の合法手の数 − 相手の合法手の数</td>
+          <td>中盤</td>
+          <td>評価のたびに両者の合法手生成を要し、1局面あたりの評価が重くなる。その分、同じ時間で読める深さが減る</td>
+        </tr>
+        <tr>
+          <td><span class="term">確定石</span><span class="en">(stable disc)</span></td>
+          <td>今後どう打たれても返されない石の数</td>
+          <td>中盤〜終盤</td>
+          <td>正確な判定は難しく、隅から辺に沿って連なる石に限るなどの簡略化を要する</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    実際の評価関数は、これらの要素に係数を掛けて足し合わせた形で組み立てる。
+    例えば <code>評価値 ← a × 位置の重みの合計 + b × 着手可能数の差</code> とし、
+    係数 a・b を調整する。さらに、空きマスの数で局面の段階を判定し、段階ごとに係数を切り替えると、
+    表 8-1 の「効く局面」の違いを反映できる。
+  </p>
+
+  <p>
+    終盤では別の手段が使える。空きマスが残り少なくなれば、終局まで全ての手を読み切っても局面数が手に負える範囲に収まる。
+    このとき評価関数は不要で、終局の石数そのものを比べればよい。
+    これを<span class="term">完全読み</span><span class="en">(exhaustive endgame search)</span> と呼ぶ。
+    何マス残りから完全読みに切り替えられるかは、実装の速さと1手にかけられる時間で決まるため、
+    局面数と時間を測って定める。
+  </p>
+
+  <h3>改良の効果を対戦で比べる</h3>
+
+  <p>
+    評価関数を変更したら、変更前の版と対戦させて効果を確かめる。
+    リバーシは先手・後手で有利不利があり、同じ評価関数どうしの対局は同じ手順を繰り返しやすい。
+    そのため、<strong>先手と後手を入れ替え、序盤の数手をランダムに打った局面から始めるなどして、複数局を対戦させる</strong>。
+    1局の勝敗は偶然に左右されるため、改良の判断材料にならない。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 8-1</span>
+    <p class="q-body">
+      位置の重みで、隅の斜め隣のマス（X 打ちのマス）に大きな負の値を与える理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>隅が空いている間にそこへ自分の石を置くと、相手が隅に打つ足がかりになりやすいから</li>
+      <li>そのマスに置いた石は、隅の石と同じく二度と返されないから</li>
+      <li>そのマスには合法手が生じにくく、置ける機会が少ないから</li>
+      <li>盤の端に近いマスほど、返せる石の数が少なくなるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          X 打ちのマスにある自分の石は、隅と反対側に相手の石があれば、相手が隅に置くことで挟まれる。
+          隅を取られると、その石は二度と取り返せない。負の重みは、この危険を評価値に反映させるためのものである。
+        </p>
+        <p>
+          (B) は隅の性質を隣接マスに当てはめている。隅の斜め隣は斜め方向に挟まれうるため、二度と返されない石ではない。
+          二度と返されないならば、正の値を与えるべきことになる。
+          (C) は置ける機会の多少と、置いたときの損得を混同している。重みは置いた結果の価値を表す。
+          (D) の返せる石の数は、評価関数の重みが表す事柄とは別であり、端に近いことが負の値の理由でもない。
+          実際、辺の中ほどのマスには正の値が与えられている。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 8-2</span>
+    <p class="q-body">
+      石数の差だけを評価値とし、深さ1で最も評価値の高い手を打つ CPU は、中盤で弱いことが多い。その理由として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>多く返す手は自分の石を増やす一方、相手が挟める石を増やして相手の打てる場所を広げやすく、途中の石数は終局の石数と結びつきにくいから</li>
+      <li>石数の差は計算に時間がかかるため、深く読めなくなるから</li>
+      <li>石数の差は手番によって符号が変わるため、正しく比較できないから</li>
+      <li>中盤では、どの手を選んでも返る石の数が同じになるから</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          勝敗を決めるのは終局の石数であり、途中の石数はそれと結びつきにくい。
+          中盤に石を多く取ると、相手の打てる場所を広げ、後で隅や辺の良い位置を相手に与えやすい。
+        </p>
+        <p>
+          (B) は弱さの原因を速度に求めているが、石数の差は合計するだけで求まり、評価関数の中では軽い部類に入る。
+          (C) の符号は、手番の側から見た値に変換すれば正しく比較できる。符号の扱いは実装の誤りの問題であり、評価の方針の弱さではない。
+          (D) は事実に反する。中盤では手によって返る石の数は大きく異なり、だからこそ石数だけの評価は多く返す手に偏る。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 9. 開発の進め方と提出物 ============ -->
+<section id="s9">
+  <h2><span class="num">9</span>開発の進め方と提出物</h2>
+
+  <p>
+    ここまでの部品を、動く状態を保ちながら一段ずつ積み上げる。
+    各段階には「何が確かめられたら完成とするか」を定めておき、満たしてから次の段階へ進む。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 9-1　開発の段階と完成の判定。前の段階が完成していれば、新たに生じた誤りの原因はその段階で加えた部分に絞れる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>段階</th><th>作るもの</th><th>完成の判定</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td>盤面の表現と表示</td><td>初期配置が正しく表示される</td></tr>
+        <tr><td class="num-cell">2</td><td>合法手の判定と着手</td><td>表 5-1 の検証ケースをすべて満たし、表 5-2 の局面数と一致する</td></tr>
+        <tr><td class="num-cell">3</td><td>パスと終局</td><td>人対人で終局まで対局でき、勝敗が表示される</td></tr>
+        <tr><td class="num-cell">4</td><td>合法手からランダムに選ぶ CPU</td><td>CPU どうしで多数局を対戦させても、停止や不正な着手が起こらない</td></tr>
+        <tr><td class="num-cell">5</td><td>深さ1の探索と評価関数</td><td>隅を取れる局面で隅を取り、ランダムな CPU に大きく勝ち越す</td></tr>
+        <tr><td class="num-cell">6</td><td>ミニマックス法（深さ n）</td><td>手で計算できる小さな局面で期待どおりの手を選び、深さ1の CPU に勝ち越す</td></tr>
+        <tr><td class="num-cell">7</td><td>αβ枝刈りと手の並べ替え</td><td>多数の局面でミニマックス法と同じ評価値を返し、訪れる局面数が減る</td></tr>
+        <tr><td class="num-cell">8</td><td>評価関数の改良・完全読み</td><td>改良前の版との複数局の対戦で勝ち越す</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    段階4のランダムな CPU は、強さの点では役に立たないが、検証の道具として価値が高い。
+    人が手で打つより遥かに多くの局面を短時間で通過するため、まれな配置でしか現れない誤りを露見させやすい。
+    以降の段階でも、対戦相手や比較の基準として使い続けられる。
+  </p>
+
+  <h3>提出物</h3>
+
+  <p>
+    開発の成果として、次のものを提出する。
+  </p>
+
+  <ul>
+    <li>実装したプログラムのソースコード</li>
+    <li>動作検証用のコード（表 5-1 の検証ケース、局面数の照合、αβ枝刈りとミニマックス法の比較など）</li>
+    <li>AI を利用した場合は、投入したプロンプトとやり取りの全ログが分かるテキストまたはスクリーンショット</li>
+  </ul>
+
+  <p>
+    検証用のコードは、プログラムが正しいと判断した根拠そのものである。
+    対局して「それらしく動いた」ことは根拠にならない。どの局面で何を期待し、結果が一致したかが
+    コードとして残っていれば、第三者が同じ確認を再現できる。
+  </p>
+
+  <div class="note caution">
+    <span class="label">AI を利用する場合</span>
+    <ul>
+      <li>ログはやり取りの最初から保存する。後からまとめて残そうとすると、途中のやり取りが欠けやすい</li>
+      <li>AI が生成したコードも、自分で書いたコードと同じ検証ケースにかける。生成されたコードがもっともらしく見えることは、正しいことの根拠にならない</li>
+      <li>生成されたコードをそのまま採用した箇所と、自分で修正した箇所、その理由を記録しておく</li>
+    </ul>
+  </div>
+
+  <p>
+    完成したプログラムについては、採用した手法の選択理由を説明できる状態にしておく。
+    盤面表現・局面の戻し方・探索の深さ・評価関数の要素と係数のそれぞれについて、
+    何と比べてなぜそれを選んだのかを、局面数や対戦結果の記録とともに残しておくとよい。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-1</span>
+    <p class="q-body">
+      ミニマックス法で動いていた探索に、αβ枝刈りを加えた。枝刈りの実装が正しいことを確かめる方法として最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>多数の局面について、同じ深さでミニマックス法の版と評価値が一致し、かつ訪れる局面数が減っていることを確かめる</li>
+      <li>枝刈りを加えた CPU を対戦させ、加える前の CPU に勝ち越すことを確かめる</li>
+      <li>訪れる局面数が、加える前より減っていることを確かめる</li>
+      <li>1手あたりの思考時間が、加える前より短くなっていることを確かめる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          正しい αβ枝刈りは、ミニマックス法と同じ評価値を返しつつ、調べる局面を減らす。
+          この二つの性質を両方とも確かめることで、正しさと効果が同時に検証できる。
+          局面を変えて多数回比べるのは、特定の配置でのみ生じる誤りを拾うためである。
+        </p>
+        <p>
+          (B) は強さで正しさを判断している。同じ深さであれば正しい枝刈りは同じ手を選ぶため、
+          勝ち越すことはむしろ期待されない。勝ち越した場合は、結果が変わっている疑いがある。
+          (C) と (D) は効果しか見ていない。刈ってはならない枝まで刈る誤った実装でも、局面数は減り、思考時間は短くなる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 10. 総括 ============ -->
+<section id="s10">
+  <h2><span class="num">10</span>総括</h2>
+
+  <ul>
+    <li>リバーシ CPU は、盤面表現・合法手生成・着手と取り消し・探索・評価関数の部品からなる。依存される側から順に作り、部品ごとに検証する</li>
+    <li>盤面は空き = 0・黒 = 1・白 = −1 の配列で持つ。番兵付きの 10×10 を1次元に並べると、8方向の移動が一定のオフセットになり、範囲確認が不要になる</li>
+    <li>合法手は、ある方向に相手の石が1個以上続き、その直後に自分の石があるマスである。8方向それぞれを打ち切りのある線形探索で調べる</li>
+    <li>着手では挟めた方向の石だけを返す。探索で局面を戻す方法には盤面の複製と差分の記録があり、まず複製で正しい版を作る</li>
+    <li>盤面処理は、誤りの種類ごとに用意した検証ケースと、初期局面からの局面数の照合で検証する</li>
+    <li>ミニマックス法は、符号の反転によって1つの再帰関数（ネガマックス法）で書ける。パスでは手番だけを渡し、両者とも打てなければ終局とする</li>
+    <li>αβ枝刈りは評価値を変えずに局面数を減らし、手の並べ替えはその効果を高める。少数の合法手の並べ替えでは、ソート手法の計算量の差は問題にならない</li>
+    <li>評価関数は石数・位置の重み・着手可能数・確定石などを組み合わせ、局面の段階で切り替える。終盤は完全読みで石数を直接比べる</li>
+    <li>段階ごとに完成の判定を定めて積み上げ、ソースコード・検証用のコード・AI 利用時の全ログを提出する</li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>アルゴリズム／リバーシプログラム開発（盤面管理・合法手生成・探索・評価関数）<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 3年 後期 ― 担当: 瀬尾 敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
