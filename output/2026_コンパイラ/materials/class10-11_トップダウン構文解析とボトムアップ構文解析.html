@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>トップダウン構文解析とボトムアップ構文解析 | コンパイラ</title>
+<link rel="icon" href="assets/kousho.svg">
+<link rel="stylesheet" href="assets/material.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="doc-head">
+  <p class="eyebrow"><img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期<br>
+  コンパイラ</p>
+  <h1>トップダウン構文解析とボトムアップ構文解析</h1>
+  <p class="doc-meta">担当: 瀬尾敦生 ／ 2026年度</p>
+</header>
+
+<details class="toc" open>
+  <summary>目次</summary>
+  <ol>
+    <li><a href="#s1">構文解析器が解く問題</a></li>
+    <li><a href="#s2">再帰下降法 — 非終端記号を関数にする</a></li>
+    <li><a href="#s3">左再帰と繰り返しへの書き換え</a></li>
+    <li><a href="#s4">1 字句で選べる条件 — FIRST と FOLLOW</a></li>
+    <li><a href="#s5">再帰下降による解析の追跡</a></li>
+    <li><a href="#s6">ボトムアップ構文解析 — シフトと還元</a></li>
+    <li><a href="#s7">LR 構文解析 — シフトと還元を選び分ける</a></li>
+    <li><a href="#s8">トップダウンとボトムアップの使い分け</a></li>
+    <li><a href="#s9">再帰下降パーサーの実装</a></li>
+    <li><a href="#s10">総括</a></li>
+  </ol>
+</details>
+
+<!-- ============ 1. 構文解析器が解く問題 ============ -->
+<section id="s1">
+  <h2><span class="num">1</span>構文解析器が解く問題</h2>
+
+  <p>
+    <span class="term">構文解析</span><span class="en">(syntax analysis, parsing)</span> は、字句解析器が出力したトークン列を受け取り、
+    それが文法に適合するかを調べて、適合すれば構文木を、適合しなければ誤りの位置を出力する工程である。
+    構文解析を行うプログラムを <span class="term">構文解析器</span><span class="en">(parser)</span>、あるいはパーサーと呼ぶ。
+    構文解析器が読む単位は文字ではなくトークンである。本資料では、構文解析器から見たトークンを <span class="term">字句</span> と呼ぶ。
+  </p>
+
+  <h3>文法の振り返り</h3>
+
+  <p>
+    文法は BNF で記述する。用いる用語は次のとおりである。
+  </p>
+
+  <ul>
+    <li><span class="term">終端記号</span><span class="en">(terminal symbol)</span> — 字句そのもの。<code>"+"</code> のように引用符で囲むか、<code>数</code> のように字句の種別名で書く</li>
+    <li><span class="term">非終端記号</span><span class="en">(nonterminal symbol)</span> — 字句の並びの種類を表す名前。<code>&lt;expr&gt;</code> のように山括弧で囲む</li>
+    <li><span class="term">生成規則</span><span class="en">(production rule)</span> — 左辺の非終端記号を、右辺の記号列に書き換えてよいという規則。<code>|</code> は右辺の選択肢を区切る</li>
+    <li><span class="term">開始記号</span><span class="en">(start symbol)</span> — 書き換えを始める非終端記号</li>
+  </ul>
+
+  <p>
+    本資料では、加算・乗算・括弧からなる式の文法を全編で用いる。以下ではこれを文法 G と呼ぶ。開始記号は <code>&lt;expr&gt;</code> である。
+  </p>
+
+  <pre><code>&lt;expr&gt;   ::= &lt;expr&gt; "+" &lt;term&gt; | &lt;term&gt;
+&lt;term&gt;   ::= &lt;term&gt; "*" &lt;factor&gt; | &lt;factor&gt;
+&lt;factor&gt; ::= "(" &lt;expr&gt; ")" | 数</code></pre>
+
+  <p>
+    文法 G は、<code>*</code> を <code>+</code> より強く結び付け、同じ演算子が並べば左から順に結び付けるように書かれている。
+    図 1-1 は、字句列 <code>1 + 2 * 3</code> に対する構文木である。<code>2 * 3</code> が一つの <code>&lt;term&gt;</code> にまとまってから <code>1</code> に加えられる形になっており、乗算が先に行われることが木の形に表れている。
+  </p>
+
+  <h3>二つの向き</h3>
+
+  <p>
+    構文解析器が求めるのは、この木である。ただし構文解析器が知っているのは、文法と、木の葉に並ぶ字句列だけである。
+    根は開始記号であることが分かっているので、木を組む向きは次の二通りがある。
+  </p>
+
+  <ul>
+    <li><span class="term">トップダウン構文解析</span><span class="en">(top-down parsing)</span> — 根の開始記号から出発し、生成規則で非終端記号を右辺に展開していき、字句列に行き着く</li>
+    <li><span class="term">ボトムアップ構文解析</span><span class="en">(bottom-up parsing)</span> — 葉の字句列から出発し、生成規則の右辺に一致する並びを左辺の非終端記号にまとめていき、開始記号に行き着く</li>
+  </ul>
+
+  <figure>
+    <svg viewBox="0 0 580 366" role="img" aria-label="字句列 1 + 2 * 3 に対する文法 G の構文木。根の expr は expr、+、term の三つに分かれる。左の expr は term、factor を経て字句 1 に至る。右の term は term、*、factor に分かれ、その term は factor を経て字句 2 に、factor は字句 3 に至る。字句は最下段に左から順に並ぶ。右側に根から葉へ向かう下向きの矢印と、葉から根へ向かう上向きの矢印があり、下の凡例で下向きがトップダウン構文解析、上向きがボトムアップ構文解析であることを示す。">
+      <path d="M 190 54 L 70 84" class="svg-line"/>
+      <path d="M 190 54 L 160 264" class="svg-line"/>
+      <path d="M 190 54 L 340 84" class="svg-line"/>
+      <path d="M 70 114 L 70 144" class="svg-line"/>
+      <path d="M 70 174 L 70 204" class="svg-line"/>
+      <path d="M 70 234 L 70 264" class="svg-line"/>
+      <path d="M 340 114 L 250 144" class="svg-line"/>
+      <path d="M 340 114 L 340 264" class="svg-line"/>
+      <path d="M 340 114 L 430 204" class="svg-line"/>
+      <path d="M 250 174 L 250 204" class="svg-line"/>
+      <path d="M 250 234 L 250 264" class="svg-line"/>
+      <path d="M 430 234 L 430 264" class="svg-line"/>
+      <path d="M 500 30 L 500 284" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 545 284 L 545 30" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 30 318 L 30 334" class="svg-arrow" marker-end="url(#ah1)"/>
+      <path d="M 30 358 L 30 342" class="svg-arrow" marker-end="url(#ah1)"/>
+
+      <rect x="148" y="24" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="84" width="84" height="30" class="svg-cell"/>
+      <rect x="298" y="84" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="144" width="84" height="30" class="svg-cell"/>
+      <rect x="208" y="144" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="204" width="84" height="30" class="svg-cell"/>
+      <rect x="208" y="204" width="84" height="30" class="svg-cell"/>
+      <rect x="388" y="204" width="84" height="30" class="svg-cell"/>
+      <rect x="48" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="138" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="228" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="318" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="408" y="264" width="44" height="30" class="svg-hl"/>
+
+      <text x="190" y="44" class="svg-mono">&lt;expr&gt;</text>
+      <text x="70" y="104" class="svg-mono">&lt;expr&gt;</text>
+      <text x="340" y="104" class="svg-mono">&lt;term&gt;</text>
+      <text x="70" y="164" class="svg-mono">&lt;term&gt;</text>
+      <text x="250" y="164" class="svg-mono">&lt;term&gt;</text>
+      <text x="70" y="224" class="svg-mono">&lt;factor&gt;</text>
+      <text x="250" y="224" class="svg-mono">&lt;factor&gt;</text>
+      <text x="430" y="224" class="svg-mono">&lt;factor&gt;</text>
+      <text x="70" y="284" class="svg-mono">1</text>
+      <text x="160" y="284" class="svg-mono">+</text>
+      <text x="250" y="284" class="svg-mono">2</text>
+      <text x="340" y="284" class="svg-mono">*</text>
+      <text x="430" y="284" class="svg-mono">3</text>
+
+      <text x="46" y="331" class="svg-small" style="text-anchor:start">トップダウン構文解析 — 開始記号から出発し、規則を展開して字句列に至る</text>
+      <text x="46" y="355" class="svg-small" style="text-anchor:start">ボトムアップ構文解析 — 字句列から出発し、規則の右辺をまとめて開始記号に至る</text>
+
+      <defs>
+        <marker id="ah1" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 1-1　字句列 1 + 2 * 3 に対する文法 G の構文木。最下段の強調した枠が字句である。
+      構文解析器に与えられるのは最下段の字句列と根の開始記号だけであり、その間の節を、上から埋めるか下から埋めるかで手法が分かれる。
+    </figcaption>
+  </figure>
+
+  <p>
+    どちらの向きでも、各段階で「どの規則を使うか」を決めなければならない。
+    規則の選び方を誤れば、字句列に行き着かない、あるいは開始記号にまとまらない。
+    あらゆる選び方を試せば木は見つかるが、その組合せは字句列が長くなるにつれて爆発的に増える。
+    <strong>構文解析の手法とは、字句を左から一つずつ読みながら、規則の選び方を手戻りなく決める方法である。</strong>
+  </p>
+
+  <h3>入れ子の深さだけ記憶が要る</h3>
+
+  <p>
+    <code>((((1))))</code> のように、括弧はいくらでも深く入れ子にできる。
+    閉じ括弧が現れたとき、それがどの開き括弧に対応し、外側にまだいくつの括弧が開いているかを覚えておかなければならない。
+    覚えておく量は入れ子の深さに比例し、上限がない。
+    有限個の状態しか持たない有限オートマトンでこれを判定できないのはこのためであり、字句の切り出しと、字句の並び方の検査が別の工程に分かれている理由でもある。
+  </p>
+
+  <p>
+    構文解析器は、この記憶を次のいずれかの形で持つ。
+    トップダウンの再帰下降法では、関数の呼び出しの積み重なりが記憶になる。
+    ボトムアップのシフト還元法では、明示的なスタックが記憶になる。
+  </p>
+
+  <div class="note">
+    <span class="label">本講の到達点</span>
+    <ul>
+      <li>トップダウン構文解析とボトムアップ構文解析の違いを、構文木を組む向きとして説明できる</li>
+      <li>文法から再帰下降パーサーを設計でき、左再帰の除去と、FIRST・FOLLOW 集合による選択肢の判定ができる</li>
+      <li>シフト還元法の動作を追跡し、LR 構文解析がシフトと還元を選び分ける仕組みを説明できる</li>
+      <li>文法と要件に応じて手法を選び、AST を構築しエラーを報告する再帰下降パーサーを実装できる</li>
+    </ul>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 1-1</span>
+    <p class="q-body">
+      構文解析器が、深さに上限のない括弧の入れ子を正しく扱うために必要とするものとして、最も適切なものはどれか。
+    </p>
+    <ol class="choices">
+      <li>入れ子の深さに応じて増やせる記憶。再帰呼び出しの積み重なりやスタックがこれにあたる</li>
+      <li>ソースコードを一文字ずつ読み、括弧の文字を直接数える仕組み</li>
+      <li>想定される最も深い入れ子に対応できるだけの、十分に多い有限個の状態</li>
+      <li>括弧を含む字句の種別を正規表現で定め、字句解析の段階で対応を確かめる仕組み</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          開いたままの括弧を覚えておく量は入れ子の深さに比例し、上限がない。
+          そのため、必要に応じて伸ばせる記憶が要る。再帰下降法では関数呼び出しの積み重なり、シフト還元法ではスタックがこれを担う。
+        </p>
+        <p>
+          (B) は、構文解析器の入力を取り違えている。構文解析器が受け取るのは字句解析器の出力した字句列であり、文字ではない。
+          (C) は、状態を増やせば足りると考えた誤りである。状態数をどれだけ多く定めても有限である限り、それより一つ深い入れ子を判定できない。
+          (D) は、字句解析の役割を取り違えている。正規表現と有限オートマトンで扱える言語は括弧の対応を判定できないため、この検査は構文解析が担う。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 2. 再帰下降法 — 非終端記号を関数にする ============ -->
+<section id="s2">
+  <h2><span class="num">2</span>再帰下降法 — 非終端記号を関数にする</h2>
+
+  <p>
+    トップダウン構文解析を手で書く代表的な方法が <span class="term">再帰下降法</span><span class="en">(recursive descent parsing)</span> である。
+    <strong>非終端記号一つにつき関数を一つ用意し、生成規則の右辺を、その関数の手順として写し取る。</strong>
+    右辺に非終端記号が現れればその関数を呼び、終端記号が現れれば次の字句がそれであることを確かめて読み進める。
+    規則が自分自身や他の非終端記号を含むので、関数は互いに、あるいは自分自身を再帰的に呼び出す。手法の名はここから来ている。
+  </p>
+
+  <p>
+    関数は、字句列と、次に読む位置を共有する。字句を扱う基本の操作として、次の三つを用意する。
+  </p>
+
+  <ul>
+    <li><code>次の字句()</code> — 次に読む位置の字句を返す。位置は進めない。このように、読み進めずに先の字句を覗くことを <span class="term">先読み</span><span class="en">(lookahead)</span> と呼ぶ</li>
+    <li><code>読み進める()</code> — 位置を一つ進める</li>
+    <li><code>期待する(x)</code> — 次の字句が x であれば読み進め、そうでなければ構文エラーとする</li>
+  </ul>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 2-1　BNF の要素と、再帰下降パーサーの関数における扱い。規則の右辺を左から順に読めば、関数の手順がそのまま得られる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>BNF の要素</th><th>関数での扱い</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>非終端記号 <code>&lt;A&gt;</code></td><td>関数 <code>A()</code> を呼ぶ</td></tr>
+        <tr><td>終端記号 <code>"x"</code></td><td><code>期待する("x")</code></td></tr>
+        <tr><td>記号の並び</td><td>手順を左から順に並べる</td></tr>
+        <tr><td>選択 <code>|</code></td><td><code>次の字句()</code> を見て、どの選択肢の手順を実行するかを分岐する</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    文法 G の <code>&lt;factor&gt;</code> を関数にすると次のようになる。二つの選択肢のうち、一方は <code>"("</code> で、他方は <code>数</code> で始まる。
+    したがって、次の字句を一つ見るだけでどちらの選択肢かが決まる。
+  </p>
+
+  <pre><code>手続き 因子()　　— &lt;factor&gt; ::= "(" &lt;expr&gt; ")" | 数
+1. もし 次の字句() が "(" ならば
+2.   読み進める()
+3.   式()
+4.   期待する(")")
+5. そうでなく 次の字句() が 数 ならば
+6.   読み進める()
+7. そうでなければ 構文エラーとする</code></pre>
+
+  <p>
+    3 行目で <code>式()</code> を呼ぶと、括弧の内側の式全体を読み終えてから戻ってくる。
+    内側にさらに括弧があれば、<code>式()</code> の中から再び <code>因子()</code> が呼ばれる。
+    入れ子が一段深くなるたびに呼び出しが一段積み重なり、閉じ括弧を読むたびに一段戻る。
+    入れ子の深さに比例する記憶は、この呼び出しの積み重なりとして実現される。
+  </p>
+
+  <h3>先読みで選択肢を決める</h3>
+
+  <p>
+    次の字句を見て選択肢を一つに決め、決めた選択肢を最後まで実行する構文解析を
+    <span class="term">予測型構文解析</span><span class="en">(predictive parsing)</span> と呼ぶ。
+    一方、ある選択肢を試して失敗したら位置を戻して別の選択肢を試す方法を
+    <span class="term">バックトラック</span><span class="en">(backtracking)</span> と呼ぶ。
+    バックトラックはどのような文法でも書けるが、選択肢が入れ子になると試す組合せが掛け算で増え、入力が長いと実用的な時間で終わらない。
+    また、失敗した位置がどこであったかが曖昧になり、誤りの報告が難しくなる。
+    <strong>文法を、次の字句一つで選択肢が決まる形に整えておけば、バックトラックは要らない。</strong>
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 2-1</span>
+    <p class="q-body">
+      次の生成規則を再帰下降法で関数 <code>文()</code> にする。<code>文()</code> の手順として最も適切なものはどれか。
+    </p>
+    <pre><code>&lt;stmt&gt; ::= "print" &lt;expr&gt; | "if" &lt;expr&gt; "then" &lt;stmt&gt;</code></pre>
+    <ol class="choices">
+      <li>次の字句が "print" ならば読み進めて 式() を呼ぶ。"if" ならば読み進めて 式() を呼び、期待する("then") の後に 文() を呼ぶ。どちらでもなければ構文エラーとする</li>
+      <li>まず 式() を呼び、その後で次の字句が "print" か "if" かを調べて分岐する</li>
+      <li>次の字句が "print" ならば読み進めて 式() を呼ぶ。"if" ならば読み進めて 式() を呼び、then() を呼んでから 文() を呼ぶ</li>
+      <li>"print" の選択肢を最後まで実行し、構文エラーになったら位置を元に戻して "if" の選択肢を実行する</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          二つの選択肢は先頭の終端記号 "print" と "if" で区別できるため、次の字句を見て分岐する。
+          分岐した後は右辺を左から写し取り、非終端記号は関数呼び出し、終端記号は 期待する() とする。
+          "if" の選択肢の最後で 文() を呼ぶのは、規則の右辺が &lt;stmt&gt; を含むためであり、これが再帰呼び出しになる。
+        </p>
+        <p>
+          (B) は、右辺の記号の順序を無視している。どちらの選択肢も先頭は終端記号であり、式() から始まる選択肢はない。
+          (C) は、終端記号と非終端記号を混同している。"then" は字句そのものであり、関数ではなく 期待する("then") で照合する。
+          (D) はバックトラックである。この規則は次の字句一つで選択肢が決まるため、試して戻す必要がない。戻す処理は時間を要するうえ、誤りの位置の報告も難しくする。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 3. 左再帰と繰り返しへの書き換え ============ -->
+<section id="s3">
+  <h2><span class="num">3</span>左再帰と繰り返しへの書き換え</h2>
+
+  <p>
+    文法 G の <code>&lt;expr&gt;</code> を、表 2-1 のとおりにそのまま関数にすると次のようになる。
+  </p>
+
+  <pre><code>手続き 式()　　— &lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt; をそのまま写したもの
+1. 式()
+2. 期待する("+")
+3. 項()</code></pre>
+
+  <p>
+    <code>式()</code> は、最初の手順で字句を一つも読まないまま <code>式()</code> を呼ぶ。
+    呼ばれた側も同じ位置から同じ手順を始めるため、再び字句を読まずに <code>式()</code> を呼ぶ。
+    位置が進まないので、呼び出しは止まらず、やがて呼び出しの積み重なりのための記憶を使い果たして異常終了する。
+  </p>
+
+  <p>
+    このように、生成規則の右辺の先頭に左辺と同じ非終端記号が現れることを
+    <span class="term">左再帰</span><span class="en">(left recursion)</span> と呼ぶ。
+    文法 G の <code>&lt;expr&gt;</code> と <code>&lt;term&gt;</code> はどちらも左再帰を含む。
+    <strong>左再帰を含む規則は、そのままでは再帰下降法で扱えない。</strong>
+    左再帰は、左から順に結び付く演算子を素直に表す書き方であるため、文法を書けば自然に現れる。
+  </p>
+
+  <h3>左再帰の除去</h3>
+
+  <p>
+    <code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt; | &lt;term&gt;</code> が生成する字句の並びは、
+    <code>&lt;term&gt;</code> で始まり、その後に <code>"+" &lt;term&gt;</code> が 0 回以上続くものである。
+    この観察から、同じ並びを生成する別の規則に書き換えられる。
+    この書き換えを <span class="term">左再帰の除去</span><span class="en">(left recursion elimination)</span> と呼ぶ。
+    書き換え方は二通りある。
+  </p>
+
+  <p>
+    一つは、残りの部分を表す新しい非終端記号を導入する方法である。<code>ε</code> は何も並べないことを表す。
+  </p>
+
+  <pre><code>&lt;expr&gt;  ::= &lt;term&gt; &lt;expr'&gt;
+&lt;expr'&gt; ::= "+" &lt;term&gt; &lt;expr'&gt; | ε
+&lt;term&gt;  ::= &lt;factor&gt; &lt;term'&gt;
+&lt;term'&gt; ::= "*" &lt;factor&gt; &lt;term'&gt; | ε
+&lt;factor&gt; ::= "(" &lt;expr&gt; ")" | 数</code></pre>
+
+  <p>
+    もう一つは、0 回以上の繰り返しを表す記法 <code>{ }</code> を用いる方法である。
+    BNF に繰り返しや省略可能を表す記法を加えたものを <span class="term">EBNF</span><span class="en">(extended BNF)</span> と呼ぶ。
+  </p>
+
+  <pre><code>&lt;expr&gt;   ::= &lt;term&gt; { "+" &lt;term&gt; }
+&lt;term&gt;   ::= &lt;factor&gt; { "*" &lt;factor&gt; }
+&lt;factor&gt; ::= "(" &lt;expr&gt; ")" | 数</code></pre>
+
+  <p>
+    繰り返しは、関数の中ではループになる。次の字句が <code>"+"</code> である限り、読み進めて <code>項()</code> を呼ぶことを繰り返す。
+    <code>式()</code> は自分自身を先頭で呼ばなくなり、ループを一周するごとに字句を少なくとも一つ読むため、必ず終わる。
+  </p>
+
+  <pre><code>手続き 式()　　— &lt;expr&gt; ::= &lt;term&gt; { "+" &lt;term&gt; }
+1. 項()
+2. 次の字句() が "+" である間、次の 3〜4 を繰り返す
+3.   読み進める()
+4.   項()</code></pre>
+
+  <h3>結合の向きを保つ</h3>
+
+  <p>
+    左再帰の除去は、生成される字句の並びを変えないが、構文木の形は変える。
+    この違いは、減算のように結合の向きで結果が変わる演算子で問題になる。
+    文法に減算を加え、<code>8 - 3 - 2</code> を考える。
+    数学の慣習どおり <code>(8 - 3) - 2 = 3</code> と解釈するには、左の二つを先に結び付ける木を作らなければならない。
+    このような結び付き方を <span class="term">左結合</span><span class="en">(left associative)</span>、その逆を
+    <span class="term">右結合</span><span class="en">(right associative)</span> と呼ぶ。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 236" role="img" aria-label="8 - 3 - 2 に対する二つの抽象構文木を左右に並べた図。左は左結合で、根の減算の左の子が 8 - 3 を表す減算、右の子が 2 であり、値は 5 - 2 = 3 になる。右は右結合で、根の減算の左の子が 8、右の子が 3 - 2 を表す減算であり、値は 8 - 1 = 7 になる。先に計算される内側の減算が強調されている。">
+      <path d="M 290 30 L 290 230" class="svg-line" stroke-dasharray="4 4"/>
+      <path d="M 150 70 L 95 100" class="svg-line"/>
+      <path d="M 150 70 L 205 100" class="svg-line"/>
+      <path d="M 95 130 L 50 160" class="svg-line"/>
+      <path d="M 95 130 L 140 160" class="svg-line"/>
+      <path d="M 430 70 L 375 100" class="svg-line"/>
+      <path d="M 430 70 L 485 100" class="svg-line"/>
+      <path d="M 485 130 L 440 160" class="svg-line"/>
+      <path d="M 485 130 L 530 160" class="svg-line"/>
+
+      <text x="145" y="20" class="svg-small">左結合　(8 - 3) - 2</text>
+      <text x="435" y="20" class="svg-small">右結合　8 - (3 - 2)</text>
+
+      <rect x="128" y="40" width="44" height="30" class="svg-cell"/>
+      <rect x="183" y="100" width="44" height="30" class="svg-cell"/>
+      <rect x="28" y="160" width="44" height="30" class="svg-cell"/>
+      <rect x="118" y="160" width="44" height="30" class="svg-cell"/>
+      <rect x="73" y="100" width="44" height="30" class="svg-hl"/>
+      <rect x="408" y="40" width="44" height="30" class="svg-cell"/>
+      <rect x="353" y="100" width="44" height="30" class="svg-cell"/>
+      <rect x="418" y="160" width="44" height="30" class="svg-cell"/>
+      <rect x="508" y="160" width="44" height="30" class="svg-cell"/>
+      <rect x="463" y="100" width="44" height="30" class="svg-hl"/>
+
+      <text x="150" y="60" class="svg-mono">-</text>
+      <text x="95" y="120" class="svg-mono">-</text>
+      <text x="205" y="120" class="svg-mono">2</text>
+      <text x="50" y="180" class="svg-mono">8</text>
+      <text x="140" y="180" class="svg-mono">3</text>
+      <text x="430" y="60" class="svg-mono">-</text>
+      <text x="375" y="120" class="svg-mono">8</text>
+      <text x="485" y="120" class="svg-mono">-</text>
+      <text x="440" y="180" class="svg-mono">3</text>
+      <text x="530" y="180" class="svg-mono">2</text>
+
+      <text x="145" y="222" class="svg-text">値は 5 - 2 = 3</text>
+      <text x="435" y="222" class="svg-text">値は 8 - 1 = 7</text>
+    </svg>
+    <figcaption>
+      図 3-1　8 - 3 - 2 に対する左結合と右結合の木。強調した減算が先に計算される。
+      字句の並びは同じでも、木の形が違えば計算結果が変わる。減算・除算では左結合の木を作らなければならない。
+    </figcaption>
+  </figure>
+
+  <p>
+    <code>&lt;expr'&gt;</code> を導入する書き換えでは、<code>&lt;expr'&gt;</code> の部分木が右へ右へと伸びる。
+    この構文木をそのまま演算の木にすると右結合になり、<code>8 - 3 - 2</code> が 7 と計算される。
+    左結合の木を得るには、それまでに組んだ左側の木を <code>&lt;expr'&gt;</code> の関数に引数として渡していく工夫が要る。
+  </p>
+
+  <p>
+    繰り返しの書き方であれば、この工夫は自然に入る。
+    ループに入る前に左側の木を持ち、一周するごとに「それまでの木」と「新たに読んだ項」を演算子で結んだ木に置き換えれば、木は左へ伸び、左結合になる。
+    <strong>再帰下降パーサーを手で書く場合は、左再帰を繰り返しに書き換えるのが扱いやすい。</strong>
+  </p>
+
+  <div class="note caution">
+    <span class="label">誤りやすい点</span>
+    <p>
+      左再帰を除くつもりで <code>&lt;expr&gt; ::= &lt;term&gt; "-" &lt;expr&gt; | &lt;term&gt;</code> のように右辺の順序を入れ替えると、無限再帰は起きなくなり、受理する字句の並びも変わらない。
+      しかし、この規則が作る木は右結合であり、減算の意味が変わる。無限再帰が止まったことと、正しい木が得られることは別の事柄である。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 3-1</span>
+    <p class="q-body">
+      数をコンマで区切って並べた列を表す次の規則がある。生成する字句の並びを変えずに左再帰を除いた規則として、正しいものはどれか。
+    </p>
+    <pre><code>&lt;list&gt; ::= &lt;list&gt; "," 数 | 数</code></pre>
+    <ol class="choices">
+      <li><code>&lt;list&gt; ::= 数 { "," 数 }</code></li>
+      <li><code>&lt;list&gt; ::= &lt;list&gt; { "," 数 }</code></li>
+      <li><code>&lt;list&gt; ::= { 数 "," }</code></li>
+      <li><code>&lt;list&gt; ::= 数 | "," &lt;list&gt;</code></li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          元の規則が生成するのは、<code>数</code> で始まり、その後に <code>"," 数</code> が 0 回以上続く並びである（<code>1</code>, <code>1 , 2</code>, <code>1 , 2 , 3</code>, …）。
+          これを繰り返しで書いたものが (A) であり、右辺の先頭は終端記号 <code>数</code> なので左再帰はない。
+        </p>
+        <p>
+          (B) は、右辺の先頭がまだ <code>&lt;list&gt;</code> であり、左再帰が残っている。関数にすれば先頭で自分自身を呼んで止まらない。
+          (C) は、生成する並びが変わっている。何も並べない場合を含み、末尾が必ずコンマで終わる。
+          (D) も生成する並びが変わっている。<code>, , 1</code> のようにコンマで始まる並びを生成し、<code>1 , 2</code> を生成できない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 4. 1 字句で選べる条件 — FIRST と FOLLOW ============ -->
+<section id="s4">
+  <h2><span class="num">4</span>1 字句で選べる条件 — FIRST と FOLLOW</h2>
+
+  <p>
+    予測型構文解析が成り立つには、どの非終端記号についても、次の字句一つを見れば使う選択肢が一つに決まらなければならない。
+    この条件を確かめるために、次の二つの集合を用いる。
+  </p>
+
+  <ul>
+    <li><span class="term">FIRST 集合</span><span class="en">(FIRST set)</span> — 記号列 α から導出される字句の並びの、先頭に来うる字句の集合。FIRST(α) と書く。α が何も並べない ε を導出しうるときは、ε も含める</li>
+    <li><span class="term">FOLLOW 集合</span><span class="en">(FOLLOW set)</span> — 非終端記号 A の直後に来うる字句の集合。FOLLOW(A) と書く。入力の終わりを表す <code>$</code> も含めうる</li>
+  </ul>
+
+  <p>
+    選択肢 <code>A ::= α | β</code> のうちどちらを使うかは、次の字句がどちらの FIRST 集合に属するかで決まる。
+    FIRST(α) と FIRST(β) に共通の字句があれば、その字句が来たときに選べない。
+  </p>
+
+  <p>
+    選択肢が ε を導出しうる場合は、それだけでは足りない。
+    <code>&lt;expr'&gt; ::= "+" &lt;term&gt; &lt;expr'&gt; | ε</code> で次の字句が <code>")"</code> であれば、ε を選んで何も読まずに戻る。
+    ε を選んでよいのは、次の字句が <code>&lt;expr'&gt;</code> の直後に来うる字句、すなわち FOLLOW(<code>&lt;expr'&gt;</code>) に属するときである。
+    したがって、FOLLOW 集合が他の選択肢の FIRST 集合と重なっても選べなくなる。
+  </p>
+
+  <p>
+    以上の二つの重なりがどこにもない文法を <span class="term">LL(1) 文法</span><span class="en">(LL(1) grammar)</span> と呼ぶ。
+    名前は、入力を左から読み（Left to right）、最左導出を作り（Leftmost derivation）、先読みを 1 字句とすることに由来する。
+    <strong>LL(1) 文法であれば、再帰下降パーサーはバックトラックせずに動く。</strong>
+  </p>
+
+  <h3>文法 G を書き換えたものの FIRST と FOLLOW</h3>
+
+  <p>
+    <code>&lt;expr'&gt;</code> と <code>&lt;term'&gt;</code> を導入して左再帰を除いた文法 G について、FIRST と FOLLOW を求めると表 4-1 のようになる。
+    FIRST は右辺の先頭を、FOLLOW は右辺の中でその非終端記号の後ろに何があるかをたどって求める。
+    たとえば <code>&lt;factor&gt; ::= "(" &lt;expr&gt; ")"</code> に <code>&lt;expr&gt;</code> の直後の <code>")"</code> が現れるので、<code>")"</code> は FOLLOW(<code>&lt;expr&gt;</code>) に属する。
+    開始記号の後には入力の終わりが来るので、<code>$</code> も属する。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 4-1　左再帰を除いた文法 G の FIRST 集合と FOLLOW 集合。ε を選択肢にもつ &lt;expr'&gt; と &lt;term'&gt; では、もう一方の選択肢の FIRST と自身の FOLLOW が重ならないため、1 字句で選択肢が決まる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>非終端記号</th><th>FIRST</th><th>FOLLOW</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>&lt;expr&gt;</code></td><td><code>(</code>, <code>数</code></td><td><code>)</code>, <code>$</code></td></tr>
+        <tr><td><code>&lt;expr'&gt;</code></td><td><code>+</code>, ε</td><td><code>)</code>, <code>$</code></td></tr>
+        <tr><td><code>&lt;term&gt;</code></td><td><code>(</code>, <code>数</code></td><td><code>+</code>, <code>)</code>, <code>$</code></td></tr>
+        <tr><td><code>&lt;term'&gt;</code></td><td><code>*</code>, ε</td><td><code>+</code>, <code>)</code>, <code>$</code></td></tr>
+        <tr><td><code>&lt;factor&gt;</code></td><td><code>(</code>, <code>数</code></td><td><code>*</code>, <code>+</code>, <code>)</code>, <code>$</code></td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    <code>&lt;expr'&gt;</code> では、次の字句が <code>+</code> なら一つ目の選択肢、<code>)</code> か <code>$</code> なら ε を選ぶ。
+    それ以外の字句、たとえば <code>数</code> が来れば、どちらも選べないので構文エラーである。
+    繰り返しの書き方では、この判断がループの継続条件として現れる。次の字句が <code>"+"</code> でなければループを抜けるが、抜けた後に来るべき字句は FOLLOW 集合の要素に限られる。
+  </p>
+
+  <p>
+    左再帰を含む規則は、決して LL(1) にならない。
+    <code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt; | &lt;term&gt;</code> では、一つ目の選択肢の FIRST が <code>&lt;expr&gt;</code> の FIRST そのものであり、二つ目の選択肢の FIRST を必ず含むためである。
+  </p>
+
+  <h3>重なりを除く — 左くくり出し</h3>
+
+  <p>
+    左再帰がなくても、選択肢の先頭が共通であれば FIRST 集合が重なる。代入文と関数呼び出しの文がどちらも識別子で始まる場合がその例である。
+  </p>
+
+  <pre><code>&lt;stmt&gt; ::= 識別子 "=" &lt;expr&gt; | 識別子 "(" &lt;expr&gt; ")"</code></pre>
+
+  <p>
+    共通の先頭部分を外に出し、その後ろで分岐させれば、重なりは消える。
+    この書き換えを <span class="term">左くくり出し</span><span class="en">(left factoring)</span> と呼ぶ。
+  </p>
+
+  <pre><code>&lt;stmt&gt;      ::= 識別子 &lt;stmt-rest&gt;
+&lt;stmt-rest&gt; ::= "=" &lt;expr&gt; | "(" &lt;expr&gt; ")"</code></pre>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 4-1</span>
+    <p class="q-body">
+      次の規則について、LL(1) であるかどうかの判定とその根拠の組合せとして、正しいものはどれか。
+    </p>
+    <pre><code>&lt;stmt&gt; ::= 識別子 "=" &lt;expr&gt; | "print" &lt;expr&gt; | 識別子 "(" &lt;expr&gt; ")"</code></pre>
+    <ol class="choices">
+      <li>LL(1) ではない。一つ目と三つ目の選択肢の FIRST 集合がともに 識別子 を含み、重なるため</li>
+      <li>LL(1) ではない。二つ目と三つ目の選択肢がどちらも &lt;expr&gt; を含み、FIRST 集合が重なるため</li>
+      <li>LL(1) である。三つの選択肢は、先頭から二つ目までの字句を見れば必ず区別できるため</li>
+      <li>LL(1) ではない。FOLLOW(&lt;stmt&gt;) が、いずれかの選択肢の FIRST 集合と重なるため</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          FIRST は選択肢の先頭に来うる字句の集合である。一つ目と三つ目はどちらも先頭が 識別子 であり、次の字句が識別子のときにどちらを選ぶか決まらない。
+          識別子を外にくくり出せば、LL(1) に書き換えられる。
+        </p>
+        <p>
+          (B) は、選択肢に含まれる記号と、先頭に来る記号を混同している。&lt;expr&gt; は二つ目と三つ目のどちらでも先頭にはなく、FIRST には関わらない。
+          (C) は、2 字句の先読みで区別できることを根拠にしている。LL(1) は 1 字句の先読みで決まることを求めるため、2 字句を要するこの規則は LL(1) ではない。
+          (D) は、FOLLOW を確かめる必要のない場面に持ち出している。FOLLOW が問題になるのは ε を導出しうる選択肢がある場合であり、この規則にはない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 5. 再帰下降による解析の追跡 ============ -->
+<section id="s5">
+  <h2><span class="num">5</span>再帰下降による解析の追跡</h2>
+
+  <p>
+    繰り返しの書き方にした文法 G に従い、三つの関数 <code>式()</code>, <code>項()</code>, <code>因子()</code> で <code>1 + 2 * 3</code> を解析する。
+    <code>項()</code> は <code>式()</code> の <code>"+"</code> を <code>"*"</code> に、<code>項()</code> の呼び出しを <code>因子()</code> の呼び出しに置き換えたものである。
+    入力の末尾には、入力の終わりを表す字句 <code>$</code> を置く。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 5-1　再帰下降パーサーによる 1 + 2 * 3 の解析。実行中の関数は外側から内側の順に並べた。次の字句が 2 から 3 に進む間、項() が戻らずに乗算を引き受けるため、2 * 3 が先にまとまる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手順</th><th>次の字句</th><th>実行中の関数</th><th>動作</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td><code>1</code></td><td>式 → 項 → 因子</td><td><code>数</code> なので読み進め、因子() から戻る</td></tr>
+        <tr><td class="num-cell">2</td><td><code>+</code></td><td>式 → 項</td><td><code>*</code> ではないのでループに入らず、項() から戻る</td></tr>
+        <tr><td class="num-cell">3</td><td><code>+</code></td><td>式</td><td><code>+</code> なので読み進め、項() を呼ぶ</td></tr>
+        <tr><td class="num-cell">4</td><td><code>2</code></td><td>式 → 項 → 因子</td><td><code>数</code> なので読み進め、因子() から戻る</td></tr>
+        <tr><td class="num-cell">5</td><td><code>*</code></td><td>式 → 項</td><td><code>*</code> なので読み進め、因子() を呼ぶ</td></tr>
+        <tr><td class="num-cell">6</td><td><code>3</code></td><td>式 → 項 → 因子</td><td><code>数</code> なので読み進め、因子() から戻る</td></tr>
+        <tr><td class="num-cell">7</td><td><code>$</code></td><td>式 → 項</td><td><code>*</code> ではないのでループを抜け、項() から戻る</td></tr>
+        <tr><td class="num-cell">8</td><td><code>$</code></td><td>式</td><td><code>+</code> ではないのでループを抜け、式() から戻る。次の字句が <code>$</code> なので解析を終える</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    関数の呼び出し関係を木として描くと、図 5-1 になる。
+    どの関数がどの関数を呼んだかを親子関係で表した木を <span class="term">呼び出し木</span><span class="en">(call tree)</span> と呼ぶ。
+    <strong>再帰下降パーサーの呼び出し木は、そのまま構文木の形をしている。</strong>
+    図 1-1 と比べると、<code>&lt;expr&gt; → &lt;term&gt; → &lt;factor&gt;</code> と一本道で続く節が一つの呼び出しにまとまっている点を除き、字句のまとまり方は一致する。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 274" role="img" aria-label="1 + 2 * 3 を解析したときの関数の呼び出し木。根の式() が、左の項()、字句 +、右の項() を子にもつ。左の項() は因子() を呼び、その因子() が字句 1 を読む。右の項() は、字句 2 を読む因子()、字句 *、字句 3 を読む因子() を子にもつ。各関数の右に、呼び出しを始めた順番 1 から 6 が付いており、式()、左の項()、その因子()、右の項()、その一つ目の因子()、二つ目の因子() の順である。">
+      <path d="M 190 54 L 70 94" class="svg-line"/>
+      <path d="M 190 54 L 160 234" class="svg-line"/>
+      <path d="M 190 54 L 340 94" class="svg-line"/>
+      <path d="M 70 124 L 70 164" class="svg-line"/>
+      <path d="M 70 194 L 70 234" class="svg-line"/>
+      <path d="M 340 124 L 250 164" class="svg-line"/>
+      <path d="M 340 124 L 340 234" class="svg-line"/>
+      <path d="M 340 124 L 430 164" class="svg-line"/>
+      <path d="M 250 194 L 250 234" class="svg-line"/>
+      <path d="M 430 194 L 430 234" class="svg-line"/>
+
+      <rect x="148" y="24" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="94" width="84" height="30" class="svg-cell"/>
+      <rect x="298" y="94" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="164" width="84" height="30" class="svg-cell"/>
+      <rect x="208" y="164" width="84" height="30" class="svg-cell"/>
+      <rect x="388" y="164" width="84" height="30" class="svg-cell"/>
+      <rect x="48" y="234" width="44" height="30" class="svg-hl"/>
+      <rect x="138" y="234" width="44" height="30" class="svg-hl"/>
+      <rect x="228" y="234" width="44" height="30" class="svg-hl"/>
+      <rect x="318" y="234" width="44" height="30" class="svg-hl"/>
+      <rect x="408" y="234" width="44" height="30" class="svg-hl"/>
+
+      <text x="190" y="44" class="svg-text">式()</text>
+      <text x="70" y="114" class="svg-text">項()</text>
+      <text x="340" y="114" class="svg-text">項()</text>
+      <text x="70" y="184" class="svg-text">因子()</text>
+      <text x="250" y="184" class="svg-text">因子()</text>
+      <text x="430" y="184" class="svg-text">因子()</text>
+      <text x="70" y="254" class="svg-mono">1</text>
+      <text x="160" y="254" class="svg-mono">+</text>
+      <text x="250" y="254" class="svg-mono">2</text>
+      <text x="340" y="254" class="svg-mono">*</text>
+      <text x="430" y="254" class="svg-mono">3</text>
+
+      <text x="246" y="44" class="svg-mono">①</text>
+      <text x="126" y="114" class="svg-mono">②</text>
+      <text x="126" y="184" class="svg-mono">③</text>
+      <text x="396" y="114" class="svg-mono">④</text>
+      <text x="306" y="184" class="svg-mono">⑤</text>
+      <text x="486" y="184" class="svg-mono">⑥</text>
+    </svg>
+    <figcaption>
+      図 5-1　1 + 2 * 3 を再帰下降法で解析したときの呼び出し木。丸数字は呼び出しを始めた順である。
+      根に近い関数ほど先に始まり、字句を左から読むにつれて木が上から下、左から右へと伸びる。トップダウン構文解析の名はこの組み立て方による。
+    </figcaption>
+  </figure>
+
+  <p>
+    呼び出しが始まるのは根の側が先だが、戻るのは葉の側が先である。
+    右の <code>項()</code> は、<code>2</code> と <code>3</code> を読み終えて乗算をまとめてから <code>式()</code> に戻る。
+    <code>式()</code> は戻ってきた結果を <code>1</code> と加算で結ぶ。
+    関数の戻り値として部分木を返すようにすれば、この戻る順序のとおりに構文木が組み上がる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 5-1</span>
+    <p class="q-body">
+      繰り返しの書き方にした文法 G の再帰下降パーサーで、字句列 <code>( 1 + 2 ) * 3</code> を解析する。
+      字句 <code>2</code> を読む時点で実行中の関数を、外側から内側の順に並べたものとして正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>式 → 項 → 因子 → 式 → 項 → 因子</li>
+      <li>式 → 項 → 因子</li>
+      <li>式 → 項 → 因子 → 項 → 因子</li>
+      <li>式 → 式 → 項 → 因子</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          式() が 項() を、項() が 因子() を呼ぶ。因子() は <code>(</code> を読み、括弧の内側を読むために 式() を呼ぶ。
+          内側の 式() は <code>1</code> と <code>+</code> を読んだ後、2 つ目の項として 項() を呼び、それが 因子() を呼んで <code>2</code> を読む。
+          括弧が一段あるため、外側の 式 → 項 → 因子 の上に、内側の 式 → 項 → 因子 が積み重なる。
+        </p>
+        <p>
+          (B) は、括弧の入れ子を考慮していない。括弧がなければ (B) になるが、括弧の内側は新たに呼ばれた 式() が読む。
+          (C) は、因子() が括弧の内側を読むために呼ぶ関数を誤っている。規則 <code>&lt;factor&gt; ::= "(" &lt;expr&gt; ")"</code> の右辺にあるのは &lt;expr&gt; であり、因子() は 式() を呼ぶ。
+          (D) は、左再帰のままの文法で考えている。繰り返しの書き方では 式() が先頭で 式() を呼ぶことはなく、もし呼べば字句を読まずに呼び出しが続いてしまう。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 6. ボトムアップ構文解析 — シフトと還元 ============ -->
+<section id="s6">
+  <h2><span class="num">6</span>ボトムアップ構文解析 — シフトと還元</h2>
+
+  <p>
+    ボトムアップ構文解析の基本となる方法が <span class="term">シフト還元構文解析</span><span class="en">(shift-reduce parsing)</span> である。
+    字句を左から読んでスタックに積み、スタックの頂上付近が生成規則の右辺に一致したら、それを左辺の非終端記号に置き換える。
+    構文解析器が行う操作は次の四つである。
+  </p>
+
+  <ul>
+    <li><span class="term">シフト</span><span class="en">(shift)</span> — 次の字句を読み進め、スタックに積む</li>
+    <li><span class="term">還元</span><span class="en">(reduce)</span> — スタックの頂上にある、ある規則の右辺に一致する記号の並びを取り除き、その規則の左辺の非終端記号を積む</li>
+    <li><span class="term">受理</span><span class="en">(accept)</span> — スタックに開始記号だけが残り、入力を読み終えていれば、解析を成功として終える</li>
+    <li>エラー — シフトも還元もできなければ、構文エラーとする</li>
+  </ul>
+
+  <p>
+    還元で取り除かれる、頂上の記号の並びを <span class="term">ハンドル</span><span class="en">(handle)</span> と呼ぶ。
+    還元は、構文木の節を一つ作ることにあたる。取り除いた記号が子、積んだ左辺が親になる。
+  </p>
+
+  <h3>同じ入力での動作</h3>
+
+  <p>
+    文法 G を、左再帰を残したまま用いて <code>1 + 2 * 3</code> を解析すると、表 6-1 のようになる。
+    スタックの底には、底を示す記号 <code>$</code> を置く。表では、字句 <code>数</code> を値とともに書いた。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 6-1　シフト還元構文解析による 1 + 2 * 3 の解析（文法 G をそのまま使用）。シフト 5 回で字句を全て読み、還元 8 回で構文木の 8 個の節を作る。
+      手順 9 では、頂上が規則 &lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt; の右辺に一致しているが、還元せずにシフトする。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>手順</th><th>スタック（左が底）</th><th>残りの入力</th><th>操作</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="num-cell">1</td><td><code>$</code></td><td><code>1 + 2 * 3 $</code></td><td>シフト</td></tr>
+        <tr><td class="num-cell">2</td><td><code>$ 数1</code></td><td><code>+ 2 * 3 $</code></td><td>還元 <code>&lt;factor&gt; ::= 数</code></td></tr>
+        <tr><td class="num-cell">3</td><td><code>$ &lt;factor&gt;</code></td><td><code>+ 2 * 3 $</code></td><td>還元 <code>&lt;term&gt; ::= &lt;factor&gt;</code></td></tr>
+        <tr><td class="num-cell">4</td><td><code>$ &lt;term&gt;</code></td><td><code>+ 2 * 3 $</code></td><td>還元 <code>&lt;expr&gt; ::= &lt;term&gt;</code></td></tr>
+        <tr><td class="num-cell">5</td><td><code>$ &lt;expr&gt;</code></td><td><code>+ 2 * 3 $</code></td><td>シフト</td></tr>
+        <tr><td class="num-cell">6</td><td><code>$ &lt;expr&gt; +</code></td><td><code>2 * 3 $</code></td><td>シフト</td></tr>
+        <tr><td class="num-cell">7</td><td><code>$ &lt;expr&gt; + 数2</code></td><td><code>* 3 $</code></td><td>還元 <code>&lt;factor&gt; ::= 数</code></td></tr>
+        <tr><td class="num-cell">8</td><td><code>$ &lt;expr&gt; + &lt;factor&gt;</code></td><td><code>* 3 $</code></td><td>還元 <code>&lt;term&gt; ::= &lt;factor&gt;</code></td></tr>
+        <tr><td class="num-cell">9</td><td><code>$ &lt;expr&gt; + &lt;term&gt;</code></td><td><code>* 3 $</code></td><td>シフト</td></tr>
+        <tr><td class="num-cell">10</td><td><code>$ &lt;expr&gt; + &lt;term&gt; *</code></td><td><code>3 $</code></td><td>シフト</td></tr>
+        <tr><td class="num-cell">11</td><td><code>$ &lt;expr&gt; + &lt;term&gt; * 数3</code></td><td><code>$</code></td><td>還元 <code>&lt;factor&gt; ::= 数</code></td></tr>
+        <tr><td class="num-cell">12</td><td><code>$ &lt;expr&gt; + &lt;term&gt; * &lt;factor&gt;</code></td><td><code>$</code></td><td>還元 <code>&lt;term&gt; ::= &lt;term&gt; "*" &lt;factor&gt;</code></td></tr>
+        <tr><td class="num-cell">13</td><td><code>$ &lt;expr&gt; + &lt;term&gt;</code></td><td><code>$</code></td><td>還元 <code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt;</code></td></tr>
+        <tr><td class="num-cell">14</td><td><code>$ &lt;expr&gt;</code></td><td><code>$</code></td><td>受理</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    手順 9 で還元してしまうと、スタックは <code>$ &lt;expr&gt;</code> となり、続いて <code>*</code> を積むと <code>&lt;expr&gt; *</code> という並びができる。
+    文法 G には <code>&lt;expr&gt;</code> の直後に <code>*</code> が来る規則がないため、この先どう操作しても開始記号にまとまらない。
+    ここでシフトして <code>2 * 3</code> を先にまとめることが、乗算を加算より先に結び付けることにあたる。
+    <strong>右辺に一致する並びが頂上にあっても、還元すべきとは限らない。</strong>
+  </p>
+
+  <p>
+    図 6-1 は、還元によって作られた節に、作られた順の番号を付けたものである。
+    番号は葉に近い節から始まり、根で終わる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 304" role="img" aria-label="図 1-1 と同じ 1 + 2 * 3 の構文木で、非終端記号の八つの節に還元の順番を付けた図。字句 1 の上の factor が 1、その上の term が 2、その上の expr が 3、字句 2 の上の factor が 4、その上の term が 5、字句 3 の上の factor が 6、右側の term が 7、根の expr が 8 である。">
+      <path d="M 190 54 L 70 84" class="svg-line"/>
+      <path d="M 190 54 L 160 264" class="svg-line"/>
+      <path d="M 190 54 L 340 84" class="svg-line"/>
+      <path d="M 70 114 L 70 144" class="svg-line"/>
+      <path d="M 70 174 L 70 204" class="svg-line"/>
+      <path d="M 70 234 L 70 264" class="svg-line"/>
+      <path d="M 340 114 L 250 144" class="svg-line"/>
+      <path d="M 340 114 L 340 264" class="svg-line"/>
+      <path d="M 340 114 L 430 204" class="svg-line"/>
+      <path d="M 250 174 L 250 204" class="svg-line"/>
+      <path d="M 250 234 L 250 264" class="svg-line"/>
+      <path d="M 430 234 L 430 264" class="svg-line"/>
+
+      <rect x="148" y="24" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="84" width="84" height="30" class="svg-cell"/>
+      <rect x="298" y="84" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="144" width="84" height="30" class="svg-cell"/>
+      <rect x="208" y="144" width="84" height="30" class="svg-cell"/>
+      <rect x="28" y="204" width="84" height="30" class="svg-cell"/>
+      <rect x="208" y="204" width="84" height="30" class="svg-cell"/>
+      <rect x="388" y="204" width="84" height="30" class="svg-cell"/>
+      <rect x="48" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="138" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="228" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="318" y="264" width="44" height="30" class="svg-hl"/>
+      <rect x="408" y="264" width="44" height="30" class="svg-hl"/>
+
+      <text x="190" y="44" class="svg-mono">&lt;expr&gt;</text>
+      <text x="70" y="104" class="svg-mono">&lt;expr&gt;</text>
+      <text x="340" y="104" class="svg-mono">&lt;term&gt;</text>
+      <text x="70" y="164" class="svg-mono">&lt;term&gt;</text>
+      <text x="250" y="164" class="svg-mono">&lt;term&gt;</text>
+      <text x="70" y="224" class="svg-mono">&lt;factor&gt;</text>
+      <text x="250" y="224" class="svg-mono">&lt;factor&gt;</text>
+      <text x="430" y="224" class="svg-mono">&lt;factor&gt;</text>
+      <text x="70" y="284" class="svg-mono">1</text>
+      <text x="160" y="284" class="svg-mono">+</text>
+      <text x="250" y="284" class="svg-mono">2</text>
+      <text x="340" y="284" class="svg-mono">*</text>
+      <text x="430" y="284" class="svg-mono">3</text>
+
+      <text x="246" y="44" class="svg-mono">⑧</text>
+      <text x="126" y="104" class="svg-mono">③</text>
+      <text x="396" y="104" class="svg-mono">⑦</text>
+      <text x="126" y="164" class="svg-mono">②</text>
+      <text x="306" y="164" class="svg-mono">⑤</text>
+      <text x="126" y="224" class="svg-mono">①</text>
+      <text x="306" y="224" class="svg-mono">④</text>
+      <text x="486" y="224" class="svg-mono">⑥</text>
+    </svg>
+    <figcaption>
+      図 6-1　表 6-1 の還元によって作られる節と、その順番。字句を左から読みながら、葉に近い節から順に作られ、根が最後に作られる。
+      図 5-1 の呼び出しを始めた順と比べると、番号の進む向きが上下で逆になっている。
+    </figcaption>
+  </figure>
+
+  <p>
+    還元の順を逆からたどると、開始記号から出発して、毎回いちばん右の非終端記号を書き換える導出になる。
+    このような導出を <span class="term">最右導出</span><span class="en">(rightmost derivation)</span> と呼ぶ。
+    <strong>シフト還元構文解析は、最右導出を逆の順に再現する。</strong>
+  </p>
+
+  <h3>左再帰をそのまま扱える理由</h3>
+
+  <p>
+    表 6-1 では、左再帰を含む文法 G を書き換えずに用いた。
+    規則 <code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt;</code> による還元は、<code>&lt;expr&gt;</code>, <code>+</code>, <code>&lt;term&gt;</code> の三つが既にスタックに積まれていなければ起こらない。
+    積まれるまでに必ず字句を読んでいるため、同じ位置で同じ操作を繰り返すことがない。
+    再帰下降法では先頭で自分を呼ぶことが無限再帰を招いたが、シフト還元法では、右辺を読み終えてから左辺にまとめるため、この問題が生じない。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 6-1</span>
+    <p class="q-body">
+      文法 G を用いて、字句列 <code>2 * 3</code> をシフト還元構文解析で受理するまでに、還元を行う回数として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>3 回</li>
+      <li>4 回</li>
+      <li>5 回</li>
+      <li>6 回</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (C)</p>
+        <p>
+          操作の列は、シフト <code>2</code>、還元 <code>&lt;factor&gt; ::= 数</code>、還元 <code>&lt;term&gt; ::= &lt;factor&gt;</code>、シフト <code>*</code>、シフト <code>3</code>、
+          還元 <code>&lt;factor&gt; ::= 数</code>、還元 <code>&lt;term&gt; ::= &lt;term&gt; "*" &lt;factor&gt;</code>、還元 <code>&lt;expr&gt; ::= &lt;term&gt;</code>、受理である。
+          還元は 5 回であり、構文木の非終端記号の節の数に一致する。
+          <code>&lt;term&gt;</code> を積んだ後に次の字句が <code>*</code> であるとき、<code>&lt;expr&gt;</code> へは還元しない。<code>&lt;expr&gt;</code> の直後に <code>*</code> が来る規則はないためである。
+        </p>
+        <p>
+          (A) は、シフトの回数と取り違えている。字句は 3 個であり、シフトは 3 回である。
+          (B) は、最後の <code>&lt;expr&gt; ::= &lt;term&gt;</code> を数え落としている。スタックに <code>&lt;term&gt;</code> が残った状態では、開始記号に達していないため受理できない。
+          (D) は、受理を還元の一つとして数えたか、<code>*</code> を積む前にも <code>&lt;expr&gt;</code> へ還元すると考えた誤りである。後者では <code>&lt;expr&gt; *</code> という並びができ、解析は行き詰まる。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 7. LR 構文解析 — シフトと還元を選び分ける ============ -->
+<section id="s7">
+  <h2><span class="num">7</span>LR 構文解析 — シフトと還元を選び分ける</h2>
+
+  <p>
+    表 6-1 の手順 9 と手順 13 は、スタックの中身がどちらも <code>$ &lt;expr&gt; + &lt;term&gt;</code> である。
+    それにもかかわらず、手順 9 ではシフトし、手順 13 では還元した。違いは次の字句にある。
+    手順 9 の次の字句は <code>*</code>、手順 13 では <code>$</code> である。
+    シフト還元構文解析を手戻りなく進めるには、<strong>スタックの中身と次の字句の組から、操作を一つに決める規則</strong>が要る。
+  </p>
+
+  <p>
+    この規則を表として持ち、それを引いて操作を決める方法を <span class="term">LR 構文解析</span><span class="en">(LR parsing)</span> と呼ぶ。
+    名前は、入力を左から読み（Left to right）、最右導出（Rightmost derivation）を逆順に作ることに由来する。
+  </p>
+
+  <h3>スタックの中身を状態に要約する</h3>
+
+  <p>
+    スタックの中身はいくらでも長くなりうるため、そのままでは表を引けない。
+    しかし操作を決めるのに必要なのは、スタックの中身全体ではなく、「どの規則の右辺を、どこまで読み終えたか」である。
+    規則の右辺に、読み終えた位置を示す印 <code>・</code> を入れたものを <span class="term">項</span><span class="en">(item)</span> と呼ぶ。
+    たとえば <code>&lt;term&gt; ::= &lt;term&gt; ・ "*" &lt;factor&gt;</code> は、<code>&lt;term&gt;</code> まで読み終え、次に <code>"*"</code> を待っていることを表す。
+  </p>
+
+  <p>
+    規則の数は有限なので、項の数も有限であり、項の組合せとして表される状態も有限個である。
+    LR 構文解析器は、スタックに記号を積むたびに、この有限個の状態の間を遷移する有限オートマトンを動かし、現在の状態を求める。
+    そして <strong>現在の状態と次の字句の組で表を引き、シフト・還元・受理・エラーのいずれかを決める。</strong>
+    有限オートマトンにスタックを組み合わせた機械を <span class="term">プッシュダウンオートマトン</span><span class="en">(pushdown automaton)</span> と呼ぶ。
+    有限オートマトン単独では扱えなかった入れ子の構造を、スタックを持つことで扱えるようになる。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 282" role="img" aria-label="スタックの中身 $, expr, +, term と次の字句 * から操作を決める流れを示す図。スタックを読む有限オートマトンが状態を決め、その状態には二つの項、expr ::= expr + term の末尾に印がある項と、term ::= term の後に印があり次に * を待つ項が含まれる。次の字句が * ならシフトし、次の字句が +、閉じ括弧、$ のいずれかなら expr ::= expr + term で還元する。">
+      <path d="M 170 70 L 170 100" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 450 70 L 450 100" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 170 184 L 170 226" class="svg-arrow" marker-end="url(#ah2)"/>
+      <path d="M 450 184 L 450 226" class="svg-arrow" marker-end="url(#ah2)"/>
+
+      <text x="40" y="22" class="svg-small" style="text-anchor:start">スタック（左が底）</text>
+      <text x="450" y="22" class="svg-small">次の字句</text>
+
+      <rect x="40" y="32" width="40" height="36" class="svg-cell"/>
+      <rect x="80" y="32" width="90" height="36" class="svg-hl"/>
+      <rect x="170" y="32" width="40" height="36" class="svg-hl"/>
+      <rect x="210" y="32" width="90" height="36" class="svg-hl"/>
+      <rect x="425" y="32" width="50" height="36" class="svg-hl"/>
+
+      <text x="60" y="55" class="svg-mono">$</text>
+      <text x="125" y="55" class="svg-mono">&lt;expr&gt;</text>
+      <text x="190" y="55" class="svg-mono">+</text>
+      <text x="255" y="55" class="svg-mono">&lt;term&gt;</text>
+      <text x="450" y="55" class="svg-mono">*</text>
+
+      <text x="182" y="90" class="svg-small" style="text-anchor:start">有限オートマトンが読んで状態を決める</text>
+
+      <rect x="40" y="104" width="500" height="80" class="svg-cell"/>
+      <text x="290" y="124" class="svg-small">この状態に含まれる項（・は読み終えた位置）</text>
+      <text x="290" y="150" class="svg-mono">&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt; ・</text>
+      <text x="290" y="172" class="svg-mono">&lt;term&gt; ::= &lt;term&gt; ・ "*" &lt;factor&gt;</text>
+
+      <text x="182" y="210" class="svg-small" style="text-anchor:start">次が * なら</text>
+      <text x="462" y="210" class="svg-small" style="text-anchor:start">次が + ) $ なら</text>
+
+      <rect x="60" y="230" width="200" height="40" class="svg-cell"/>
+      <rect x="290" y="230" width="276" height="40" class="svg-cell"/>
+      <text x="160" y="255" class="svg-text">シフト（* を積む）</text>
+      <text x="428" y="255" class="svg-small">還元 &lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt;</text>
+
+      <defs>
+        <marker id="ah2" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+          <path d="M 0 0 L 9 4.5 L 0 9 z" fill="var(--c-accent)"/>
+        </marker>
+      </defs>
+    </svg>
+    <figcaption>
+      図 7-1　スタックの中身が $ &lt;expr&gt; + &lt;term&gt; のときに操作を決める仕組み。この状態には、右辺を読み終えた項と、まだ * を待っている項が同居する。
+      次の字句が * なら後者に従ってシフトし、&lt;expr&gt; の直後に来うる字句なら前者に従って還元する。
+    </figcaption>
+  </figure>
+
+  <h3>LR の種類 — 先読みの使い方の違い</h3>
+
+  <p>
+    図 7-1 の状態では、項だけを見るとシフトと還元のどちらもありうる。
+    これを次の字句でどう決めるかによって、LR 構文解析はいくつかの種類に分かれる。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 7-1　LR 構文解析の種類。上から順に、還元の判断に使う情報が精密になり、扱える文法が広がる。LALR(1) は扱える文法の広さと表の大きさの釣り合いがよく、パーサー生成系で広く用いられる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>種類</th><th>還元を決める手がかり</th><th>文法 G を扱えるか</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>LR(0)</td><td>状態だけで決め、次の字句を見ない</td><td>扱えない。図 7-1 の状態でシフトと還元を選べない</td></tr>
+        <tr><td>SLR(1)</td><td>次の字句が、還元する規則の左辺の FOLLOW 集合に属すれば還元する</td><td>扱える。<code>*</code> は FOLLOW(<code>&lt;expr&gt;</code>) に属さない</td></tr>
+        <tr><td>LR(1)</td><td>項ごとに、その位置の直後に来うる字句を正確に持ち、それで決める</td><td>扱える。最も広い文法を扱えるが、状態の数が多くなる</td></tr>
+        <tr><td>LALR(1)</td><td>LR(1) の状態のうち、項の部分が同じものを一つにまとめる</td><td>扱える。状態の数は SLR(1) と同じで、扱える文法は LR(1) よりわずかに狭い</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    状態と遷移、表の中身は、文法から機械的に計算できる。
+    ただし、小さな文法でも状態は数十個、実用言語の文法では数百から数千個になり、手で作るのは現実的ではない。
+    文法を入力として、この表と、表を引いて動く構文解析器を自動で作るプログラムを
+    <span class="term">パーサー生成系</span><span class="en">(parser generator)</span> と呼ぶ。
+  </p>
+
+  <h3>競合 — 表が一つに決まらないとき</h3>
+
+  <p>
+    表のある欄に、シフトと還元の両方、あるいは異なる二つの規則による還元が入ってしまうことがある。
+    前者を <span class="term">シフト還元競合</span><span class="en">(shift-reduce conflict)</span>、後者を
+    <span class="term">還元還元競合</span><span class="en">(reduce-reduce conflict)</span> と呼ぶ。
+    競合があれば、その文法は表の作り方に対応する種類の LR 文法ではない。
+    特に、あいまいな文法では、同じ字句列に二通りの構文木があるため、どの種類の表を作っても必ず競合が生じる。
+    パーサー生成系は競合を報告するので、文法のあいまいさを見つける道具にもなる。
+  </p>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-1</span>
+    <p class="q-body">
+      文法 G で字句列 <code>( 1 + 2 )</code> を解析している途中で、スタックが <code>$ ( &lt;expr&gt; + &lt;term&gt;</code>、次の字句が <code>)</code> になった。
+      次に行う操作として正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>規則 <code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt;</code> で還元する</li>
+      <li><code>)</code> をシフトする</li>
+      <li>規則 <code>&lt;expr&gt; ::= &lt;term&gt;</code> で還元する</li>
+      <li>シフトも還元もできないため、構文エラーとする</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          この状態は図 7-1 と同じく、右辺を読み終えた項 <code>&lt;expr&gt; ::= &lt;expr&gt; "+" &lt;term&gt; ・</code> と、<code>*</code> を待つ項を含む。
+          次の字句 <code>)</code> は <code>*</code> ではなく、FOLLOW(<code>&lt;expr&gt;</code>) に属するため還元する。
+          還元すると <code>$ ( &lt;expr&gt;</code> となり、続けて <code>)</code> をシフトし、<code>"(" &lt;expr&gt; ")"</code> を <code>&lt;factor&gt;</code> に還元できる。
+        </p>
+        <p>
+          (B) は、還元を後回しにしても構わないと考えた誤りである。シフトすると <code>&lt;term&gt; )</code> という並びになり、<code>&lt;term&gt;</code> の直後に <code>)</code> が来る規則の右辺には一致しないため、その先で <code>1 + 2</code> を一つの <code>&lt;expr&gt;</code> にまとめられなくなる。
+          (C) は、ハンドルを頂上の一記号だけと見た誤りである。<code>&lt;term&gt;</code> を <code>&lt;expr&gt;</code> にすると <code>&lt;expr&gt; + &lt;expr&gt;</code> となり、これに一致する規則がない。
+          (D) は、括弧の中では <code>)</code> が来うることを見落としている。FOLLOW(<code>&lt;expr&gt;</code>) は <code>)</code> を含む。
+        </p>
+      </div>
+    </details>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 7-2</span>
+    <p class="q-body">
+      あいまいな文法 <code>&lt;e&gt; ::= &lt;e&gt; "+" &lt;e&gt; | 数</code> で <code>1 + 2 + 3</code> を解析している。
+      スタックが <code>$ &lt;e&gt; + &lt;e&gt;</code>、次の字句が <code>+</code> のときの状況として、正しいものはどれか。
+    </p>
+    <ol class="choices">
+      <li>還元すれば (1 + 2) + 3、シフトすれば 1 + (2 + 3) の木になり、どちらも続行できるためシフト還元競合となる</li>
+      <li>右辺に一致する並びが頂上にあるので、必ず還元する。シフトすれば解析は行き詰まる</li>
+      <li>二通りの還元の仕方があるため、還元還元競合となる</li>
+      <li>次の字句を 2 字句先まで見れば、操作は一つに決まる</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          ここで還元すれば <code>1 + 2</code> が先にまとまる。シフトすれば <code>2 + 3</code> が先にまとまり、その後で <code>1</code> と結ばれる。
+          どちらの道も開始記号に至るため、表の同じ欄にシフトと還元の両方が入る。これがシフト還元競合であり、字句列に二通りの構文木があることの表れである。
+        </p>
+        <p>
+          (B) は、表 6-1 の手順 9 で見たとおり、右辺に一致しても還元すべきとは限らないことを見落としている。この文法ではシフトしても行き詰まらない。
+          (C) は、競合の種類を取り違えている。頂上で還元に使える規則は <code>&lt;e&gt; ::= &lt;e&gt; "+" &lt;e&gt;</code> の一つだけであり、競合しているのはシフトと還元である。
+          (D) は、先読みを増やせば解決すると考えた誤りである。あいまいさは文法そのものの性質であり、何字句先を見ても二通りの木のどちらかには決まらない。文法を書き換えるか、パーサー生成系で演算子の優先順位と結合の向きを指定して解消する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 8. トップダウンとボトムアップの使い分け ============ -->
+<section id="s8">
+  <h2><span class="num">8</span>トップダウンとボトムアップの使い分け</h2>
+
+  <p>
+    ここまでに扱った二つの手法を振り返る。トップダウン構文解析は、再帰下降法として非終端記号ごとの関数で書き、LL(1) 文法であれば 1 字句の先読みで選択肢を決める。
+    ボトムアップ構文解析は、シフト還元法として字句をスタックに積み、LR の表でシフトと還元を選び分ける。
+    どちらも字句を左から一度読むだけで構文木を組み、入力の長さに比例する時間で動く。
+    <strong>したがって、処理速度は手法を選ぶ根拠にならない。</strong>違いは、扱える文法と、構文解析器の作り方にある。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 8-1　トップダウン構文解析（再帰下降法・LL(1)）とボトムアップ構文解析（LR 系）の比較。扱える文法の広さはボトムアップが勝るが、それが選択を左右するのは、文法を自分で決められない場合である。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>トップダウン（再帰下降法）</th><th>ボトムアップ（LR 系）</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>扱える文法</td><td>LL(1) 文法。左再帰を除き、選択肢の先頭を区別できるよう書き換える必要がある</td><td>LR(1) 文法。LL(1) 文法を全て含み、さらに広い。左再帰をそのまま扱える</td></tr>
+        <tr><td>構文解析器の作り方</td><td>手で書ける。文法の構造がそのまま関数の構造になる</td><td>表を手で作るのは現実的でなく、パーサー生成系を用いる</td></tr>
+        <tr><td>誤りの報告</td><td>どの関数で何を期待していたかが分かるため、「<code>)</code> が必要」のように具体的に書きやすい</td><td>状態番号と次の字句しか手掛かりがなく、分かりやすい文面にするには追加の手当てを要する</td></tr>
+        <tr><td>文法の変更</td><td>関数を書き直す。変更のたびに左再帰や FIRST の重なりが生じていないかを人が確かめる</td><td>文法を書き直して生成し直す。問題があれば競合として機械的に報告される</td></tr>
+        <tr><td>1 + 2 * 3 での動き</td><td>呼び出しが根から葉へ広がり、戻りながら木がまとまる（表 5-1）</td><td>シフト 5 回、還元 8 回で、葉から根へ節を作る（表 6-1）</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <p>
+    扱える文法の広さが効くのは、既存の言語の文法を、規格どおりの形でそのまま受け入れなければならない場合である。
+    文法を自分で設計できるなら、はじめから LL(1) になるよう決めればよく、この差は問題にならない。
+    一方、誤りの報告のしやすさは、文法の形に関係なく、利用者が触れる構文解析器であれば常に効く。
+  </p>
+
+  <h3>実務での位置づけ</h3>
+
+  <p>
+    パーサー生成系は、文法を書くだけで構文解析器が得られ、文法のあいまいさを競合として検出できるため、言語の設計段階や、文法を頻繁に変える小さな言語で有効である。
+    一方、広く使われる言語の処理系では、手で書いた再帰下降パーサーを採用する例が多い。
+    利用者に分かりやすい誤りの報告を出せること、誤りの後も解析を続けて複数の誤りを報告する工夫を組み込みやすいこと、文脈に応じた例外的な規則を書き足しやすいことが理由である。
+  </p>
+
+  <div class="note">
+    <span class="label">補足</span>
+    <p>
+      再帰下降法で優先順位の段階が多い式を扱うと、段階ごとに関数が一つずつ増え、呼び出しが深くなる。
+      このため、式の部分だけを、演算子ごとに優先順位と結合の向きを表にして解析する方法と組み合わせる処理系もある。
+      この方法を <span class="term">演算子順位法</span><span class="en">(operator precedence parsing)</span> と呼ぶ。
+    </p>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 8-1</span>
+    <p class="q-body">
+      ある言語の公式の文法定義が BNF で公開されている。この文法は左再帰を多く含み、改訂のたびに規則が追加される。
+      公式の文法定義の形を崩さずに構文解析器を作り、改訂にも追従したい。この条件で最も適した方法はどれか。
+    </p>
+    <ol class="choices">
+      <li>文法定義をパーサー生成系に与え、LR 系の構文解析器を生成する</li>
+      <li>文法定義をもとに再帰下降パーサーを手で書く。手で書けるため、改訂にも柔軟に対応できる</li>
+      <li>LL(1) の構文解析器を作る。LR 系より処理速度が高いため、大きな入力でも有利である</li>
+      <li>文法定義の各規則を正規表現に変換し、有限オートマトンで解析する</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (A)</p>
+        <p>
+          LR 系は左再帰をそのまま扱えるため、文法定義の形を崩さずに使える。改訂のたびに文法を差し替えて生成し直せばよく、新しい規則が問題を起こせば競合として報告される。
+        </p>
+        <p>
+          (B) は、条件のうち「文法定義の形を崩さない」を満たさない。再帰下降法では左再帰を除く書き換えが必要であり、改訂のたびに書き換えと確認をやり直すことになる。
+          (C) は、処理速度を根拠にした誤りである。LL(1) も LR 系も入力の長さに比例する時間で動き、速度は選択を左右しない。また LL(1) にするには、やはり左再帰を除く書き換えが要る。
+          (D) は、正規表現と有限オートマトンの限界を見落としている。括弧の入れ子のような構造は、有限個の状態では判定できない。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 9. 再帰下降パーサーの実装 ============ -->
+<section id="s9">
+  <h2><span class="num">9</span>再帰下降パーサーの実装</h2>
+
+  <p>
+    文法 G に減算と除算を加えた次の文法について、構文木を組み立てて返す再帰下降パーサーを作る。
+    減算と除算は加算・乗算と同じ優先順位で、左結合とする。
+  </p>
+
+  <pre><code>&lt;expr&gt;   ::= &lt;term&gt; { ( "+" | "-" ) &lt;term&gt; }
+&lt;term&gt;   ::= &lt;factor&gt; { ( "*" | "/" ) &lt;factor&gt; }
+&lt;factor&gt; ::= "(" &lt;expr&gt; ")" | 数</code></pre>
+
+  <h3>出力する木 — 抽象構文木</h3>
+
+  <p>
+    構文解析器が後段に渡すのは、図 1-1 のような構文木そのものではなく、計算に必要な構造だけを残した
+    <span class="term">抽象構文木</span><span class="en">(abstract syntax tree, AST)</span> である。
+    <code>&lt;expr&gt; → &lt;term&gt; → &lt;factor&gt;</code> のように一本道で続く節や、括弧は残さない。括弧が表していた結び付きは、木の形として残る。
+    AST の節は次の二種類とする。
+  </p>
+
+  <ul>
+    <li><code>葉(v)</code> — 数 v を表す</li>
+    <li><code>節(演算子, 左, 右)</code> — 二つの部分木を演算子で結んだ式を表す</li>
+  </ul>
+
+  <p>
+    以下では、AST を <code>+(1, *(2, 3))</code> のように、演算子の後に左右の部分木を括弧で並べて書く。
+  </p>
+
+  <h3>字句列と基本の操作</h3>
+
+  <p>
+    字句解析器が出力した字句は、種別（<code>数</code>, <code>"+"</code>, <code>"("</code> など）と、数であればその値、そしてソースコード上の位置（行と列）を持つとする。
+    位置は、誤りを報告するために欠かせない。
+  </p>
+
+  <pre><code>準備
+1. T ← 字句解析器が出力した字句列。末尾に種別 $（入力の終わり）の字句を一つ加える
+2. p ← 1　　— 次に読む字句の位置
+
+手続き 次の字句()
+1. T[p] を返す（p は変えない）
+
+手続き 読み進める()
+1. p ← p + 1
+
+手続き 期待する(k)
+1. もし 次の字句() の種別が k ならば 読み進める()
+2. そうでなければ 構文エラー(k) を報告して解析を終える</code></pre>
+
+  <h3>各非終端記号の関数</h3>
+
+  <p>
+    各関数は、自分の担当する部分を読み終えたら、その部分の AST を返す。
+    呼び出した側は、返された部分木を材料にして、より大きな木を組む。
+  </p>
+
+  <pre><code>手続き 構文解析()
+1. 木 ← 式()
+2. 期待する($)
+3. 木 を返す
+
+手続き 式()
+1. 左 ← 項()
+2. 次の字句() の種別が "+" または "-" である間、次の 3〜5 を繰り返す
+3.   演算子 ← 次の字句() の種別、読み進める()
+4.   右 ← 項()
+5.   左 ← 節(演算子, 左, 右)
+6. 左 を返す
+
+手続き 項()
+1. 左 ← 因子()
+2. 次の字句() の種別が "*" または "/" である間、次の 3〜5 を繰り返す
+3.   演算子 ← 次の字句() の種別、読み進める()
+4.   右 ← 因子()
+5.   左 ← 節(演算子, 左, 右)
+6. 左 を返す
+
+手続き 因子()
+1. もし 次の字句() の種別が 数 ならば
+2.   v ← 次の字句() の値、読み進める()
+3.   葉(v) を返す
+4. もし 次の字句() の種別が "(" ならば
+5.   読み進める()
+6.   e ← 式()
+7.   期待する(")")
+8.   e を返す　　— 括弧は節にしない
+9. 構文エラー(数 または "(") を報告して解析を終える</code></pre>
+
+  <p>
+    <code>式()</code> の 5 行目が、左結合の木を作る箇所である。
+    ループを一周するたびに、それまでの木 <code>左</code> を左の子とする新しい節で <code>左</code> を置き換えるため、木は左へ伸びる。
+    <code>8 - 3 - 2</code> であれば、一周目で <code>-(8, 3)</code>、二周目で <code>-(-(8, 3), 2)</code> となる。
+  </p>
+
+  <p>
+    <code>構文解析()</code> の 2 行目は省けない。<code>1 2</code> のような入力では、<code>式()</code> は <code>1</code> を読んだ時点で、次の字句が <code>"+"</code> でも <code>"-"</code> でもないため正常に戻ってくる。
+    最後に入力の終わりを確かめなければ、後ろに残った字句を見逃して、誤った入力を受理してしまう。
+  </p>
+
+  <figure>
+    <svg viewBox="0 0 580 262" role="img" aria-label="1 + 2 * 3 に対して組み上がる AST。根は加算の節で、左の子が葉 1、右の子が乗算の節であり、乗算の節は葉 2 と葉 3 を子にもつ。根の加算は式() が、乗算は項() が、三つの葉はそれぞれ因子() が作る。下に AST を式の形で書いた +(1, *(2, 3)) を添える。">
+      <path d="M 260 54 L 170 100" class="svg-line"/>
+      <path d="M 260 54 L 350 100" class="svg-line"/>
+      <path d="M 350 130 L 290 176" class="svg-line"/>
+      <path d="M 350 130 L 410 176" class="svg-line"/>
+
+      <rect x="238" y="24" width="44" height="30" class="svg-cell"/>
+      <rect x="148" y="100" width="44" height="30" class="svg-cell"/>
+      <rect x="328" y="100" width="44" height="30" class="svg-cell"/>
+      <rect x="268" y="176" width="44" height="30" class="svg-cell"/>
+      <rect x="388" y="176" width="44" height="30" class="svg-cell"/>
+
+      <text x="260" y="44" class="svg-mono">+</text>
+      <text x="170" y="120" class="svg-mono">1</text>
+      <text x="350" y="120" class="svg-mono">*</text>
+      <text x="290" y="196" class="svg-mono">2</text>
+      <text x="410" y="196" class="svg-mono">3</text>
+
+      <text x="296" y="44" class="svg-small" style="text-anchor:start">式() が作る</text>
+      <text x="136" y="120" class="svg-small" style="text-anchor:end">因子() が作る</text>
+      <text x="386" y="120" class="svg-small" style="text-anchor:start">項() が作る</text>
+      <text x="256" y="196" class="svg-small" style="text-anchor:end">因子() が作る</text>
+      <text x="446" y="196" class="svg-small" style="text-anchor:start">因子() が作る</text>
+
+      <text x="290" y="248" class="svg-mono">AST: +(1, *(2, 3))</text>
+    </svg>
+    <figcaption>
+      図 9-1　1 + 2 * 3 に対して組み上がる AST と、各節を作る関数。葉は因子() が作り、項() と式() は戻ってきた部分木を演算子で結ぶ。
+      図 1-1 の構文木にあった 8 個の非終端記号の節は、演算の構造を表す 2 個の節にまで縮まる。
+    </figcaption>
+  </figure>
+
+  <h3>エラー処理</h3>
+
+  <p>
+    構文エラーの報告には、少なくとも次の三つを含める。
+  </p>
+
+  <ul>
+    <li>誤りの位置 — 次の字句が持つ行と列</li>
+    <li>期待していたもの — <code>期待する()</code> に渡した種別。<code>因子()</code> では <code>数</code> または <code>"("</code>、すなわち FIRST(<code>&lt;factor&gt;</code>) である</li>
+    <li>実際に現れたもの — 次の字句の種別と、元の文字列</li>
+  </ul>
+
+  <pre><code>手続き 構文エラー(期待したもの)
+1. t ← 次の字句()
+2. 「t の行:t の列: 期待したもの が必要だが t が現れた」と出力する</code></pre>
+
+  <p>
+    上の手続きは、最初の誤りを報告した時点で解析を終える。演習の規模であればこれで足りる。
+    実用の処理系では、誤りの後に文の区切りや閉じ括弧のような字句まで読み飛ばし、そこから解析を再開して、一度に複数の誤りを報告する。
+    この回復の方法を <span class="term">パニックモード</span><span class="en">(panic mode)</span> と呼ぶ。
+    これが効くのは、一回の翻訳に時間がかかる大きなプログラムで、誤りを一つ直すたびに翻訳し直す手間が大きい場合である。
+    ただし、読み飛ばしの範囲が不適切だと、本来の誤りに続いて見かけ上の誤りが連鎖的に報告される。
+  </p>
+
+  <h3>動作の確認</h3>
+
+  <p>
+    構文解析器は、正しい入力から正しい木を作ることと、誤った入力を正しく拒むことの両方を確かめる。
+    表 9-1 は、確認すべき観点と入力の例である。
+  </p>
+
+  <div class="table-block">
+    <p class="table-caption">
+      表 9-1　再帰下降パーサーの動作確認の観点。正しい入力では木の形まで確かめ、誤った入力では誤りの位置と期待したものが報告されることを確かめる。結合の向きは、加算と乗算だけでは結果の値に表れないため、減算か除算で確かめる。
+    </p>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr><th>観点</th><th>入力</th><th>期待する結果</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>優先順位</td><td><code>1 + 2 * 3</code></td><td><code>+(1, *(2, 3))</code></td></tr>
+        <tr><td>結合の向き</td><td><code>8 - 3 - 2</code></td><td><code>-(-(8, 3), 2)</code></td></tr>
+        <tr><td>括弧による結び付き</td><td><code>(1 + 2) * 3</code></td><td><code>*(+(1, 2), 3)</code></td></tr>
+        <tr><td>括弧の入れ子</td><td><code>((4))</code></td><td><code>葉(4)</code>。括弧は節にならない</td></tr>
+        <tr><td>オペランドの欠落</td><td><code>1 +</code></td><td>3 番目の字句 <code>$</code> の位置で、数 または <code>(</code> が必要と報告</td></tr>
+        <tr><td>閉じ括弧の欠落</td><td><code>(1 + 2</code></td><td>5 番目の字句 <code>$</code> の位置で、<code>)</code> が必要と報告</td></tr>
+        <tr><td>余分な字句</td><td><code>1 2</code></td><td>2 番目の字句 <code>2</code> の位置で、入力の終わりが必要と報告</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <span class="quiz-label">確認問題 9-1</span>
+    <p class="q-body">
+      上の 式() の 4 行目を、誤って <code>右 ← 式()</code> と書いた。このパーサーで <code>8 - 3 - 2</code> を解析して得た AST を計算すると、値はいくつになるか。
+    </p>
+    <ol class="choices">
+      <li>3</li>
+      <li>7</li>
+      <li>値は得られない。式() が無限に自分を呼び続ける</li>
+      <li>値は得られない。構文エラーが報告される</li>
+    </ol>
+    <details class="answer">
+      <summary><span>解答</span></summary>
+      <div class="answer-body">
+        <p class="verdict">正解: (B)</p>
+        <p>
+          外側の 式() は <code>8</code> を読み、<code>-</code> を読んでから内側の 式() を呼ぶ。内側の 式() は残りの <code>3 - 2</code> を全て読んで <code>-(3, 2)</code> を返す。
+          外側はこれを右の子として <code>-(8, -(3, 2))</code> を作る。この木は右結合であり、値は 8 - 1 = 7 になる。
+          受理される字句の並びは変わらないため、誤りに気づくには木の形か計算結果を確かめるしかない。
+        </p>
+        <p>
+          (A) は正しく書いた場合の値である。誤りは受理の可否ではなく木の形に表れる。
+          (C) は、左再帰による無限再帰と混同している。内側の 式() を呼ぶ前に <code>8</code> と <code>-</code> を読んでいるため、呼び出しのたびに位置が進み、必ず止まる。
+          (D) は、受理できる入力の範囲が変わると考えた誤りである。<code>8 - 3 - 2</code> は内側の 式() が残りを全て読むため、最後の 期待する($) も成功する。
+        </p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ============ 10. 総括 ============ -->
+<section id="s10">
+  <h2><span class="num">10</span>総括</h2>
+
+  <ul>
+    <li>
+      <strong>構文解析器が解く問題</strong> — 字句列から構文木を組むには、各段階で使う規則を決めなければならない。
+      根から展開するのがトップダウン、葉からまとめるのがボトムアップである。上限のない入れ子を扱うため、どちらも深さに比例する記憶を持つ。
+    </li>
+    <li>
+      <strong>再帰下降法</strong> — 非終端記号ごとに関数を作り、右辺を手順として写し取る。終端記号は照合して読み進め、選択肢は次の字句で決める。
+    </li>
+    <li>
+      <strong>左再帰と繰り返しへの書き換え</strong> — 左再帰をそのまま関数にすると、字句を読まずに自分を呼んで止まらない。
+      繰り返しに書き換え、ループの中で木を左へ伸ばせば、左結合の木が得られる。
+    </li>
+    <li>
+      <strong>FIRST と FOLLOW</strong> — 選択肢どうしの FIRST が重ならず、ε になりうる選択肢では FOLLOW とも重ならない文法が LL(1) であり、バックトラックなしで解析できる。
+    </li>
+    <li>
+      <strong>再帰下降による解析の追跡</strong> — 呼び出し木は構文木の形をしている。呼び出しは根から始まり、部分木は葉の側から戻りながらまとまる。
+    </li>
+    <li>
+      <strong>シフトと還元</strong> — 字句をスタックに積み、頂上が右辺に一致したら左辺にまとめる。還元の順は最右導出の逆であり、左再帰をそのまま扱える。
+    </li>
+    <li>
+      <strong>LR 構文解析</strong> — スタックの中身を有限個の状態に要約し、状態と次の字句で表を引いてシフトと還元を選ぶ。表はパーサー生成系が作り、あいまいな文法では競合が報告される。
+    </li>
+    <li>
+      <strong>使い分け</strong> — どちらも入力の長さに比例する時間で動く。既存の文法をそのまま使うならボトムアップ、文法を自分で決められ、分かりやすい誤りの報告が要るなら再帰下降法が適する。
+    </li>
+    <li>
+      <strong>再帰下降パーサーの実装</strong> — 各関数が部分木を返し、最後に入力の終わりを確かめる。誤りは位置・期待したもの・実際に現れたものを添えて報告し、木の形と誤った入力の両方で動作を確かめる。
+    </li>
+  </ul>
+</section>
+
+<footer class="doc-foot">
+  <p>コンパイラ／トップダウン構文解析とボトムアップ構文解析<br>
+  <img class="crest" src="assets/kousho.svg" alt="" aria-hidden="true">弓削商船高等専門学校 情報工学科 5年 後期 ― 担当: 瀬尾敦生</p>
+</footer>
+
+</div>
+</body>
+</html>
